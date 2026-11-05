@@ -151,7 +151,8 @@ test('closing a workspace watcher cancels pending additions and automatic additi
     );
     const limit = Date.now() + 4000;
     while (
-      !(await Bun.file(join(project, '.agents/skills/better-auth/SKILL.md')).exists()) &&
+      store.get<{ autoApplied: boolean }>('suggestion', projectKey(project))?.autoApplied !==
+        true &&
       Date.now() < limit
     )
       await Bun.sleep(40);
