@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
 import { randomInt } from 'node:crypto';
 import type { Store } from '../src/core/store';
+import type { DirectoryPickerDriver } from '../src/platform/folder-picker';
 import { startServer } from '../src/server';
 import { fixture } from './helpers';
 
@@ -10,11 +11,11 @@ afterEach(async () => {
   for (const close of cleanup.splice(0)) await close();
 });
 
-function fixtureServer(store: Store) {
+function fixtureServer(store: Store, chooseDirectory?: DirectoryPickerDriver) {
   for (let attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++) {
     const port = randomInt(48000, 59000);
     try {
-      return { server: startServer(store, port), port };
+      return { server: startServer(store, port, { chooseDirectory }), port };
     } catch (error) {
       if (!(error instanceof Error) || !('code' in error) || error.code !== 'EADDRINUSE')
         throw error;
@@ -23,10 +24,10 @@ function fixtureServer(store: Store) {
   throw new Error('No available HTTP fixture port after bounded retries.');
 }
 
-async function serverFixture() {
+async function serverFixture(chooseDirectory?: DirectoryPickerDriver) {
   const value = await fixture();
   cleanup.push(() => value.cleanup());
-  const { server, port } = fixtureServer(value.store);
+  const { server, port } = fixtureServer(value.store, chooseDirectory);
   cleanup.unshift(async () => {
     await server.stop(true);
   });
@@ -87,4 +88,42 @@ test('metadata and source content are returned as data and cannot change securit
   expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   const result = (await response.json()) as { body: string };
   expect(result.body).toContain('<script>');
+});
+
+test('native folder selection requires the private same-origin POST and does not scan or authorize the chosen project', async () => {
+  const calls: string[] = [];
+  const data = await serverFixture(async (initial) => {
+    calls.push(initial);
+    return initial;
+  });
+  const url = `${data.base}/api/pick-directory`;
+  const body = JSON.stringify({ initialPath: data.project });
+  const headers = { 'x-kitfold-token': data.token, 'content-type': 'application/json' };
+  expect((await fetch(url, { method: 'POST', body })).status).toBe(403);
+  expect(
+    (
+      await fetch(url, {
+        method: 'POST',
+        headers: { ...headers, origin: 'https://untrusted.example' },
+        body,
+      })
+    ).status,
+  ).toBe(403);
+  expect((await fetch(url, { headers })).status).toBe(405);
+  expect(
+    (await fetch(url, { method: 'POST', headers: { 'x-kitfold-token': data.token }, body })).status,
+  ).toBe(415);
+  expect(
+    (await fetch(url, { method: 'POST', headers, body: JSON.stringify({ command: 'untrusted' }) }))
+      .status,
+  ).toBe(400);
+  expect(calls).toHaveLength(0);
+  const before = data.store.settings();
+  const response = await fetch(url, { method: 'POST', headers, body });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ path: data.project });
+  expect(calls).toEqual([data.project]);
+  expect(data.store.projects()).toHaveLength(0);
+  expect(data.store.settings()).toEqual(before);
+  expect(data.store.list('approval')).toHaveLength(0);
 });

@@ -6,6 +6,7 @@ import { Automation } from './core/automation';
 import { inside } from './core/safety';
 import { route } from './core/service';
 import type { Store } from './core/store';
+import { createDirectoryPicker, type DirectoryPickerDriver } from './platform/folder-picker';
 
 export type WorkbenchServer = Bun.Server<undefined> & { accessUrl: string };
 async function readJson(request: Request): Promise<unknown> {
@@ -25,11 +26,16 @@ async function readJson(request: Request): Promise<unknown> {
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
-export function startServer(store: Store, port = 47471): WorkbenchServer {
+export function startServer(
+  store: Store,
+  port = 47471,
+  options: { chooseDirectory?: DirectoryPickerDriver } = {},
+): WorkbenchServer {
   const token = randomBytes(32).toString('hex');
   const root = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
   const base = `http://127.0.0.1:${port}`;
   const automation = new Automation(store);
+  const directoryPicker = createDirectoryPicker(options.chooseDirectory);
   void automation
     .sync()
     .catch((error) =>
@@ -66,6 +72,8 @@ export function startServer(store: Store, port = 47471): WorkbenchServer {
             { status: 403, headers },
           );
         if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method))
+          return new Response('Method denied', { status: 405, headers });
+        if (url.pathname === '/api/pick-directory' && request.method !== 'POST')
           return new Response('Method denied', { status: 405, headers });
         if (url.pathname === '/api/library-export' && request.method === 'GET') {
           try {
@@ -111,7 +119,11 @@ export function startServer(store: Store, port = 47471): WorkbenchServer {
           return new Response('JSON required', { status: 415, headers });
         try {
           const input: unknown = hasBody ? await readJson(request) : undefined;
-          const result = await route(store, request.method, url.pathname.slice(5), input);
+          if (url.pathname === '/api/pick-directory') server.timeout(request, 0);
+          const result =
+            url.pathname === '/api/pick-directory'
+              ? await directoryPicker.pick(input, request.signal)
+              : await route(store, request.method, url.pathname.slice(5), input);
           if (url.pathname.startsWith('/api/automation/')) await automation.sync();
           return Response.json(result ?? { error: 'Not found' }, {
             status: result === undefined ? 404 : 200,
@@ -150,6 +162,7 @@ export function startServer(store: Store, port = 47471): WorkbenchServer {
   });
   const stop = server.stop.bind(server);
   server.stop = async (closeActiveConnections?: boolean) => {
+    await directoryPicker.close();
     const stopped = stop(closeActiveConnections);
     await automation.stop();
     return stopped;

@@ -26,3 +26,5 @@ Project-local aliases between the same skill location can share a canonical file
 Detection covers JavaScript/TypeScript, Expo/React Native, Swift/Objective-C Apple projects, Kotlin/Android/JVM, Go, Rust, Python and .NET signals, including bounded common workspace layouts. Requirements and manual classification resolve ambiguous layouts. Detection does not scaffold application code or install application dependencies.
 
 macOS is the primary development/test platform. The CI workflow targets Linux. Native Windows paths and every live vendor CLI/version have not been manually certified. Generated formats and conversions are tested with local fixtures, and compatibility notes remain visible in each plan.
+
+Directory fields offer typed paths and a local native chooser. See [directory selection](DIRECTORY-SELECTION.md) for adapters, platform validation limits and the distinction between choosing a folder and granting project authority.
