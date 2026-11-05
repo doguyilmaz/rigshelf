@@ -703,5 +703,19 @@
   "Selected skills": "Selected skills",
   "MCP configuration": "MCP configuration",
   "Project guidance": "Project guidance",
-  "Nothing is written until you review and apply the plan.": "Nothing is written until you review and apply the plan."
+  "Nothing is written until you review and apply the plan.": "Nothing is written until you review and apply the plan.",
+  "Browse…": "Browse…",
+  "Choosing…": "Choosing…",
+  "Browse {{label}}": "Browse {{label}}",
+  "Browse project directory": "Browse project directory",
+  "Add project root folder": "Add project root folder",
+  "Add folder": "Add folder",
+  "Native folder selection is unavailable on this system. Enter the path manually.": "Native folder selection is unavailable on this system. Enter the path manually.",
+  "Could not open the folder picker. Enter the path manually.": "Could not open the folder picker. Enter the path manually.",
+  "Folder selection was canceled.": "Folder selection was canceled.",
+  "The folder picker returned an invalid path. Enter the path manually.": "The folder picker returned an invalid path. Enter the path manually.",
+  "The selected folder is no longer available. Choose another folder.": "The selected folder is no longer available. Choose another folder.",
+  "Enter a valid folder path before browsing.": "Enter a valid folder path before browsing.",
+  "The folder picker has closed.": "The folder picker has closed.",
+  "A folder picker is already open. Finish that selection first.": "A folder picker is already open. Finish that selection first."
 }

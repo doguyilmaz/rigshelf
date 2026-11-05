@@ -35,6 +35,7 @@ import {
   SearchBox,
   Spinner,
 } from '../components';
+import { DirectoryPathInput } from '../DirectoryPathInput';
 import { useDraftGuard } from '../drafts';
 import { countText, PAGE_SIZE } from '../format';
 import { t } from '../i18n';
@@ -630,15 +631,17 @@ function AddToLibrary({
         )}
         {tab === 'local' && (
           <>
-            <label>
-              {t('Skill directory')}
-              <input
+            <div className="directory-input-field">
+              <label htmlFor="local-skill-directory">{t('Skill directory')}</label>
+              <DirectoryPathInput
+                id="local-skill-directory"
+                label={t('Skill directory')}
                 value={localPath}
-                onChange={(event) => setLocalPath(event.target.value)}
+                onValueChange={setLocalPath}
                 placeholder={t('/path/to/my-skill')}
                 required
               />
-            </label>
+            </div>
             <Notice>
               {t(
                 'Reads SKILL.md and supporting files directly. Symlinked resources and oversized bundles are reported.',

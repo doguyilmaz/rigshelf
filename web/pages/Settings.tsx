@@ -4,6 +4,7 @@ import type { ImportReview } from '../../src/core/backup';
 import type { Provider, Settings as SettingsValue } from '../../src/core/model';
 import { accessToken, api, shortPath } from '../api';
 import { Button, CopyButton, Modal, Notice, PageHeader, Spinner } from '../components';
+import { BrowseDirectoryButton, DirectoryPathInput } from '../DirectoryPathInput';
 import { useDraftGuard } from '../drafts';
 import { countText } from '../format';
 import { languages, setLocale, t, useLocaleState } from '../i18n';
@@ -157,6 +158,27 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
                 onChange={(event) => setRoots(event.target.value)}
               />
             </label>
+            <div className="directory-actions">
+              <BrowseDirectoryButton
+                label={t('Add project root folder')}
+                text={t('Add folder')}
+                initialPath={roots
+                  .split('\n')
+                  .find((path) => path.trim())
+                  ?.trim()}
+                onSelect={(path) =>
+                  setRoots((current) => {
+                    const existing = current
+                      .split('\n')
+                      .map((value) => value.trim())
+                      .filter(Boolean);
+                    return existing.includes(path)
+                      ? current
+                      : `${current.trimEnd()}${current.trim() ? '\n' : ''}${path}`;
+                  })
+                }
+              />
+            </div>
             <label className="check-label">
               <input
                 type="checkbox"
@@ -460,17 +482,19 @@ function ConnectionEditor({ state, notify }: Pick<PageProps, 'state' | 'notify'>
         {t('Enable write tools')}
       </label>
       {writable && (
-        <label>
-          {t('Allowed project root')}
-          <input
+        <div className="directory-input-field">
+          <label htmlFor="allowed-project-root">{t('Allowed project root')}</label>
+          <DirectoryPathInput
+            id="allowed-project-root"
+            label={t('Allowed project root')}
             value={projectPath}
-            onChange={(event) => {
-              setProjectPath(event.target.value);
+            onValueChange={(path) => {
+              setProjectPath(path);
               setResult(undefined);
             }}
             placeholder={t('/absolute/project/path')}
           />
-        </label>
+        </div>
       )}
       <Button
         variant="secondary"

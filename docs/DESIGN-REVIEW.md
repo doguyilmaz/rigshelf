@@ -83,3 +83,13 @@ The select menu had a reproducible layout defect: Base UI keeps its empty-result
 Browser checks now cover empty-to-populated search transitions, inline facet counts, label proximity and desktop alignment, two-line long source options, nested popup Escape/focus behavior and six viewport widths. Screenshots are reviewed privately; passing these checks does not establish final visual approval.
 
 Verification: `bun run verify` passed (93 tests; 705 matching English/Turkish messages), `bun run lint` passed, and all six `bun run test:ui` suites passed after the final editor-alignment changes. The popup-spacing assertion was observed failing on the original 30 px spacer before the fix. One unrelated occupied test port exposed a fixture collision; the HTTP test fixture now retries that specific startup error and cleans up even if startup fails.
+
+## Browse alongside typed directory paths
+
+| Before | After | Why |
+| --- | --- | --- |
+| Setup and local import required knowing and typing an absolute directory path | A visible Browse button opens the native folder chooser while preserving text entry | Select an existing folder without copying its path. |
+| Settings roots and the writable MCP connection root required manual paths | The same chooser appends a root draft or fills the connection field | Keep directory selection consistent across screens. |
+| A chooser could imply immediate scanning or installation | Selection fills the draft; explicit save, import and setup actions remain separate | Choosing a location does not grant authority or perform work. |
+
+The [directory-selection contract](DIRECTORY-SELECTION.md) records cancellation, errors, lifecycle and platform validation limits.

@@ -39,6 +39,8 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R33 | Browser-persisted English/Turkish UI with lazy Turkish loading, matching catalogs, interpolation checks, localized dates/counts and cross-tab updates. Six-language release work is tracked in [localization](LOCALIZATION.md); the remaining four are not shipped yet. |
 | R34 | Family-based search/filter engine, separate item/source views, visible status, independent facets, manual classification and browser saved views. Seven core regressions and a 520-item browser flow cover behavior. |
 | R35 | Neutral application chrome, direct page titles, readable library rows and a component-based interactive preview. Visual direction remains open to user feedback. |
+| R36 | English technical vocabulary is retained in the Turkish catalog and documented for future locales. Catalog and browser regressions cover primary type labels; authored content stays unchanged. |
+| R37 | Shared Browse controls cover all four host-directory fields, with manual input, cancellation/error fallback and no implicit import/save/approval. Native chooser command, lifecycle and HTTP boundaries are tested; platform-specific manual QA limits are recorded in [directory selection](DIRECTORY-SELECTION.md). |
 
 ## Operating limits
 

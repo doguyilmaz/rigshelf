@@ -39,7 +39,12 @@ export interface AppState {
     autoApplied: boolean;
   }[];
 }
-export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+export async function api<T>(
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const segments = path.split('/').map((segment) => decodeURIComponent(segment));
   if (
     !/^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9._%-]+)*$/.test(path) ||
@@ -49,6 +54,7 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
   const token = accessToken();
   const response = await fetch(`/api/${path}`, {
     method,
+    signal,
     headers: {
       'x-kitfold-token': token,
       ...(body !== undefined ? { 'content-type': 'application/json' } : {}),

@@ -703,5 +703,19 @@
   "Selected skills": "Seçilen skill’ler",
   "MCP configuration": "MCP yapılandırması",
   "Project guidance": "Proje yönergeleri",
-  "Nothing is written until you review and apply the plan.": "Planı inceleyip uygulayana kadar hiçbir dosya yazılmaz."
+  "Nothing is written until you review and apply the plan.": "Planı inceleyip uygulayana kadar hiçbir dosya yazılmaz.",
+  "Browse…": "Göz at…",
+  "Choosing…": "Seçiliyor…",
+  "Browse {{label}}": "{{label}} için klasör seç",
+  "Browse project directory": "Proje klasörü seç",
+  "Add project root folder": "Proje kök klasörü ekle",
+  "Add folder": "Klasör ekle",
+  "Native folder selection is unavailable on this system. Enter the path manually.": "Bu sistemde klasör seçici kullanılamıyor. Yolu elle girin.",
+  "Could not open the folder picker. Enter the path manually.": "Klasör seçici açılamadı. Yolu elle girin.",
+  "Folder selection was canceled.": "Klasör seçimi iptal edildi.",
+  "The folder picker returned an invalid path. Enter the path manually.": "Klasör seçici geçersiz bir yol döndürdü. Yolu elle girin.",
+  "The selected folder is no longer available. Choose another folder.": "Seçilen klasör artık kullanılamıyor. Başka bir klasör seçin.",
+  "Enter a valid folder path before browsing.": "Göz atmadan önce geçerli bir klasör yolu girin.",
+  "The folder picker has closed.": "Klasör seçici kapatıldı.",
+  "A folder picker is already open. Finish that selection first.": "Bir klasör seçici zaten açık. Önce o seçimi tamamlayın."
 }

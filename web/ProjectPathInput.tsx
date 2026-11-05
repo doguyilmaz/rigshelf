@@ -1,6 +1,7 @@
 import { Autocomplete } from '@base-ui/react/autocomplete';
 import { ChevronDown, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
+import { BrowseDirectoryButton } from './DirectoryPathInput';
 import { t } from './i18n';
 
 interface ProjectOption {
@@ -20,6 +21,7 @@ export function ProjectPathInput({
   const { contains } = Autocomplete.useFilter();
   return (
     <div
+      className="directory-field project-directory-field"
       onKeyDownCapture={(event) => {
         if (event.key !== 'Escape' || !open) return;
         event.preventDefault();
@@ -69,6 +71,11 @@ export function ProjectPathInput({
           </Autocomplete.Positioner>
         </Autocomplete.Portal>
       </Autocomplete.Root>
+      <BrowseDirectoryButton
+        label={t('Browse project directory')}
+        initialPath={value}
+        onSelect={onValueChange}
+      />
     </div>
   );
 }

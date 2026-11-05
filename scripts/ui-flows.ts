@@ -264,7 +264,7 @@ try {
   await page.getByLabel('Connection harness', { exact: true }).click();
   await page.getByRole('option', { name: 'Codex', exact: true }).click();
   await page.getByLabel('Enable write tools', { exact: true }).check();
-  await page.getByLabel('Allowed project root').fill(fixtureData.project);
+  await page.getByLabel('Allowed project root', { exact: true }).fill(fixtureData.project);
   await page.getByRole('button', { name: 'Prepare connection', exact: true }).click();
   await expect(
     page.locator('.settings-aside pre').filter({ hasText: 'mcp_servers.kitfold' }),

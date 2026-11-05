@@ -294,6 +294,63 @@ select {
   flex-shrink: 0;
   color: var(--muted);
 }
+.directory-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+.directory-field > input {
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 10px;
+  font-size: 13px;
+  line-height: 20px;
+}
+.directory-field .path-input {
+  min-width: 0;
+}
+.browse-directory {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  min-width: 106px;
+  padding: 9px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.browse-directory:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  border-color: var(--muted);
+}
+.directory-picker-error {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.directory-input-field > .directory-field {
+  margin-top: 6px;
+}
+.directory-input-field > label {
+  font-size: 12px;
+  font-weight: 500;
+}
+.directory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
 
 @media (min-width: 701px) and (max-height: 850px) {
   .sidebar-note {
