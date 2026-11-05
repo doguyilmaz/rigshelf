@@ -30,6 +30,7 @@ import {
 import { useDraftGuard } from '../drafts';
 import { countText } from '../format';
 import type { PageProps } from '../main';
+import { Select } from '../Select';
 import { Discover } from './Discover';
 import { EntryDetail } from './EntryDetail';
 
@@ -184,7 +185,7 @@ export function Library(props: PageProps): ReactNode {
           ))}
         </div>
       </div>
-      <div className="library-toolbar">
+      <div className="library-toolbar filters-toolbar">
         <SearchBox
           value={query}
           onChange={(value) => {
@@ -194,58 +195,53 @@ export function Library(props: PageProps): ReactNode {
         />
         {view !== 'sources' && (
           <>
-            <select
-              aria-label="Group library"
+            <Select
+              label="Group library"
+              searchable
               value={group}
-              onChange={(event) => {
-                setGroup(event.target.value);
+              onValueChange={(value) => {
+                setGroup(value);
                 setPage(0);
               }}
-            >
-              <option value="all">All sources & projects</option>
-              <optgroup label="By source">
-                {state.sources
+              options={[
+                { value: 'all', label: 'All sources & projects' },
+                ...state.sources
                   .filter((source) => state.entries.some((entry) => entry.sourceId === source.id))
-                  .map((source) => (
-                    <option key={source.id} value={source.id}>
-                      {source.name}
-                    </option>
-                  ))}
-              </optgroup>
-              <optgroup label="By project">
-                {state.projects.map((project) => (
-                  <option key={project.id} value={`project:${project.id}`}>
-                    {project.name}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-            <select
-              aria-label="Filter by installation scope"
+                  .map((source) => ({ value: source.id, label: source.name, group: 'Source' })),
+                ...state.projects.map((project) => ({
+                  value: `project:${project.id}`,
+                  label: project.name,
+                  group: 'Project',
+                })),
+              ]}
+            />
+            <Select
+              label="Filter by installation scope"
               value={scope}
-              onChange={(event) => {
-                setScope(event.target.value);
+              onValueChange={(value) => {
+                setScope(value);
                 setPage(0);
               }}
-            >
-              <option value="all">All locations</option>
-              <option value="global">Global installations</option>
-              <option value="project">Project installations</option>
-              <option value="unused">Library only</option>
-            </select>
-            <select
-              aria-label="Filter by tag"
+              options={[
+                { value: 'all', label: 'All locations' },
+                { value: 'global', label: 'Global installations' },
+                { value: 'project', label: 'Project installations' },
+                { value: 'unused', label: 'Library only' },
+              ]}
+            />
+            <Select
+              label="Filter by tag"
+              searchable
               value={tag}
-              onChange={(event) => {
-                setTag(event.target.value);
+              onValueChange={(value) => {
+                setTag(value);
                 setPage(0);
               }}
-            >
-              <option value="all">All tags</option>
-              {tags.map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
+              options={[
+                { value: 'all', label: 'All tags' },
+                ...tags.map((value) => ({ value, label: value })),
+              ]}
+            />
           </>
         )}
       </div>

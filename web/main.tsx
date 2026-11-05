@@ -226,13 +226,19 @@ function App(): ReactNode {
         <div className="sidebar-bottom">
           <button
             type="button"
+            aria-label="Settings"
             className={`nav-item ${page === 'settings' ? 'active' : ''}`}
             onClick={() => navigate('settings')}
           >
             <Settings2 size={18} />
             <span>Settings</span>
           </button>
-          <button type="button" className="quick-search" onClick={() => setPalette(true)}>
+          <button
+            type="button"
+            className="quick-search"
+            aria-label="Quick jump"
+            onClick={() => setPalette(true)}
+          >
             <Search size={15} />
             <span>Quick jump</span>
             <kbd>⌘ K</kbd>

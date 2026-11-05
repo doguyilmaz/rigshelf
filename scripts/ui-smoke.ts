@@ -39,6 +39,7 @@ try {
   await page.getByRole('heading', { name: /Every project/ }).waitFor();
   await page.screenshot({ path: join(directory, 'setup-desktop.png'), fullPage: true });
   await page.getByLabel('Project directory', { exact: true }).fill(data.project);
+  await page.getByLabel('Project directory', { exact: true }).press('Escape');
   await page.getByRole('button', { name: 'Build my kit' }).click();
   await page.getByRole('button', { name: 'Inspect again' }).waitFor();
   await page.getByRole('button', { name: 'Review setup' }).click();

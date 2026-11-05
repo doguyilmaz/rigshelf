@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   ChevronDown,
   FileCode2,
-  FolderOpen,
   Layers2,
   Plus,
   ScanLine,
@@ -19,6 +18,8 @@ import { api, apiId, shortPath } from '../api';
 import { Badge, Button, Modal, Notice, SearchBox, Spinner } from '../components';
 import { useDraftGuard } from '../drafts';
 import type { PageProps } from '../main';
+import { ProjectPathInput } from '../ProjectPathInput';
+import { Select } from '../Select';
 import { EntryDetail } from './EntryDetail';
 
 interface Detection {
@@ -156,26 +157,14 @@ export function Setup({
             <label className="field-label" htmlFor="project-path">
               Project directory
             </label>
-            <div className="path-input">
-              <FolderOpen size={18} />
-              <input
-                id="project-path"
-                value={path}
-                onChange={(event) => {
-                  setPath(event.target.value);
-                  setDetected(undefined);
-                }}
-                list="project-paths"
-                placeholder="~/Developer/my-next-project"
-              />
-              <datalist id="project-paths">
-                {state.projects.map((project) => (
-                  <option key={project.id} value={project.path}>
-                    {project.name}
-                  </option>
-                ))}
-              </datalist>
-            </div>
+            <ProjectPathInput
+              value={path}
+              projects={state.projects}
+              onValueChange={(next) => {
+                setPath(next);
+                setDetected(undefined);
+              }}
+            />
             <label className="field-label" htmlFor="requirements">
               What are you making? <span>Optional</span>
             </label>
@@ -193,23 +182,22 @@ export function Setup({
               <label className="field-label" htmlFor="preset-choice">
                 Starting preset
               </label>
-              <select
+              <Select
                 id="preset-choice"
+                label="Starting preset"
+                searchable
                 value={preset}
-                onChange={(event) => {
-                  setPreset(event.target.value);
-                  const chosen = state.presets.find((value) => value.id === event.target.value);
+                onValueChange={(next) => {
+                  setPreset(next);
+                  const chosen = state.presets.find((value) => value.id === next);
                   if (chosen) setProviders(chosen.providers);
                   setDetected(undefined);
                 }}
-              >
-                <option value="auto">Detect from the project</option>
-                {state.presets.map((value) => (
-                  <option key={value.id} value={value.id}>
-                    {value.name}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: 'auto', label: 'Detect from the project' },
+                  ...state.presets.map((value) => ({ value: value.id, label: value.name })),
+                ]}
+              />
             </div>
             <Button
               disabled={!path.trim() || busy}

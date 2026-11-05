@@ -7,6 +7,7 @@ import { Button, CopyButton, Modal, Notice, PageHeader, Spinner } from '../compo
 import { useDraftGuard } from '../drafts';
 import { countText } from '../format';
 import type { PageProps } from '../main';
+import { Select } from '../Select';
 
 export function Settings({ state, refresh, notify }: PageProps): ReactNode {
   const [value, setValue] = useState(state.settings);
@@ -164,25 +165,28 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
               prepares a prompt. Ollama can produce a proposal locally.
             </p>
             <div className="form-two-columns">
-              <label>
+              <label htmlFor="review-provider">
                 Review provider
-                <select
+                <Select
+                  label="Review provider"
+                  id="review-provider"
                   value={value.aiRunner}
-                  onChange={(event) =>
-                    update('aiRunner', event.target.value as SettingsValue['aiRunner'])
+                  onValueChange={(runner) =>
+                    update('aiRunner', runner as SettingsValue['aiRunner'])
                   }
-                >
-                  <option value="none">Current agent / MCP handoff</option>
-                  {['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok', 'ollama'].map(
-                    (runner) => (
-                      <option value={runner} key={runner}>
-                        {runner === 'ollama'
-                          ? 'Ollama · local generation'
-                          : `${runner} · prompt handoff`}
-                      </option>
+                  options={[
+                    { value: 'none', label: 'Current agent / MCP handoff' },
+                    ...['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok', 'ollama'].map(
+                      (runner) => ({
+                        value: runner,
+                        label:
+                          runner === 'ollama'
+                            ? 'Ollama · local generation'
+                            : `${runner} · prompt handoff`,
+                      }),
                     ),
-                  )}
-                </select>
+                  ]}
+                />
               </label>
               {value.aiRunner === 'ollama' && (
                 <label>
@@ -202,17 +206,20 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
               Optional source checks run while this workbench is open. They record suggestions and
               never replace installed snapshots.
             </p>
-            <label>
+            <label htmlFor="source-check-interval">
               Check known sources every
-              <select
-                value={value.discoveryDays}
-                onChange={(event) => update('discoveryDays', Number(event.target.value))}
-              >
-                <option value={0}>Only when I ask</option>
-                <option value={1}>Day</option>
-                <option value={7}>Week</option>
-                <option value={30}>Month</option>
-              </select>
+              <Select
+                label="Check known sources every"
+                id="source-check-interval"
+                value={String(value.discoveryDays)}
+                onValueChange={(days) => update('discoveryDays', Number(days))}
+                options={[
+                  { value: '0', label: 'Only when I ask' },
+                  { value: '1', label: 'Day' },
+                  { value: '7', label: 'Week' },
+                  { value: '30', label: 'Month' },
+                ]}
+              />
             </label>
             <label>
               Optional directory searches{' '}
@@ -383,21 +390,18 @@ function ConnectionEditor({ state, notify }: Pick<PageProps, 'state' | 'notify'>
   }
   return (
     <div className="editor-form">
-      <label>
+      <label htmlFor="connection-harness">
         Connection harness
-        <select
+        <Select
+          label="Connection harness"
+          id="connection-harness"
           value={provider}
-          onChange={(event) => {
-            setProvider(event.target.value as Provider);
+          onValueChange={(next) => {
+            setProvider(next as Provider);
             setResult(undefined);
           }}
-        >
-          {state.adapters.map((adapter) => (
-            <option key={adapter.id} value={adapter.id}>
-              {adapter.name}
-            </option>
-          ))}
-        </select>
+          options={state.adapters.map((adapter) => ({ value: adapter.id, label: adapter.name }))}
+        />
       </label>
       <label className="checkbox-label">
         <input

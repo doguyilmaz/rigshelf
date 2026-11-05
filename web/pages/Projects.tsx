@@ -17,6 +17,7 @@ import {
 import { useDraftGuard } from '../drafts';
 import { countText, PAGE_SIZE } from '../format';
 import type { PageProps } from '../main';
+import { Select } from '../Select';
 import { RuleEditor } from './Directives';
 import { PlanReview } from './Setup';
 
@@ -54,19 +55,19 @@ export function Projects(props: PageProps): ReactNode {
           }}
           placeholder="Find a project…"
         />
-        <select
+        <Select
           value={stack}
-          onChange={(event) => {
-            setStack(event.target.value);
+          onValueChange={(value) => {
+            setStack(value);
             setPage(0);
           }}
-          aria-label="Filter project stack"
-        >
-          <option value="all">All stacks</option>
-          {stacks.map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </select>
+          label="Filter project stack"
+          searchable
+          options={[
+            { value: 'all', label: 'All stacks' },
+            ...stacks.map((value) => ({ value, label: value })),
+          ]}
+        />
         <span className="muted">{countText(projects.length, 'project')}</span>
       </div>
       {projects.length ? (

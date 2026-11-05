@@ -14,6 +14,7 @@ import {
 } from '../components';
 import { useDraftGuard } from '../drafts';
 import type { PageProps } from '../main';
+import { Select } from '../Select';
 
 interface Detail {
   entry: Entry;
@@ -52,23 +53,20 @@ export function EntryDetail(props: Props): ReactNode {
       wide
     >
       {versions.length > 1 && (
-        <label className="version-picker">
+        <label className="version-picker" htmlFor="snapshot-version">
           Snapshot version
-          <select
-            aria-label="Snapshot version"
+          <Select
+            label="Snapshot version"
+            id="snapshot-version"
             value={selected}
-            onChange={(event) => {
-              const value = event.target.value;
+            onValueChange={(value) => {
               guard(() => setSelected(value));
             }}
-          >
-            {versions.map((version) => (
-              <option key={version.id} value={version.id}>
-                {version.digest.slice(0, 10)} · {formatDate(version.updatedAt)}
-                {version.archived ? ' · Archived' : ''}
-              </option>
-            ))}
-          </select>
+            options={versions.map((version) => ({
+              value: version.id,
+              label: `${version.digest.slice(0, 10)} · ${formatDate(version.updatedAt)}${version.archived ? ' · Archived' : ''}`,
+            }))}
+          />
         </label>
       )}
       <EntryInspector
@@ -196,15 +194,16 @@ function EntryInspector({
               Tags
               <input value={tags} onChange={(event) => setTags(event.target.value)} />
             </label>
-            <label>
+            <label htmlFor="entry-source">
               Source relationship
-              <select value={source} onChange={(event) => setSource(event.target.value)}>
-                {state.sources.map((value) => (
-                  <option key={value.id} value={value.id}>
-                    {value.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                label="Source relationship"
+                id="entry-source"
+                value={source}
+                onValueChange={setSource}
+                searchable
+                options={state.sources.map((value) => ({ value: value.id, label: value.name }))}
+              />
             </label>
             <Button
               variant="secondary"

@@ -14,6 +14,7 @@ import {
 } from '../components';
 import { requestDiscard, useDraftGuard } from '../drafts';
 import type { PageProps } from '../main';
+import { Select } from '../Select';
 
 export function Directives(props: PageProps): ReactNode {
   const { state } = props;
@@ -229,22 +230,27 @@ export function RuleEditor({
           />
         </label>
         <div className="form-two-columns">
-          <label>
+          <label htmlFor="directive-scope">
             Applies to
-            <select value={value.scope} onChange={(event) => update('scope', event.target.value)}>
-              {scopes.map((scope) => (
-                <option key={scope} value={scope}>
-                  {scope === 'global' ? 'Every project' : scope}
-                </option>
-              ))}
-              <optgroup label="Only this project">
-                {state.projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+            <Select
+              label="Applies to"
+              id="directive-scope"
+              value={value.scope}
+              onValueChange={(scope) => update('scope', scope)}
+              searchable
+              options={[
+                ...scopes.map((scope) => ({
+                  value: scope,
+                  label: scope === 'global' ? 'Every project' : scope,
+                  group: 'Scope',
+                })),
+                ...state.projects.map((project) => ({
+                  value: project.id,
+                  label: project.name,
+                  group: 'Only this project',
+                })),
+              ]}
+            />
           </label>
           <label>
             Priority <span>Later values are more specific</span>

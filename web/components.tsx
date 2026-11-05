@@ -78,7 +78,7 @@ export function Modal({
         if (event.target === dialog.current) onClose();
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Escape') {
+        if (event.key === 'Escape' && !event.defaultPrevented) {
           event.preventDefault();
           onClose();
         }

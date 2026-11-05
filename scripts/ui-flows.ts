@@ -83,6 +83,7 @@ try {
   await page.getByRole('heading', { name: /Every project/ }).waitFor();
   await audit('setup');
   await page.getByLabel('Project directory', { exact: true }).fill(fixtureData.project);
+  await page.getByLabel('Project directory', { exact: true }).press('Escape');
   await page.getByRole('button', { name: 'Build my kit', exact: true }).click();
   await expect(page.getByText('Directive: Flagged example', { exact: true })).toBeVisible();
   await expect(
@@ -172,7 +173,8 @@ try {
   await page.getByRole('button', { name: 'New preset' }).click();
   dialog = page.getByRole('dialog', { name: 'A new starting point' });
   await dialog.getByLabel('Name', { exact: true }).fill('Focused Expo');
-  await dialog.getByLabel('Inherit from').selectOption('expo');
+  await dialog.getByLabel('Inherit from', { exact: true }).click();
+  await page.getByRole('option', { name: 'Expo + React Native', exact: true }).click();
   await dialog.getByLabel('Skill name selectors').fill('field-guide');
   await dialog.getByRole('button', { name: 'Close dialog', exact: true }).click();
   let discard = page.getByRole('dialog', { name: 'Keep your draft?', exact: true });
@@ -194,7 +196,8 @@ try {
   await audit('directive-content-review');
   await page.getByRole('button', { name: 'New directive' }).click();
   await page.getByLabel('Title', { exact: true }).fill('Evidence before assumptions');
-  await page.getByLabel('Applies to').selectOption('expo');
+  await page.getByLabel('Applies to', { exact: true }).click();
+  await page.getByRole('option', { name: 'expo', exact: true }).click();
   await page
     .locator('textarea.rule-textarea')
     .fill('Check the observable behavior before proposing a fix.');
@@ -235,14 +238,17 @@ try {
   await expect(dialog.locator('.document-preview')).toContainText('Keep requests focused');
   await dialog.getByRole('button', { name: 'Create a reusable directive' }).click();
   const promote = page.getByRole('dialog', { name: 'Promote selected guidance' });
-  await expect(promote.getByLabel('Applies to')).toHaveValue(fixtureData.store.projects()[0].id);
+  await expect(promote.getByLabel('Applies to', { exact: true })).toHaveText(
+    fixtureData.store.projects()[0].name,
+  );
   await audit('memory-promotion');
   await close(promote);
   await close(dialog);
   checks.push('Memory edits use reviewed plans and promotion defaults to project scope.');
 
   await nav('Settings');
-  await page.getByLabel('Connection harness').selectOption('codex');
+  await page.getByLabel('Connection harness', { exact: true }).click();
+  await page.getByRole('option', { name: 'Codex', exact: true }).click();
   await page.getByLabel('Enable write tools', { exact: true }).check();
   await page.getByLabel('Allowed project root').fill(fixtureData.project);
   await page.getByRole('button', { name: 'Prepare connection', exact: true }).click();

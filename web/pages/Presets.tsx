@@ -5,6 +5,7 @@ import { api, apiId } from '../api';
 import { Badge, Button, Modal, Notice, PageHeader, SearchBox, Spinner } from '../components';
 import { useDraftGuard } from '../drafts';
 import type { PageProps } from '../main';
+import { Select } from '../Select';
 
 function chain(presets: Preset[], preset: Preset, seen = new Set<string>()): Preset[] {
   if (seen.has(preset.id)) return [];
@@ -209,21 +210,21 @@ function PresetEditor({
           />
         </label>
         <div className="form-two-columns">
-          <label>
+          <label htmlFor="preset-parent">
             Inherit from
-            <select
+            <Select
+              label="Inherit from"
+              id="preset-parent"
               value={value.parentId || ''}
-              onChange={(event) => change('parentId', event.target.value || null)}
-            >
-              <option value="">No parent</option>
-              {state.presets
-                .filter((item) => item.id !== value.id)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-            </select>
+              onValueChange={(parentId) => change('parentId', parentId || null)}
+              searchable
+              options={[
+                { value: '', label: 'No parent' },
+                ...state.presets
+                  .filter((item) => item.id !== value.id)
+                  .map((item) => ({ value: item.id, label: item.name })),
+              ]}
+            />
           </label>
           <label>
             Stack tags
