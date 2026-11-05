@@ -8,6 +8,8 @@ import {
   skillPaths,
 } from './inventory-paths';
 import type { DocumentLocation } from './model';
+import { readPluginFile } from './plugin-files';
+import { portablePlugin } from './plugin-manifests';
 import { inside } from './safety';
 
 const MAX_PLUGIN_DIRECTORIES = 4096;
@@ -20,7 +22,7 @@ export interface AiFileInventory {
   plugins: { path: string; provider: string }[];
 }
 
-async function pluginRoots(
+export async function pluginRoots(
   root: string,
   boundaries: string[],
   warnings: string[],
@@ -48,16 +50,21 @@ async function pluginRoots(
     }
     visited.add(canonical);
     const entries = await readdir(current.path, { withFileTypes: true }).catch(() => []);
-    const marker =
-      (await lstat(join(current.path, '.claude-plugin/plugin.json')).catch(() => undefined)) ||
-      (await lstat(join(current.path, '.codex-plugin/plugin.json')).catch(() => undefined));
-    if (
-      marker?.isFile() ||
-      (current.depth >= 2 &&
-        entries.some(
-          (entry) => entry.isDirectory() && ['agents', 'commands', 'hooks'].includes(entry.name),
-        ))
-    ) {
+    const markers = await Promise.all(
+      ['.claude-plugin/plugin.json', '.codex-plugin/plugin.json'].map((name) =>
+        lstat(join(current.path, name)).catch(() => undefined),
+      ),
+    );
+    let portable = false;
+    if ((await lstat(join(current.path, 'plugin.json')).catch(() => undefined))?.isFile()) {
+      const file = await readPluginFile(join(current.path, 'plugin.json'), boundaries, warnings);
+      try {
+        portable = Boolean(file && portablePlugin(JSON.parse(file.text)));
+      } catch {
+        warnings.push(`${current.path}: Invalid portable Plugin manifest.`);
+      }
+    }
+    if (markers.some((marker) => marker?.isFile()) || portable) {
       found.push(current.path);
       continue;
     }
@@ -139,7 +146,10 @@ export async function projectAiFiles(
       (
         await lstat(join(directory, '.claude-plugin/plugin.json')).catch(() => undefined)
       )?.isFile() ||
-      (await lstat(join(directory, '.codex-plugin/plugin.json')).catch(() => undefined))?.isFile()
+      (
+        await lstat(join(directory, '.codex-plugin/plugin.json')).catch(() => undefined)
+      )?.isFile() ||
+      (await inspectPortable(directory, canonical, result.warnings))
     )
       result.plugins.push({ path: directory, provider: 'native-plugin' });
   }
@@ -156,20 +166,51 @@ export async function globalAiFiles(configRoots: AiConfigRoot[]): Promise<AiFile
   const canonical = (
     await Promise.all(roots.map((root) => realpath(root).catch(() => undefined)))
   ).filter((root): root is string => Boolean(root));
+  const scanned = new Set<string>();
   for (const root of configRoots) {
     await appendNative(result, root.path, root.provider, roots);
     if (!['claude', 'codex'].includes(root.provider)) continue;
-    for (const name of ['cache', 'marketplaces'])
+    for (const name of ['cache', 'marketplaces', 'bundled-marketplaces']) {
+      const path = await realpath(join(root.path, 'plugins', name)).catch(() => undefined);
+      if (!path || scanned.has(`${root.provider}:${path}`)) continue;
+      scanned.add(`${root.provider}:${path}`);
+      if (name !== 'cache')
+        for (const entry of await readdir(join(root.path, 'plugins', name), {
+          withFileTypes: true,
+        }).catch(() => []))
+          if (entry.isDirectory() || entry.isSymbolicLink())
+            await appendNative(
+              result,
+              join(root.path, 'plugins', name, entry.name),
+              root.provider,
+              roots,
+            );
       for (const path of await pluginRoots(
         join(root.path, 'plugins', name),
         canonical,
         result.warnings,
       ))
         result.plugins.push({ path, provider: `${root.provider}-plugin` });
+    }
   }
   for (const plugin of result.plugins)
     await appendNative(result, plugin.path, plugin.provider, roots);
   result.files = mergedGuidance(result.files);
   result.warnings = [...new Set(result.warnings)];
   return result;
+}
+
+export async function inspectPortable(
+  directory: string,
+  roots: string[],
+  warnings: string[],
+): Promise<boolean> {
+  const file = await readPluginFile(join(directory, 'plugin.json'), roots, warnings);
+  if (!file) return false;
+  try {
+    return portablePlugin(JSON.parse(file.text));
+  } catch {
+    warnings.push(`${file.path}: Invalid portable Plugin manifest.`);
+    return false;
+  }
 }

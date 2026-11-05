@@ -6,6 +6,7 @@ import {
   type LibraryFilters,
   type LibraryItem,
 } from '../../src/core/library';
+import { pluginEvidenceLabels } from '../../src/core/plugin-evidence';
 import {
   type Category,
   isClassificationTag,
@@ -50,11 +51,20 @@ export function libraryFilterChips(
       });
   }
   const singles: {
-    axis: 'source' | 'project' | 'agent' | 'scope' | 'origin' | 'status' | 'review';
+    axis: 'source' | 'project' | 'agent' | 'scope' | 'origin' | 'status' | 'review' | 'evidence';
     label: string;
     value: string;
     initial: string;
   }[] = [
+    {
+      axis: 'evidence',
+      label: 'Plugin evidence',
+      value:
+        filters.evidence === 'all'
+          ? t('Any Plugin evidence')
+          : t(pluginEvidenceLabels[filters.evidence]),
+      initial: 'all',
+    },
     {
       axis: 'source',
       label: 'Source',
@@ -212,6 +222,29 @@ export function LibraryFilterPanel({
         <SlidersHorizontal size={15} aria-hidden="true" />
       </div>
       <p className="facet-intro">{t('Start with where you build or what you need to do.')}</p>
+      {(filters.kind === 'plugin' || filters.evidence !== 'all') && (
+        <label htmlFor="library-plugin-evidence">
+          {t('Plugin evidence')}
+          <Select
+            id="library-plugin-evidence"
+            label={t('Plugin evidence')}
+            value={filters.evidence}
+            onValueChange={(evidence) =>
+              onChange({ ...filters, evidence: evidence as LibraryFilters['evidence'] })
+            }
+            options={[
+              { value: 'all', label: t('Any Plugin evidence') },
+              ...Object.entries(pluginEvidenceLabels).map(([value, label]) => ({
+                value,
+                label: t(label),
+              })),
+            ]}
+          />
+          <small className="muted">
+            {t('Configuration and cache presence do not prove a Plugin is loaded in a session.')}
+          </small>
+        </label>
+      )}
       <label htmlFor="library-platform">
         {t('Platform & area')}
         <MultiSelect

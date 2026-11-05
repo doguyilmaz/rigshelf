@@ -42,6 +42,7 @@ export function readLibraryFilters(value: unknown): LibraryFilters {
     origin: ['all', 'custom', 'upstream'],
     status: ['active', 'archived', 'all'],
     review: ['all', 'flagged', 'blocked', 'clean', 'approved'],
+    evidence: ['all', 'installed', 'configured', 'local', 'cached', 'catalog', 'reference'],
   };
   for (const axis of Object.keys(enums) as (keyof typeof enums)[])
     if (typeof value[axis] === 'string' && enums[axis].includes(value[axis]))

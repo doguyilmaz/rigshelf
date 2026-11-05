@@ -1,5 +1,6 @@
 import { FileText, Plug, ShieldAlert } from 'lucide-react';
 import type { LibraryItem } from '../../src/core/library';
+import { pluginEvidenceLabels, pluginStatus, usageLocations } from '../../src/core/plugin-evidence';
 import { isClassificationTag, platforms, technologies } from '../../src/core/taxonomy';
 import { Badge } from '../components';
 import { countText } from '../format';
@@ -40,7 +41,9 @@ export function LibraryRows({
       {items.map((item) => {
         const { entry, source, locations, classification, versions } = item;
         const usedProjects = new Set(
-          locations.map((location) => location.projectId).filter(Boolean),
+          usageLocations(locations)
+            .map((location) => location.projectId)
+            .filter(Boolean),
         );
         const definitions = classification.technologies.length ? technologies : platforms;
         const ids = classification.technologies.length
@@ -100,12 +103,17 @@ export function LibraryRows({
             <div className="entry-source">
               {showSource && <span>{source?.name || t('Unknown source')}</span>}
               <small>
-                {usedProjects.size
-                  ? countText(usedProjects.size, 'project')
-                  : locations.some((location) => location.scope === 'global')
-                    ? t('Global installations')
-                    : t('Library only')}
+                {entry.kind === 'plugin'
+                  ? t(pluginEvidenceLabels[pluginStatus(locations)])
+                  : usedProjects.size
+                    ? countText(usedProjects.size, 'project')
+                    : locations.some((location) => location.scope === 'global')
+                      ? t('Global installations')
+                      : t('Library only')}
               </small>
+              {entry.kind === 'plugin' && usedProjects.size > 0 && (
+                <small>{countText(usedProjects.size, 'project')}</small>
+              )}
             </div>
             <div className="library-item-review">
               {review === 'Blocked content' || review === 'Needs review' ? (

@@ -3,7 +3,7 @@ import { lstat, readdir, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { userAiRoots } from './ai-config-roots';
-import { type AiFileInventory, globalAiFiles, projectAiFiles } from './ai-files';
+import { type AiFileInventory, globalAiFiles, inspectPortable, projectAiFiles } from './ai-files';
 import { detectProject, exists, ignoredDirectories, inferTags, readText } from './detect';
 import {
   globalGuidance,
@@ -25,6 +25,10 @@ import type { Kit } from './kit';
 import { mcpLocationGroups } from './mcp-locations';
 import { type DocumentLocation, type Entry, McpSchema, type Project, type Source } from './model';
 import { ownedProject } from './ownership';
+import { pluginRegistries } from './plugin-config';
+import { pluginBoundaries, pluginPathAllowed } from './plugin-files';
+import { inventoryNativePlugins } from './plugin-inventory';
+import { pluginProject } from './plugin-records';
 import { canonicalMcp, object, readConfig } from './providers';
 import { hash, inside, now, redact, scanText } from './safety';
 import { pinnedMcp, pinnedSkill } from './scan-pinned';
@@ -34,6 +38,7 @@ export interface ScanResult {
   projects: number;
   skills: number;
   mcps: number;
+  plugins: number;
   skipped: string[];
   completedAt: string;
 }
@@ -129,7 +134,9 @@ async function discoverProjects(
           'SKILL.md',
         ].includes(name) ||
         name.endsWith('.xcodeproj'),
-    )
+    ) ||
+    (names.includes('plugin.json') &&
+      (await inspectPortable(root, await pluginBoundaries([root]), skipped)))
   ) {
     output.add(root);
     return true;
@@ -442,7 +449,14 @@ export async function scan(
   scanProgress = { state: 'running', message: 'Finding project manifests', scanned: 0 };
   const home = options.home || homedir();
   const includeGlobals = options.globals ?? store.settings().scanGlobals;
-  const result: ScanResult = { projects: 0, skills: 0, mcps: 0, skipped: [], completedAt: '' };
+  const result: ScanResult = {
+    projects: 0,
+    skills: 0,
+    mcps: 0,
+    plugins: 0,
+    skipped: [],
+    completedAt: '',
+  };
   const imported = new Map<string, Entry>();
   const observed = new Set<string>(),
     configurations = new Set<string>(),
@@ -485,12 +499,36 @@ export async function scan(
     }
     result.skipped.push(...sharedGuidance.warnings);
     const contexts = new Map<string, string[]>();
+    const pluginProjects = new Map<string, Awaited<ReturnType<typeof inventoryProject>>>();
     const partialProjects = new Set<string>();
     const projects = new Set<string>();
     for (const root of options.roots || store.settings().roots) {
       const expanded = resolve(root.startsWith('~/') ? join(home, root.slice(2)) : root);
       selectedRoots.push(expanded);
       if (await discoverProjects(expanded, projects, result.skipped)) completeRoots.push(expanded);
+    }
+    const nativeBoundaries = await pluginBoundaries([
+      ...configRoots.map((root) => root.path),
+      ...selectedRoots,
+    ]);
+    const registries = await pluginRegistries(configRoots, nativeBoundaries, result.skipped);
+    for (const record of registries.flatMap((registry) => registry.records)) {
+      const referenced = pluginProject(store, record.projectPath, 'claude');
+      if (!referenced || projects.has(referenced.path)) continue;
+      if (projects.size >= MAX_REFERENCED_PROJECTS) {
+        result.skipped.push('Referenced project limit reached; Plugin inventory is partial.');
+        break;
+      }
+      const canonical = await realpath(referenced.path).catch(() => undefined);
+      if (
+        canonical &&
+        selectedRoots.some((root) => inside(root, referenced.path)) &&
+        pluginPathAllowed(canonical, nativeBoundaries) &&
+        !relative(selectedRoots.find((root) => inside(root, referenced.path))!, referenced.path)
+          .split(sep)
+          .some((part) => ignoredDirectories.has(part))
+      )
+        projects.add(referenced.path);
     }
     const targets: {
       root: string;
@@ -509,6 +547,7 @@ export async function scan(
           includeGlobals && !globalPartial,
         );
         const { project } = detail;
+        pluginProjects.set(path, detail);
         result.skipped.push(...(project.inventoryWarnings || []));
         contexts.set(path, detail.contexts);
         for (const context of detail.contexts)
@@ -574,7 +613,7 @@ export async function scan(
     );
     const scannedGlobalSkills = new Set<string>();
     const scannedMcpFiles = new Set<string>();
-    for (const target of targets) {
+    const scanSkills = async (target: (typeof targets)[number]) => {
       const kit = target.project
         ? (
             await ownedProject(store, target.project.path).catch((error) => {
@@ -621,8 +660,9 @@ export async function scan(
                 lastSeen: now(),
               });
               if (target.project && !target.project.providers.includes(provider)) {
-                target.project.providers.push(provider);
-                store.put('project', target.project);
+                const current = store.get<Project>('project', target.project.id) || target.project;
+                current.providers = [...new Set([...current.providers, provider])];
+                store.put('project', current);
               }
               result.skills++;
               scanProgress.scanned++;
@@ -639,6 +679,12 @@ export async function scan(
           },
         );
       }
+    };
+    for (const target of targets) {
+      await scanSkills(target);
+      const kit = target.project
+        ? (await ownedProject(store, target.project.path).catch(() => undefined))?.kit
+        : undefined;
       result.mcps += await importMcp(
         store,
         target.root,
@@ -678,6 +724,7 @@ export async function scan(
               includeGlobals && !globalPartial,
             );
             projects.add(referenced.path);
+            pluginProjects.set(referenced.path, detail);
             contexts.set(referenced.path, detail.contexts);
             for (const context of detail.contexts)
               targets.push({
@@ -707,6 +754,20 @@ export async function scan(
         }
       }
     }
+    scanProgress.message = 'Reading native Plugin registries, settings and packages';
+    const pluginWarningStart = result.skipped.length;
+    const plugins = await inventoryNativePlugins(store, {
+      roots: configRoots,
+      projects: [...pluginProjects.values()],
+      globals: nativeGlobal ? { plugins: nativeGlobal.plugins, partial: globalPartial } : undefined,
+      registries,
+      boundaries: nativeBoundaries,
+      warnings: result.skipped,
+    });
+    for (const target of plugins.projectSkills) await scanSkills(target);
+    for (const path of plugins.observed) observed.add(path);
+    result.plugins = plugins.observed.size;
+    const pluginPartial = result.skipped.length > pluginWarningStart;
     // Global configurations can reveal a nested project which source-root grouping did not traverse.
     for (const project of store.projects()) {
       if (!includeGlobals || contexts.has(project.path)) continue;
@@ -741,6 +802,31 @@ export async function scan(
         });
     for (const location of store.installations()) {
       if (observed.has(location.path)) continue;
+      if (location.plugin) {
+        // A failed/partial read must never erase earlier observations or snapshots.
+        if (
+          pluginPartial ||
+          (location.scope === 'global' && globalPartial) ||
+          (location.projectId && partialProjects.has(location.projectId))
+        )
+          continue;
+        const file = location.path.split('#plugin:')[0]!;
+        if (plugins.checked.has(file)) store.removeInstallation(location.path);
+        else if (pluginPathAllowed(file, nativeBoundaries)) {
+          try {
+            await lstat(file);
+          } catch (error) {
+            if (
+              error instanceof Error &&
+              'code' in error &&
+              error.code === 'ENOENT' &&
+              (await lstat(resolve(file, '..')).catch(() => undefined))?.isDirectory()
+            )
+              store.removeInstallation(location.path);
+          }
+        }
+        continue;
+      }
       if (location.scope === 'global' && globalPartial) continue;
       if (location.projectId && partialProjects.has(location.projectId)) continue;
       const [file, name] = location.path.split('#');
@@ -764,7 +850,7 @@ export async function scan(
     store.put('scan', { id: 'last', ...result });
     store.event(
       'scan.completed',
-      `Discovered ${result.projects} projects, ${result.skills} skill locations and ${result.mcps} MCP locations; ${result.skipped.length} skipped.`,
+      `Discovered ${result.projects} projects, ${result.skills} skill locations, ${result.mcps} MCP locations and ${result.plugins} Plugin evidence locations; ${result.skipped.length} skipped.`,
     );
     scanProgress = {
       state: 'complete',

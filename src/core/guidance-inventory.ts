@@ -12,6 +12,8 @@ import {
 } from './inventory-paths';
 import { configuredMemoryDirectory, memoryProjectPaths } from './memory-locations';
 import { type DocumentLocation, MAX_TEXT_BYTES } from './model';
+import { readPluginFile } from './plugin-files';
+import { portablePlugin } from './plugin-manifests';
 import { hash, inside } from './safety';
 
 const MAX_DIRECTORIES = 4096;
@@ -478,8 +480,22 @@ export async function nativeAiFiles(directory: string, context: Context, roots: 
     '.claude-plugin/plugin.json',
     '.claude-plugin/marketplace.json',
     '.codex-plugin/plugin.json',
+    '.codex-plugin/marketplace.json',
   ])
     candidates.push({ path: join(directory, name), context: { ...context, kind: 'plugin' } });
+  const portable = await readPluginFile(
+    join(directory, 'plugin.json'),
+    allowed.map((boundary) => boundary.root),
+    warnings,
+  );
+  if (portable) {
+    try {
+      if (portablePlugin(JSON.parse(portable.text)))
+        candidates.push({ path: portable.path, context: { ...context, kind: 'plugin' } });
+    } catch {
+      warnings.push(`${portable.path}: Invalid portable Plugin manifest.`);
+    }
+  }
   if (context.provider !== 'project') {
     const groups = [
       ['agents', 'agent'],

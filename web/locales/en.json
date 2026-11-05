@@ -913,5 +913,19 @@
   "{{count}} selected": "{{count}} selected",
   "{{start}}–{{end}} of {{count}}": "{{start}}–{{end}} of {{count}}",
   "Previous items in {{name}}": "Previous items in {{name}}",
-  "Next items in {{name}}": "Next items in {{name}}"
+  "Next items in {{name}}": "Next items in {{name}}",
+  "Installation record": "Installation record",
+  "In configuration": "In configuration",
+  "Local package or module": "Local package or module",
+  "Marketplace catalog": "Marketplace catalog",
+  "Saved reference": "Saved reference",
+  "Plugin evidence": "Plugin evidence",
+  "Any Plugin evidence": "Any Plugin evidence",
+  "Configuration and cache presence do not prove a Plugin is loaded in a session.": "Configuration and cache presence do not prove a Plugin is loaded in a session.",
+  "Native Plugin reference. Installation records, configuration, local packages, cache and catalogs are separate observations. Hooks and modules are never executed by discovery.": "Native Plugin reference. Installation records, configuration, local packages, cache and catalogs are separate observations. Hooks and modules are never executed by discovery.",
+  "Native Plugin reference · JSON": "Native Plugin reference · JSON",
+  "Evidence across all snapshots of this Plugin. This does not confirm that it is loaded in the current session.": "Evidence across all snapshots of this Plugin. This does not confirm that it is loaded in the current session.",
+  "Enabled in configuration": "Enabled in configuration",
+  "Disabled in configuration": "Disabled in configuration",
+  "In cache": "In cache"
 }

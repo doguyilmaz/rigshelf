@@ -49,3 +49,27 @@ Before changing the catalog, each scan writes an immutable compressed checkpoint
 Partial project discovery retains earlier file metadata and does not prune installation relationships. A project no longer recognized in a selected root remains visible with a diagnostic. Complete scans can update current locations for genuinely missing installations; old relationships remain in the checkpoint and immutable library snapshots survive. Fast manifest detection during dependency checks, Apply and rollback preserves enriched AI indexes instead of replacing them with root-only results.
 
 Native-file inventories are bounded to 4,096 unique files per project/global collection. Plugin-root discovery is bounded to 4,096 visited directories, depth 6 and 256 roots per searched location. Limits and unavailable locations produce diagnostics. Arbitrary undocumented storage and conversation/memory databases are not parsed. Their original data remains untouched.
+
+## Native Plugin references in Library
+
+Library imports Plugin **references**, separately from the native-file index. Previously only saved `/plugin` recipes appeared there. Supported read-only evidence is:
+
+| Native metadata | Observation |
+| --- | --- |
+| Claude `plugins/installed_plugins.json`, versions 1 and 2 | Installation record, retaining user/project/local scope and reported version |
+| Claude `settings.json` / project `settings.local.json` → `enabledPlugins` | Configuration declaration, including `false` |
+| Codex `config.toml` → `plugins.<id>.enabled` | Configuration declaration, including `false` |
+| Claude/Codex `plugins/cache`, `plugins/marketplaces`, `plugins/bundled-marketplaces` and bounded local marketplace indexes | Cache/catalog package presence; never installation proof |
+| `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, recognized Agent Plugins `plugin.json` | Native package reference and component-presence summary |
+| OpenCode `opencode.json` / `opencode.jsonc` → `plugin`, including project `.opencode` locations | npm or local-file declaration |
+| OpenCode `plugins/` and legacy `plugin/` inside known configuration roots | Local JS/TS module presence; source is hashed, never executed or exported |
+
+The same known locations apply to explicit config roots and Aims profiles. Physical aliases deduplicate configuration observations. When parent and explicitly discovered nested project contexts overlap, the deepest project owns a configuration observation. Registry-referenced nested projects are read only inside selected project roots; other absolute project references retain metadata without granting traversal or write authority. Gitignore does not hide these AI paths. Known local marketplace package sources must remain inside their inspected checkout and allowed roots. No network fetching or installer execution occurs.
+
+The Plugin evidence filter distinguishes installation records, declarations, local packages/modules, cache, catalog and saved references. A family can have several kinds of evidence across Snapshot revisions. Location details show these observations together, including disabled declarations and reported versions. Cache/catalog observations do not count as project usage or global installations. Neither an installation registry nor an enabled flag proves loading in a particular running session; discovery has no live-session activation signal. Unversioned declarations remain references rather than being assigned an inferred package version.
+
+Plugin references contain a strict typed identity, provider, optional reported version, manifest kind, component names and optional content hash. They do not contain raw manifest fields, install paths, hook bodies, module source or credentials. Legacy manifests can declare additional Skill directories; eligible directories inside the package are inspected without running scripts. Component summaries do not promise full interpretation of native extension/permission semantics or arbitrary declared Hook/Agent paths. Native package contents are not backed up by this reference record.
+
+Native metadata reads are bounded to 4 MiB, refuse linked/hard-linked leaves, enforce canonical root containment and verify descriptor identity/size/timestamps. Already inspected Aims configuration aliases reuse their canonical observation. A registry supports at most 2,048 identifiers and 1,024 records per identifier; a configuration supports 2,048 declarations. Marketplace root enumeration is bounded to 256 locations per known index/directory and 2,048 entries per index; package materialization is bounded to 10,000 candidates. General Plugin directory bounds above still apply. Reaching a bound or encountering an invalid/unavailable location produces a diagnostic and retains previous observations. Current relationships are pruned only from clean, checked metadata or confirmed missing files in the inspected scope; immutable references remain in Library and prior relationships remain in the scan checkpoint.
+
+Native formats are documented by [Claude Plugin discovery](https://code.claude.com/docs/en/discover-plugins), [Claude Plugin reference](https://code.claude.com/docs/en/plugins-reference), [Codex Plugin building](https://developers.openai.com/plugins/build/plugins) and [OpenCode Plugins](https://opencode.ai/docs/plugins/). Unlisted runtime stores and undocumented vendor formats remain outside discovery.

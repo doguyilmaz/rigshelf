@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { PluginLocation, PluginReference } from './plugin-model';
 
 export const SCHEMA_VERSION = 1;
 export const MAX_TEXT_BYTES = 512 * 1024;
@@ -100,6 +101,7 @@ export interface Entry {
   mcp?: Mcp;
   archived?: boolean;
   derivedFrom?: string;
+  plugin?: PluginReference;
   origins?: { sourceId: string; url?: string; path?: string; ref?: string }[];
 }
 export interface Source {
@@ -134,6 +136,7 @@ export interface Installation {
   scope: 'project' | 'global';
   lastSeen: string;
   storage?: 'project-config' | 'user-config' | 'user-project-config' | 'plugin-cache';
+  plugin?: PluginLocation;
 }
 export interface DocumentLocation {
   id: string;

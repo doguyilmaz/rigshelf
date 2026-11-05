@@ -96,6 +96,7 @@ export const aiDirectoryNames = new Set([
   'SKILL.md',
   'opencode.json',
   'opencode.jsonc',
+  'plugin.json',
 ]);
 
 export interface AiConfigRoot {

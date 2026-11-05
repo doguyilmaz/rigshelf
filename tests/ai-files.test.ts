@@ -58,7 +58,18 @@ test('gitignored native Agents, config, hooks, Plugins and local agent memory ar
   );
   expect(project.aiFileLocations!.every((file) => file.readOnly)).toBe(true);
   expect(await Bun.file(marker).exists()).toBe(false);
-  expect(data.store.entries().map((entry) => entry.name)).toEqual(['private-guide']);
+  expect(
+    data.store
+      .entries()
+      .filter((entry) => entry.kind === 'skill')
+      .map((entry) => entry.name),
+  ).toEqual(['private-guide']);
+  expect(
+    data.store
+      .entries()
+      .filter((entry) => entry.kind === 'plugin')
+      .map((entry) => entry.name),
+  ).toEqual(['custom']);
   const config = project.aiFileLocations!.find((file) => file.kind === 'config')!;
   expect(JSON.stringify(project)).not.toContain('dummy-private-token');
   const opened = await projectDocument(data.store, {

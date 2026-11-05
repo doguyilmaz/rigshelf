@@ -913,5 +913,19 @@
   "{{count}} selected": "{{count}} seçili",
   "{{start}}–{{end}} of {{count}}": "{{count}} öğeden {{start}}–{{end}} arası",
   "Previous items in {{name}}": "{{name}} kaynağındaki önceki öğeler",
-  "Next items in {{name}}": "{{name}} kaynağındaki sonraki öğeler"
+  "Next items in {{name}}": "{{name}} kaynağındaki sonraki öğeler",
+  "Installation record": "Kurulum kaydı",
+  "In configuration": "Yapılandırmada",
+  "Local package or module": "Yerel paket veya modül",
+  "Marketplace catalog": "Marketplace kataloğu",
+  "Saved reference": "Kaydedilmiş referans",
+  "Plugin evidence": "Plugin kanıtı",
+  "Any Plugin evidence": "Tüm Plugin kanıtları",
+  "Configuration and cache presence do not prove a Plugin is loaded in a session.": "Yapılandırmada veya cache içinde bulunması Plugin’in session içinde yüklendiğini kanıtlamaz.",
+  "Native Plugin reference. Installation records, configuration, local packages, cache and catalogs are separate observations. Hooks and modules are never executed by discovery.": "Native Plugin referansı. Kurulum kayıtları, yapılandırma, yerel paketler, cache ve kataloglar ayrı gözlemlerdir. Tarama sırasında hook veya modüller çalıştırılmaz.",
+  "Native Plugin reference · JSON": "Native Plugin referansı · JSON",
+  "Evidence across all snapshots of this Plugin. This does not confirm that it is loaded in the current session.": "Bu Plugin’in tüm Snapshot kayıtlarındaki kanıtlar. Mevcut session içinde yüklendiğini doğrulamaz.",
+  "Enabled in configuration": "Yapılandırmada etkin",
+  "Disabled in configuration": "Yapılandırmada devre dışı",
+  "In cache": "Cache içinde"
 }

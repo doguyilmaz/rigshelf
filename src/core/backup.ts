@@ -12,6 +12,7 @@ import {
   RuleSchema,
   SCHEMA_VERSION,
 } from './model';
+import { PluginReferenceSchema } from './plugin-model';
 import { hash, now, redact, safeRelative, scanText } from './safety';
 import { validateSourceUrl } from './source-library';
 import type { Store } from './store';
@@ -31,6 +32,7 @@ const EntryImport = z.object({
   upstreamPath: z.string().max(4096).optional(),
   upstreamRef: z.string().max(200).optional(),
   mcp: z.unknown().optional(),
+  plugin: PluginReferenceSchema.optional(),
   archived: z.boolean().optional(),
   derivedFrom: RecordIdSchema.max(150).optional(),
   origins: z
@@ -212,6 +214,13 @@ export function importLibrary(store: Store, raw: unknown, apply = false): Import
     if (value.entry.kind === 'mcp') {
       value.entry.mcp = portableMcp(value.entry.body);
     }
+    if (
+      value.entry.plugin &&
+      (value.entry.kind !== 'plugin' ||
+        JSON.stringify(PluginReferenceSchema.parse(JSON.parse(value.entry.body))) !==
+          JSON.stringify(value.entry.plugin))
+    )
+      throw new Error('Plugin reference metadata differs from its snapshot.');
     const existing = store.entry(value.entry.id);
     for (const origin of value.entry.origins || []) if (origin.url) validateSourceUrl(origin.url);
     if (existing && (existing.digest !== value.entry.digest || existing.body !== value.entry.body))

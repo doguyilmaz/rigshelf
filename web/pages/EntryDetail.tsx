@@ -1,6 +1,7 @@
 import { Check, Copy, FileText, FolderOpen, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import type { Entry } from '../../src/core/model';
+import { pluginEvidenceLabels } from '../../src/core/plugin-evidence';
 import { isClassificationTag } from '../../src/core/taxonomy';
 import { AiAssist } from '../AiAssist';
 import { api, apiId, formatDate, shortPath } from '../api';
@@ -123,7 +124,19 @@ function EntryInspector({
     );
     return () => onDirtyChange(false);
   }, [editing, aiDirty, fileDirty, tags, source, entry.tags, entry.sourceId, onDirtyChange]);
-  const locations = state.installations.filter((location) => location.entryId === id);
+  const family = new Set(
+    entry.plugin
+      ? state.entries
+          .filter(
+            (value) =>
+              value.kind === 'plugin' &&
+              value.name === entry.name &&
+              value.sourceId === entry.sourceId,
+          )
+          .map((value) => value.id)
+      : [id],
+  );
+  const locations = state.installations.filter((location) => family.has(location.entryId));
   const trusted = state.trust?.some((value) => value.id === id && value.digest === entry.digest);
   useEffect(() => {
     let live = true;
@@ -205,6 +218,13 @@ function EntryInspector({
       {tab === 'overview' && (
         <div className="detail-overview">
           <div className="editor-form">
+            {entry.plugin && (
+              <Notice>
+                {t(
+                  'Native Plugin reference. Installation records, configuration, local packages, cache and catalogs are separate observations. Hooks and modules are never executed by discovery.',
+                )}
+              </Notice>
+            )}
             <label>
               {t('Tags')}
               <input
@@ -367,7 +387,9 @@ function EntryInspector({
                 {entry.kind === 'mcp'
                   ? t('Canonical definition · JSON')
                   : entry.kind === 'plugin'
-                    ? t('Native plugin installation recipe')
+                    ? entry.plugin
+                      ? t('Native Plugin reference · JSON')
+                      : t('Native plugin installation recipe')
                     : 'SKILL.md'}
               </span>
               <CopyButton text={detail.entry.body} />
@@ -501,14 +523,32 @@ function EntryInspector({
         ))}
       {tab === 'locations' && (
         <div className="location-list">
+          {entry.plugin && (
+            <Notice>
+              {t(
+                'Evidence across all snapshots of this Plugin. This does not confirm that it is loaded in the current session.',
+              )}
+            </Notice>
+          )}
           {locations.length ? (
             locations.map((location) => (
               <div key={location.path + location.provider}>
                 <FolderOpen size={17} />
                 <div>
-                  <code>{shortPath(location.path)}</code>
+                  <code>
+                    {shortPath(
+                      location.plugin ? location.path.split('#plugin:')[0]! : location.path,
+                    )}
+                  </code>
                   <span>
-                    {location.provider} · {location.storage || location.scope}
+                    {location.provider} ·{' '}
+                    {location.plugin
+                      ? t(pluginEvidenceLabels[location.plugin.evidence])
+                      : location.storage || location.scope}
+                    {location.plugin?.declaredScope && ` · ${location.plugin.declaredScope}`}
+                    {location.plugin?.version && ` · ${location.plugin.version}`}
+                    {location.plugin?.enabled !== undefined &&
+                      ` · ${t(location.plugin.enabled ? 'Enabled in configuration' : 'Disabled in configuration')}`}
                     {t(' · observed')} {formatDate(location.lastSeen)}
                   </span>
                 </div>

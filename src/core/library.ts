@@ -1,4 +1,5 @@
 import type { Entry, Installation, Kind, Source } from './model';
+import { type PluginStatus, usageLocations } from './plugin-evidence';
 import {
   type Classification,
   classifyEntry,
@@ -22,6 +23,7 @@ export interface LibraryFilters {
   origin: 'all' | 'custom' | 'upstream';
   status: 'active' | 'archived' | 'all';
   review: 'all' | 'flagged' | 'blocked' | 'clean' | 'approved';
+  evidence: 'all' | PluginStatus;
 }
 export const defaultLibraryFilters = (): LibraryFilters => ({
   kind: 'skill',
@@ -37,6 +39,7 @@ export const defaultLibraryFilters = (): LibraryFilters => ({
   origin: 'all',
   status: 'active',
   review: 'all',
+  evidence: 'all',
 });
 type Metadata = Omit<Entry, 'body'>;
 export interface LibraryItem {
@@ -124,6 +127,15 @@ export function matchesLibraryItem(
   omit?: keyof LibraryFilters,
 ): boolean {
   const { entry, classification, locations } = item;
+  if (omit !== 'evidence' && filters.evidence && filters.evidence !== 'all') {
+    if (entry.kind !== 'plugin') return false;
+    if (
+      filters.evidence === 'reference'
+        ? locations.some((location) => location.plugin)
+        : !locations.some((location) => location.plugin?.evidence === filters.evidence)
+    )
+      return false;
+  }
   if (omit !== 'kind' && filters.kind !== 'all' && entry.kind !== filters.kind) return false;
   if (omit !== 'source' && filters.source !== 'all' && entry.sourceId !== filters.source)
     return false;
@@ -139,10 +151,14 @@ export function matchesLibraryItem(
     filters.project !== 'all' || filters.agent !== 'all' || filters.scope !== 'all';
   if (needsLocation) {
     if (filters.scope === 'unused') {
-      if (locations.length || filters.project !== 'all' || filters.agent !== 'all') return false;
+      if (usageLocations(locations).length || filters.project !== 'all' || filters.agent !== 'all')
+        return false;
     } else if (
-      !locations.some(
+      !(filters.scope === 'all' ? locations : usageLocations(locations)).some(
         (location) =>
+          (filters.evidence === 'all' ||
+            !filters.evidence ||
+            location.plugin?.evidence === filters.evidence) &&
           (filters.project === 'all' || location.projectId === filters.project) &&
           (filters.agent === 'all' || location.provider === filters.agent) &&
           (filters.scope === 'all' || location.scope === filters.scope),
