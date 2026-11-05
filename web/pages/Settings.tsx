@@ -6,16 +6,20 @@ import { accessToken, api, shortPath } from '../api';
 import { Button, CopyButton, Modal, Notice, PageHeader, Spinner } from '../components';
 import { useDraftGuard } from '../drafts';
 import { countText } from '../format';
+import { languages, setLocale, t, useLocaleState } from '../i18n';
+import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 
 export function Settings({ state, refresh, notify }: PageProps): ReactNode {
+  const localeState = useLocaleState();
+  const locale = localeState.locale;
   const [value, setValue] = useState(state.settings);
   const [roots, setRoots] = useState(state.settings.roots.join('\n'));
   useDraftGuard(
     JSON.stringify(value) !== JSON.stringify(state.settings) ||
       roots !== state.settings.roots.join('\n'),
-    'Settings',
+    t('Settings'),
   );
   const [busy, setBusy] = useState(false);
   const [bundle, setBundle] = useState<Blob>();
@@ -40,7 +44,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
       setValue(saved);
       setRoots(saved.roots.join('\n'));
       await refresh();
-      notify('Workbench preferences saved');
+      notify(t('Workbench preferences saved'));
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
@@ -64,8 +68,11 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
       const excluded = Number(response.headers.get('x-kitfold-excluded') || 0);
       notify(
         excluded
-          ? `Library exported with ${excluded} sensitive-looking records excluded. The archive includes their names and reasons.`
-          : 'Portable library exported. Treat your custom content as private.',
+          ? t(
+              'Library exported with {{count}} sensitive-looking records excluded. The archive includes their names and reasons.',
+              { count: excluded },
+            )
+          : t('Portable library exported. Treat your custom content as private.'),
       );
     } catch (error) {
       notify((error as Error).message, true);
@@ -77,12 +84,12 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
     setBusy(true);
     try {
       if (selected.size > 512 * 1024 * 1024)
-        throw new Error('JSON imports are limited to 512 MiB.');
+        throw new Error(t('JSON imports are limited to 512 MiB.'));
       const compressed = selected.name.endsWith('.gz')
         ? selected
         : await new Response(selected.stream().pipeThrough(new CompressionStream('gzip'))).blob();
       if (compressed.size > 128 * 1024 * 1024)
-        throw new Error('Compressed import exceeds 128 MiB. Use the CLI for larger libraries.');
+        throw new Error(t('Compressed import exceeds 128 MiB. Use the CLI for larger libraries.'));
       setBundle(compressed);
       setPreview(await upload(compressed, false));
     } catch (error) {
@@ -105,20 +112,44 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
   return (
     <>
       <PageHeader
-        eyebrow="ON YOUR TERMS"
-        title="Make yourself at home."
-        description="Local storage, deliberate automation, and no account to manage."
+        eyebrow={t('ON YOUR TERMS')}
+        title={t('Make yourself at home.')}
+        description={t('Local storage, deliberate automation, and no account to manage.')}
       />
       <div className="settings-layout">
         <form onSubmit={(event) => void save(event)} className="settings-main editor-form">
           <section className="settings-section">
-            <h2>Where to look</h2>
+            <h2>{t('Language')}</h2>
+            <label htmlFor="interface-language">
+              {t('Interface language')}
+              <Select
+                id="interface-language"
+                label={t('Interface language')}
+                value={locale}
+                onValueChange={(next) => void setLocale(next)}
+                disabled={Boolean(localeState.loading)}
+                options={languages}
+              />
+            </label>
             <p>
-              Scan these development folders. Existing project files are read, never changed by
-              scanning.
+              {localeState.loading
+                ? t('Loading language…')
+                : t(
+                    localeState.error ||
+                      'Language changes apply immediately and are remembered in this browser.',
+                  )}
+            </p>
+          </section>
+          <section className="settings-section">
+            <h2>{t('Where to look')}</h2>
+            <p>
+              {t(
+                'Scan these development folders. Existing project files are read, never changed by scanning.',
+              )}
             </p>
             <label>
-              Project roots <span>One absolute path or ~/ path per line</span>
+              {t('Project roots ')}
+              <span>{t('One absolute path or ~/ path per line')}</span>
               <textarea
                 rows={4}
                 className="code-editor"
@@ -132,12 +163,12 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
                 checked={value.scanGlobals}
                 onChange={(event) => update('scanGlobals', event.target.checked)}
               />
-              Also discover global skills and MCP definitions
+              {t('Also discover global skills and MCP definitions')}
             </label>
           </section>
           <section className="settings-section">
-            <h2>Your usual agents</h2>
-            <p>A starting selection for new project setups.</p>
+            <h2>{t('Your usual agents')}</h2>
+            <p>{t('A starting selection for new project setups.')}</p>
             <div className="agent-checks">
               {state.adapters.map((agent) => (
                 <label className="check-label" key={agent.id}>
@@ -159,30 +190,31 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
             </div>
           </section>
           <section className="settings-section">
-            <h2>AI, when you ask</h2>
+            <h2>{t('AI, when you ask')}</h2>
             <p>
-              Use the MCP tools in an active agent session. For CLI selections, the review button
-              prepares a prompt. Ollama can produce a proposal locally.
+              {t(
+                'Use the MCP tools in an active agent session. For CLI selections, the review button prepares a prompt. Ollama can produce a proposal locally.',
+              )}
             </p>
             <div className="form-two-columns">
               <label htmlFor="review-provider">
-                Review provider
+                {t('Review provider')}
                 <Select
-                  label="Review provider"
+                  label={t('Review provider')}
                   id="review-provider"
                   value={value.aiRunner}
                   onValueChange={(runner) =>
                     update('aiRunner', runner as SettingsValue['aiRunner'])
                   }
                   options={[
-                    { value: 'none', label: 'Current agent / MCP handoff' },
+                    { value: 'none', label: t('Current agent / MCP handoff') },
                     ...['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok', 'ollama'].map(
                       (runner) => ({
                         value: runner,
                         label:
                           runner === 'ollama'
-                            ? 'Ollama · local generation'
-                            : `${runner} · prompt handoff`,
+                            ? t('Ollama · local generation')
+                            : t('{{runner}} · prompt handoff', { runner }),
                       }),
                     ),
                   ]}
@@ -190,63 +222,67 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
               </label>
               {value.aiRunner === 'ollama' && (
                 <label>
-                  Ollama model
+                  {t('Ollama model')}
                   <input
                     value={value.ollamaModel}
                     onChange={(event) => update('ollamaModel', event.target.value)}
-                    placeholder="Your installed model name"
+                    placeholder={t('Your installed model name')}
                   />
                 </label>
               )}
             </div>
           </section>
           <section className="settings-section">
-            <h2>Keep sources current</h2>
+            <h2>{t('Keep sources current')}</h2>
             <p>
-              Optional source checks run while this workbench is open. They record suggestions and
-              never replace installed snapshots.
+              {t(
+                'Optional source checks run while this workbench is open. They record suggestions and never replace installed snapshots.',
+              )}
             </p>
             <label htmlFor="source-check-interval">
-              Check known sources every
+              {t('Check known sources every')}
               <Select
-                label="Check known sources every"
+                label={t('Check known sources every')}
                 id="source-check-interval"
                 value={String(value.discoveryDays)}
                 onValueChange={(days) => update('discoveryDays', Number(days))}
                 options={[
-                  { value: '0', label: 'Only when I ask' },
-                  { value: '1', label: 'Day' },
-                  { value: '7', label: 'Week' },
-                  { value: '30', label: 'Month' },
+                  { value: '0', label: t('Only when I ask') },
+                  { value: '1', label: t('Day') },
+                  { value: '7', label: t('Week') },
+                  { value: '30', label: t('Month') },
                 ]}
               />
             </label>
             <label>
-              Optional directory searches{' '}
+              {t('Optional directory searches')}{' '}
               <span>
-                Public technology terms, one per line. Sent to skills.sh at the interval above.
+                {t(
+                  'Public technology terms, one per line. Sent to skills.sh at the interval above.',
+                )}
               </span>
               <textarea
                 rows={3}
                 value={(value.discoveryQueries || []).join('\n')}
                 onChange={(event) => update('discoveryQueries', event.target.value.split('\n'))}
-                placeholder="Expo\nSwiftUI\nKotlin"
+                placeholder={t('Expo\nSwiftUI\nKotlin')}
               />
             </label>
             <Notice>
-              Automatic project additions are enabled per project, and only for exact snapshots you
-              approve in the library.
+              {t(
+                'Automatic project additions are enabled per project, and only for exact snapshots you approve in the library.',
+              )}
             </Notice>
           </section>
           <div className="editor-bottom">
-            <span className="muted">Everything is stored on this machine.</span>
+            <span className="muted">{t('Everything is stored on this machine.')}</span>
             <Button type="submit" disabled={busy}>
               {busy ? (
                 <Spinner />
               ) : (
                 <>
                   <Save size={15} />
-                  Save preferences
+                  {t('Save preferences')}
                 </>
               )}
             </Button>
@@ -255,17 +291,17 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
         <aside className="settings-aside">
           <section className="settings-card">
             <HardDrive size={22} />
-            <h3>Yours to keep.</h3>
-            <p>The catalog and snapshots live outside your project source.</p>
+            <h3>{t('Yours to keep.')}</h3>
+            <p>{t('The catalog and snapshots live outside your project source.')}</p>
             <code>{shortPath(state.dataDirectory)}</code>
             <div className="button-row">
               <Button variant="secondary" onClick={() => void exportData()} disabled={busy}>
                 <Download size={14} />
-                Export library
+                {t('Export library')}
               </Button>
               <Button variant="secondary" onClick={() => file.current?.click()} disabled={busy}>
                 <Upload size={14} />
-                Import
+                {t('Import')}
               </Button>
               <input
                 ref={file}
@@ -279,95 +315,104 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
               />
             </div>
             <small>
-              Compressed, versioned JSON. Skills, sources, presets and rules. Projects, sessions,
-              and setup preimages are excluded.
+              {t(
+                'Compressed, versioned JSON. Skills, sources, presets and rules. Projects, sessions, and setup preimages are excluded.',
+              )}
             </small>
           </section>
           <section className="settings-card">
             <Terminal size={22} />
-            <h3>At home in your session.</h3>
+            <h3>{t('At home in your session.')}</h3>
             <p>
-              Connect the stdio MCP server to your agent. Start with read/plan tools; enable writes
-              only for authorized setup.
+              {t(
+                'Connect the stdio MCP server to your agent. Start with read/plan tools; enable writes only for authorized setup.',
+              )}
             </p>
             <ConnectionEditor {...{ state, notify }} />
           </section>
           <section className="privacy-card">
             <ShieldCheck size={18} />
             <div>
-              <strong>No conversations. No telemetry.</strong>
+              <strong>{t('No conversations. No telemetry.')}</strong>
               <p>
-                Memory files are viewed on request. No session transcripts or credential stores are
-                collected.
+                {t(
+                  'Memory files are viewed on request. No session transcripts or credential stores are collected.',
+                )}
               </p>
             </div>
           </section>
         </aside>
       </div>
-      {preview && (
-        <Modal
-          title="Import review"
-          subtitle="The import adds to your private library; it does not modify any project."
-          onClose={() => setPreview(undefined)}
-        >
-          <p>
-            {countText(preview.entries, 'capability', 'capabilities')},{' '}
-            {countText(preview.sources, 'source')}, {countText(preview.presets, 'preset')}, and{' '}
-            {countText(preview.rules, 'directive')} in this export.
-          </p>
-          {preview.directives.length > 0 && (
-            <details className="advanced">
-              <summary>Review directives and scopes</summary>
-              <p className="field-help">
-                Enabled directives are included in future reviewed setup plans. Existing project
-                guidance is preserved until a new plan is applied.
-              </p>
-              {preview.directives.map((rule) => (
-                <div key={rule.id} className="provenance-receipt">
-                  <strong>{rule.name}</strong>
-                  <code>{rule.scope}</code>
-                  <small>
-                    {rule.enabled ? 'Enabled' : 'Disabled'}
-                    {rule.findings.length ? ' · Content needs review' : ''}
-                  </small>
-                </div>
-              ))}
-            </details>
-          )}
-          {preview.conflicts.length ? (
-            <Notice tone="warning">
-              Resolve these conflicts first: {preview.conflicts.join(', ')}
-            </Notice>
-          ) : (
-            <Notice>No conflicting records found.</Notice>
-          )}
-          <div className="modal-actions">
-            <Button variant="secondary" onClick={() => setPreview(undefined)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={preview.conflicts.length > 0 || busy}
-              onClick={() => {
-                setBusy(true);
-                void (
-                  bundle
-                    ? upload(bundle, true)
-                    : Promise.reject(new Error('Choose an archive first.'))
-                )
-                  .then(refresh)
-                  .then(() => {
-                    notify('Library imported');
-                    setPreview(undefined);
-                  })
-                  .catch((error) => notify(error.message, true))
-                  .finally(() => setBusy(false));
-              }}
-            >
-              Import library <ArrowRight size={15} />
-            </Button>
-          </div>
-        </Modal>
-      )}
+      <ModalPresence>
+        {preview && (
+          <Modal
+            title={t('Import review')}
+            subtitle={t('The import adds to your private library; it does not modify any project.')}
+            onClose={() => setPreview(undefined)}
+          >
+            <p>
+              {countText(preview.entries, 'capability', 'capabilities')},{' '}
+              {countText(preview.sources, 'source')}, {countText(preview.presets, 'preset')}
+              {t(', and')} {countText(preview.rules, 'directive')}
+              {t(' in this export.')}
+            </p>
+            {preview.directives.length > 0 && (
+              <details className="advanced">
+                <summary>{t('Review directives and scopes')}</summary>
+                <p className="field-help">
+                  {t(
+                    'Enabled directives are included in future reviewed setup plans. Existing project guidance is preserved until a new plan is applied.',
+                  )}
+                </p>
+                {preview.directives.map((rule) => (
+                  <div key={rule.id} className="provenance-receipt">
+                    <strong>{rule.name}</strong>
+                    <code>{rule.scope}</code>
+                    <small>
+                      {rule.enabled ? t('Enabled') : t('Disabled')}
+                      {rule.findings.length ? t(' · Content needs review') : ''}
+                    </small>
+                  </div>
+                ))}
+              </details>
+            )}
+            {preview.conflicts.length ? (
+              <Notice tone="warning">
+                {t('Resolve these conflicts first: ')}
+                {preview.conflicts.join(', ')}
+              </Notice>
+            ) : (
+              <Notice>{t('No conflicting records found.')}</Notice>
+            )}
+            <div className="modal-actions">
+              <Button variant="secondary" onClick={() => setPreview(undefined)}>
+                {t('Cancel')}
+              </Button>
+              <Button
+                disabled={preview.conflicts.length > 0 || busy}
+                onClick={() => {
+                  setBusy(true);
+                  void (
+                    bundle
+                      ? upload(bundle, true)
+                      : Promise.reject(new Error('Choose an archive first.'))
+                  )
+                    .then(refresh)
+                    .then(() => {
+                      notify('Library imported');
+                      setPreview(undefined);
+                    })
+                    .catch((error) => notify(error.message, true))
+                    .finally(() => setBusy(false));
+                }}
+              >
+                {t('Import library ')}
+                <ArrowRight size={15} />
+              </Button>
+            </div>
+          </Modal>
+        )}
+      </ModalPresence>
     </>
   );
 }
@@ -391,9 +436,9 @@ function ConnectionEditor({ state, notify }: Pick<PageProps, 'state' | 'notify'>
   return (
     <div className="editor-form">
       <label htmlFor="connection-harness">
-        Connection harness
+        {t('Connection harness')}
         <Select
-          label="Connection harness"
+          label={t('Connection harness')}
           id="connection-harness"
           value={provider}
           onValueChange={(next) => {
@@ -403,7 +448,7 @@ function ConnectionEditor({ state, notify }: Pick<PageProps, 'state' | 'notify'>
           options={state.adapters.map((adapter) => ({ value: adapter.id, label: adapter.name }))}
         />
       </label>
-      <label className="checkbox-label">
+      <label className="check-label">
         <input
           type="checkbox"
           checked={writable}
@@ -412,18 +457,18 @@ function ConnectionEditor({ state, notify }: Pick<PageProps, 'state' | 'notify'>
             setResult(undefined);
           }}
         />
-        Enable write tools
+        {t('Enable write tools')}
       </label>
       {writable && (
         <label>
-          Allowed project root
+          {t('Allowed project root')}
           <input
             value={projectPath}
             onChange={(event) => {
               setProjectPath(event.target.value);
               setResult(undefined);
             }}
-            placeholder="/absolute/project/path"
+            placeholder={t('/absolute/project/path')}
           />
         </label>
       )}
@@ -432,12 +477,13 @@ function ConnectionEditor({ state, notify }: Pick<PageProps, 'state' | 'notify'>
         disabled={busy || (writable && !projectPath.trim())}
         onClick={() => void prepare()}
       >
-        Prepare connection
+        {t('Prepare connection')}
       </Button>
       {result && (
         <>
           <p>
-            Merge into <code>{result.file}</code>
+            {t('Merge into ')}
+            <code>{result.file}</code>
           </p>
           <pre className="content-preview">{result.content}</pre>
           <CopyButton text={result.content} />
@@ -445,8 +491,11 @@ function ConnectionEditor({ state, notify }: Pick<PageProps, 'state' | 'notify'>
         </>
       )}
       <small>
-        Register the executable with <code>bun link</code> in this checkout. Preserve existing
-        settings when merging. Writable connections can also edit your private library.
+        {t('Register the executable with ')}
+        <code>{t('bun link')}</code>
+        {t(
+          ' in this checkout. Preserve existing settings when merging. Writable connections can also edit your private library.',
+        )}
       </small>
     </div>
   );

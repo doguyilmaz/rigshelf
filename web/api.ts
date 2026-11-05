@@ -10,6 +10,7 @@ import type {
 } from '../src/core/model';
 import type { Adapter } from '../src/core/providers';
 import type { ScanProgress, ScanResult } from '../src/core/scanner';
+import { getLocale, t } from './i18n';
 
 export interface AppState {
   entries: Omit<Entry, 'body'>[];
@@ -89,12 +90,12 @@ export function download(name: string, data: unknown): void {
 }
 export const formatDate = (date: string | undefined): string =>
   date
-    ? new Date(date).toLocaleString('en', {
+    ? new Date(date).toLocaleString(getLocale(), {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       })
-    : 'Not checked';
+    : t('Not checked');
 export const shortPath = (path: string): string =>
   path.replace(/^\/Users\/[^/]+|^\/home\/[^/]+/, '~');

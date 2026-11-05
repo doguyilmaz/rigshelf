@@ -13,10 +13,11 @@
     "kitfold": "bun src/cli.ts",
     "check": "tsc --noEmit",
     "test": "bun test",
-    "verify": "bun run check && bun test && bun run build",
+    "verify": "bun run check && bun run check:locales && bun test && bun run build",
     "lint": "biome check src web tests scripts",
     "format": "biome check --write src web tests scripts",
-    "test:ui": "bun scripts/ui-smoke.ts && bun scripts/ui-flows.ts && bun scripts/ui-stress.ts && bun scripts/ui-controls.ts"
+    "test:ui": "bun scripts/ui-smoke.ts && bun scripts/ui-flows.ts && bun scripts/ui-stress.ts && bun scripts/ui-controls.ts && bun scripts/ui-localization.ts",
+    "check:locales": "bun scripts/check-locales.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",

@@ -18,6 +18,10 @@ bun run start
 
 Open the **private access URL** printed in the terminal. The workbench listens on `127.0.0.1:47471`. The URL contains an access key; keep it private. Stop with Ctrl-C.
 
+Choose **Settings → Language** for English or Turkish. The choice is local to your browser and preserves current drafts. The [six-language release plan](docs/LOCALIZATION.md) tracks additional translations.
+
+To compare the proposed setup layouts while the app is running, open `/prototypes/project-setup.html?v=1`, `?v=2` or `?v=3` on the same local server. The prototypes are interactive and use fictional data. They do not apply project changes. The product name and final visual direction remain under review; see [naming](docs/NAMING.md) and [design alternatives](docs/DESIGN-REVIEW.md).
+
 For a global executable, run `bun link` in this checkout. This registers the `kitfold` command; it does not install global skills. Generated MCP bridges require that command on the target harness's `PATH`.
 
 ## A normal day

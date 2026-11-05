@@ -18,7 +18,7 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R12 | Bounded project instruction/memory viewing, digest-bound edit plans, exact rollback and scoped reusable guidance. No transcript or session store. |
 | R13 | Debounced root/workspace watchers. Automatic additions require private ownership, current project permission and an exact approved clean snapshot. Revocation cancels/drains work; existing guidance is preserved. |
 | R14 | Opt-in public queries and periodic known-source checks. Dated results remain suggestions; no background model loop. |
-| R15 | Functional local English web UI, CLI and stdio MCP share one domain engine. A separate TUI is optional and is not shipped. |
+| R15 | Functional local English/Turkish web UI, CLI and stdio MCP share one domain engine. A separate TUI is optional and is not shipped. |
 | R16 | Custom metadata/content/resource revisions, resource add/remove, tags/source relationships, presets, directives and protected drafts. Browser flows exercise the management controls. |
 | R17 | Actual development/global files are inventoried read-only, including plugin caches and Claude user-level project MCP sections. Setup tests use isolated fixtures. |
 | R18 | Every supplied reference is retained in data/resource-notes.txt. Public collections are indexed. Missing images, ambiguous names and social posts remain references rather than invented skills. |
@@ -34,6 +34,9 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R28 | Keyboard navigation, native focus-managed dialogs, loading/error/empty states, mobile layouts, reduced motion and draft protection. Accessibility and stress checks supplement visual inspection. |
 | R29 | Product, architecture, compatibility, data, research, naming, validation, contribution and security documents. Private inventories and audit work stay outside published source. |
 | R30 | Independent setup product. No abandoned catalog import or backup-first architecture. |
+| R31 | Three interactive prototypes, an inline visual comparison and separately addressable built preview URLs. No final visual direction or replacement name has been selected. |
+| R32 | Stable editor frames, retained exit presence, a shared backdrop, inert exiting controls and native focus restoration. Browser tests exercise delayed content, tabs, close and editor replacement. |
+| R33 | Browser-persisted English/Turkish UI with lazy Turkish loading, matching catalogs, interpolation checks, localized dates/counts and cross-tab updates. Six-language release work is tracked in [localization](LOCALIZATION.md); the remaining four are not shipped yet. |
 
 ## Operating limits
 

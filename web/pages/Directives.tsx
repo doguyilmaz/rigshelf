@@ -13,6 +13,8 @@ import {
   Spinner,
 } from '../components';
 import { requestDiscard, useDraftGuard } from '../drafts';
+import { t } from '../i18n';
+import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 
@@ -40,13 +42,13 @@ export function Directives(props: PageProps): ReactNode {
   return (
     <>
       <PageHeader
-        eyebrow="YOUR WAY OF WORKING"
-        title="Guidance that travels."
-        description="Small, scoped instructions. In your voice, in the right projects."
+        eyebrow={t('YOUR WAY OF WORKING')}
+        title={t('Guidance that travels.')}
+        description={t('Small, scoped instructions. In your voice, in the right projects.')}
         action={
           <Button onClick={create}>
             <Plus size={16} />
-            New directive
+            {t('New directive')}
           </Button>
         }
       />
@@ -55,11 +57,11 @@ export function Directives(props: PageProps): ReactNode {
           <div className="scope-explainer">
             <Layers2 size={20} />
             <div>
-              <strong>Scope, then specificity.</strong>
+              <strong>{t('Scope, then specificity.')}</strong>
               <p>
-                Global → domain → stack → project.
+                {t('Global → domain → stack → project.')}
                 <br />
-                Only matching guidance is generated.
+                {t('Only matching guidance is generated.')}
               </p>
             </div>
           </div>
@@ -81,7 +83,7 @@ export function Directives(props: PageProps): ReactNode {
                     <span className={`rule-status ${rule.enabled ? 'enabled' : ''}`} />
                     <span>{rule.name}</span>
                     {state.ruleFindings?.some((value) => value.id === rule.id) && (
-                      <Badge tone="amber">Review</Badge>
+                      <Badge tone="amber">{t('Review')}</Badge>
                     )}
                     <small>{rule.priority}</small>
                   </button>
@@ -99,10 +101,10 @@ export function Directives(props: PageProps): ReactNode {
             />
           ) : (
             <Empty
-              title="Write it once."
-              text="Add a directive that tells your agents how you like to build."
+              title={t('Write it once.')}
+              text={t('Add a directive that tells your agents how you like to build.')}
             >
-              <Button onClick={create}>Create a directive</Button>
+              <Button onClick={create}>{t('Create a directive')}</Button>
             </Empty>
           )}
         </div>
@@ -177,7 +179,7 @@ export function RuleEditor({
       setValue(next);
       setSaved(next);
       await refresh();
-      notify('Directive saved. Apply a new setup plan to refresh project files.');
+      notify(t('Directive saved. Apply a new setup plan to refresh project files.'));
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
@@ -198,9 +200,9 @@ export function RuleEditor({
     <>
       <form className="editor-form" onSubmit={(event) => void save(event)}>
         <div className="editor-heading">
-          <p className="eyebrow">DIRECTIVE EDITOR</p>
+          <p className="eyebrow">{t('DIRECTIVE EDITOR')}</p>
           <div className="button-row">
-            {dirty && <Badge tone="amber">Unsaved</Badge>}
+            {dirty && <Badge tone="amber">{t('Unsaved')}</Badge>}
             <label className="switch-label">
               <input
                 type="checkbox"
@@ -208,7 +210,7 @@ export function RuleEditor({
                 onChange={(event) => update('enabled', event.target.checked)}
               />
               <span className="switch" />
-              Enabled
+              {t('Enabled')}
             </label>
           </div>
         </div>
@@ -220,20 +222,20 @@ export function RuleEditor({
             </Notice>
           ))}
         <label>
-          Title
+          {t('Title')}
           <input
             className="title-input"
             value={value.name}
             onChange={(event) => update('name', event.target.value)}
-            placeholder="A clear, memorable instruction"
+            placeholder={t('A clear, memorable instruction')}
             required
           />
         </label>
         <div className="form-two-columns">
           <label htmlFor="directive-scope">
-            Applies to
+            {t('Applies to')}
             <Select
-              label="Applies to"
+              label={t('Applies to')}
               id="directive-scope"
               value={value.scope}
               onValueChange={(scope) => update('scope', scope)}
@@ -253,7 +255,8 @@ export function RuleEditor({
             />
           </label>
           <label>
-            Priority <span>Later values are more specific</span>
+            {t('Priority ')}
+            <span>{t('Later values are more specific')}</span>
             <input
               type="number"
               min={0}
@@ -264,14 +267,16 @@ export function RuleEditor({
           </label>
         </div>
         <div className="editor-toolbar">
-          <span>Markdown</span>
+          <span>{t('Markdown')}</span>
           <Button
             variant="ghost"
             disabled={busy || !value.content.trim()}
             onClick={() => void improve()}
           >
             <Sparkles size={14} />
-            {state.settings.aiRunner === 'ollama' ? 'Review with Ollama' : 'Prepare AI review'}
+            {state.settings.aiRunner === 'ollama'
+              ? t('Review with Ollama')
+              : t('Prepare AI review')}
           </Button>
         </div>
         <textarea
@@ -280,33 +285,34 @@ export function RuleEditor({
           onChange={(event) => update('content', event.target.value)}
           rows={16}
           spellCheck={false}
-          placeholder="Describe the decisions your agent should make, and when they apply."
+          placeholder={t('Describe the decisions your agent should make, and when they apply.')}
           required
         />
         <label>
-          Origin / reason
+          {t('Origin / reason')}
           <input
             value={value.provenance}
             onChange={(event) => update('provenance', event.target.value)}
-            placeholder="A user preference, a lesson, or an upstream source"
+            placeholder={t('A user preference, a lesson, or an upstream source')}
           />
         </label>
         <Notice>
-          Project files update through reviewed setup plans. A library edit does not rewrite every
-          existing project.
+          {t(
+            'Project files update through reviewed setup plans. A library edit does not rewrite every existing project.',
+          )}
         </Notice>
         <div className="editor-bottom">
           <div className="button-row">
             {rule.id && (
               <Button variant="ghost" onClick={() => setDeleting(true)}>
                 <Trash2 size={14} />
-                Remove
+                {t('Remove')}
               </Button>
             )}
             {dirty && (
               <Button variant="ghost" onClick={() => setValue(saved)}>
                 <RotateCcw size={14} />
-                Revert edits
+                {t('Revert edits')}
               </Button>
             )}
           </div>
@@ -316,14 +322,14 @@ export function RuleEditor({
             ) : (
               <>
                 <Save size={15} />
-                Save directive
+                {t('Save directive')}
               </>
             )}
           </Button>
         </div>
         {deleting && (
           <Notice tone="warning">
-            Remove this directive from the library?
+            {t('Remove this directive from the library?')}
             <div className="button-row">
               <Button
                 variant="danger"
@@ -334,44 +340,47 @@ export function RuleEditor({
                     .catch((error) => notify(error.message, true));
                 }}
               >
-                Remove directive
+                {t('Remove directive')}
               </Button>
               <Button variant="ghost" onClick={() => setDeleting(false)}>
-                Keep it
+                {t('Keep it')}
               </Button>
             </div>
           </Notice>
         )}
       </form>
-      {review && (
-        <Modal
-          title="A second pair of eyes"
-          subtitle={review.note}
-          onClose={() => setReview(undefined)}
-          wide
-        >
-          <div className="code-toolbar">
-            <span>{review.result ? 'AI proposal' : 'Prompt for your current agent'}</span>
-            <CopyButton text={review.result || review.prompt} />
-          </div>
-          <pre className="content-preview">{review.result || review.prompt}</pre>
-          {review.result && (
-            <div className="modal-actions">
-              <Button variant="secondary" onClick={() => setReview(undefined)}>
-                Keep my version
-              </Button>
-              <Button
-                onClick={() => {
-                  update('content', review.result);
-                  setReview(undefined);
-                }}
-              >
-                Use as draft <ArrowRight size={15} />
-              </Button>
+      <ModalPresence>
+        {review && (
+          <Modal
+            title={t('A second pair of eyes')}
+            subtitle={review.note}
+            onClose={() => setReview(undefined)}
+            wide
+          >
+            <div className="code-toolbar">
+              <span>{review.result ? t('AI proposal') : t('Prompt for your current agent')}</span>
+              <CopyButton text={review.result || review.prompt} />
             </div>
-          )}
-        </Modal>
-      )}
+            <pre className="content-preview">{review.result || review.prompt}</pre>
+            {review.result && (
+              <div className="modal-actions">
+                <Button variant="secondary" onClick={() => setReview(undefined)}>
+                  {t('Keep my version')}
+                </Button>
+                <Button
+                  onClick={() => {
+                    update('content', review.result);
+                    setReview(undefined);
+                  }}
+                >
+                  {t('Use as draft ')}
+                  <ArrowRight size={15} />
+                </Button>
+              </div>
+            )}
+          </Modal>
+        )}
+      </ModalPresence>
     </>
   );
 }

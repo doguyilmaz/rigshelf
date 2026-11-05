@@ -125,7 +125,6 @@
   "Existing installations": "Existing installations",
   "Explicit library picks and exclusions": "Explicit library picks and exclusions",
   "Expo gestures, Go APIs, SwiftUI…": "Expo gestures, Go APIs, SwiftUI…",
-  "Expo\\nSwiftUI\\nKotlin": "Expo\\nSwiftUI\\nKotlin",
   "Export library": "Export library",
   "FILE CHANGES": "FILE CHANGES",
   "Fetch latest snapshot": "Fetch latest snapshot",
@@ -527,5 +526,6 @@
   "Skills": "Skills",
   "Sources": "Sources",
   "Plugins": "Plugins",
-  "Could not load the language. Reload the page and try again.": "Could not load the language. Reload the page and try again."
+  "Could not load the language. Reload the page and try again.": "Could not load the language. Reload the page and try again.",
+  "Expo\nSwiftUI\nKotlin": "Expo\nSwiftUI\nKotlin"
 }

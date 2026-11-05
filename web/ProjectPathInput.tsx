@@ -1,6 +1,7 @@
 import { Autocomplete } from '@base-ui/react/autocomplete';
 import { ChevronDown, FolderOpen } from 'lucide-react';
 import { useState } from 'react';
+import { t } from './i18n';
 
 interface ProjectOption {
   name: string;
@@ -39,7 +40,7 @@ export function ProjectPathInput({
         <Autocomplete.InputGroup className="path-input">
           <FolderOpen size={18} aria-hidden="true" />
           <Autocomplete.Input id="project-path" placeholder="~/Developer/my-next-project" />
-          <Autocomplete.Trigger className="path-trigger" aria-label="Show known projects">
+          <Autocomplete.Trigger className="path-trigger" aria-label={t('Show known projects')}>
             <ChevronDown size={15} />
           </Autocomplete.Trigger>
         </Autocomplete.InputGroup>
@@ -52,7 +53,7 @@ export function ProjectPathInput({
           >
             <Autocomplete.Popup className="select-popup">
               <Autocomplete.Empty className="select-empty">
-                New folder? Keep typing its path.
+                {t('New folder? Keep typing its path.')}
               </Autocomplete.Empty>
               <Autocomplete.List className="select-list">
                 {(project: ProjectOption) => (

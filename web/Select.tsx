@@ -2,6 +2,7 @@ import { Combobox } from '@base-ui/react/combobox';
 import { Select as SelectPrimitive } from '@base-ui/react/select';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { type KeyboardEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { getLocale, t } from './i18n';
 
 export interface SelectOption {
   value: string;
@@ -46,7 +47,7 @@ export function Select(props: SelectProps) {
 
 function SelectionText({ value, options }: Pick<SelectProps, 'value' | 'options'>) {
   const selected =
-    options.find((option) => option.value === value)?.label || value || 'Choose an option';
+    options.find((option) => option.value === value)?.label || value || t('Choose an option');
   return (
     <>
       <span className="select-value" title={selected}>
@@ -110,11 +111,11 @@ function SearchableOptions({
       <div className="select-search">
         <Search size={15} aria-hidden="true" />
         <Combobox.Input
-          aria-label={`Search ${label.toLowerCase()}`}
-          placeholder="Type to filter…"
+          aria-label={t('Search {{label}}', { label: t(label).toLocaleLowerCase(getLocale()) })}
+          placeholder={t('Type to filter…')}
         />
       </div>
-      <Combobox.Empty className="select-empty">No matching options.</Combobox.Empty>
+      <Combobox.Empty className="select-empty">{t('No matching options.')}</Combobox.Empty>
       <Combobox.List className="select-list">
         {(item: string) => (
           <Combobox.Item
@@ -125,7 +126,7 @@ function SearchableOptions({
           >
             <span className="select-option-copy">
               <span>{labels.get(item)?.label || item}</span>
-              {labels.get(item)?.group && <small>{labels.get(item)?.group}</small>}
+              {labels.get(item)?.group && <small>{t(labels.get(item)?.group || '')}</small>}
             </span>
             <Combobox.ItemIndicator className="select-check">
               <Check size={15} />

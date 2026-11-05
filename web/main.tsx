@@ -19,6 +19,8 @@ import { createRoot } from 'react-dom/client';
 import { type AppState, api } from './api';
 import { Button, Modal, SearchBox, Spinner } from './components';
 import { type DiscardRequest, requestDiscard } from './drafts';
+import { localeReady, t, useLocale } from './i18n';
+import { ModalPresence } from './ModalPresence';
 import { Activity } from './pages/Activity';
 import { Directives } from './pages/Directives';
 import { Library } from './pages/Library';
@@ -59,9 +61,9 @@ class Boundary extends React.Component<{ children: ReactNode }, { error: string 
   render(): ReactNode {
     return this.state.error ? (
       <div className="fatal">
-        <h1>Something needs attention.</h1>
+        <h1>{t('Something needs attention.')}</h1>
         <p>{this.state.error}</p>
-        <Button onClick={() => location.reload()}>Reload workbench</Button>
+        <Button onClick={() => location.reload()}>{t('Reload workbench')}</Button>
       </div>
     ) : (
       this.props.children
@@ -78,6 +80,11 @@ function initialPage(): Page {
 }
 
 function App(): ReactNode {
+  const locale = useLocale();
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title = `Kitfold — ${t('Project workbench')}`;
+  }, [locale]);
   const [state, setState] = useState<AppState>();
   const [page, setPage] = useState<Page>(initialPage);
   const [error, setError] = useState('');
@@ -155,16 +162,16 @@ function App(): ReactNode {
     return (
       <div className="boot">
         <Layers2 size={34} />
-        <h1>Kitfold</h1>
+        <h1>{t('Kitfold')}</h1>
         {error ? (
           <>
             <p role="alert">{error}</p>
             <Button onClick={() => void refresh().catch((failure) => setError(failure.message))}>
-              Try again
+              {t('Try again')}
             </Button>
           </>
         ) : (
-          <Spinner text="Opening your workbench" />
+          <Spinner text={t('Opening your workbench')} />
         )}
       </div>
     );
@@ -184,25 +191,30 @@ function App(): ReactNode {
             <Layers2 size={24} strokeWidth={1.6} />
           </span>
           <span>
-            kitfold<span className="brand-period">.</span>
+            {t('kitfold')}
+            <span className="brand-period">.</span>
           </span>
         </button>
         <div className="workspace-label">
-          <span className="live-dot" /> YOUR WORKBENCH <span className="local-tag">LOCAL</span>
+          <span className="live-dot" />
+          {t(' YOUR WORKBENCH ')}
+          <span className="local-tag">{t('LOCAL')}</span>
         </div>
-        <nav aria-label="Main navigation">
+        <nav aria-label={t('Main navigation')}>
           {navigation.map((item) => (
             <button
               type="button"
               key={item.id}
-              aria-label={item.name}
+              aria-label={t(item.name)}
               className={`nav-item ${page === item.id ? 'active' : ''}`}
               onClick={() => navigate(item.id)}
               aria-current={page === item.id ? 'page' : undefined}
             >
               <item.icon size={18} strokeWidth={1.7} />
-              <span>{item.name}</span>
-              {item.id === 'library' && <small>{state.entries.length.toLocaleString('en')}</small>}
+              <span>{t(item.name)}</span>
+              {item.id === 'library' && (
+                <small>{state.entries.length.toLocaleString(locale)}</small>
+              )}
             </button>
           ))}
         </nav>
@@ -213,39 +225,39 @@ function App(): ReactNode {
             <span />
           </div>
           <p>
-            Your tools.
+            {t('Your tools.')}
             <br />
-            Your way of working.
+            {t('Your way of working.')}
           </p>
           <span>
-            A library for every project.
+            {t('A library for every project.')}
             <br />
-            Only the right kit in context.
+            {t('Only the right kit in context.')}
           </span>
         </div>
         <div className="sidebar-bottom">
           <button
             type="button"
-            aria-label="Settings"
+            aria-label={t('Settings')}
             className={`nav-item ${page === 'settings' ? 'active' : ''}`}
             onClick={() => navigate('settings')}
           >
             <Settings2 size={18} />
-            <span>Settings</span>
+            <span>{t('Settings')}</span>
           </button>
           <button
             type="button"
             className="quick-search"
-            aria-label="Quick jump"
+            aria-label={t('Quick jump')}
             onClick={() => setPalette(true)}
           >
             <Search size={15} />
-            <span>Quick jump</span>
-            <kbd>⌘ K</kbd>
+            <span>{t('Quick jump')}</span>
+            <kbd>{t('⌘ K')}</kbd>
           </button>
           <div className="storage-label">
             <HardDrive size={12} />
-            <span>On this machine · v0.1.0</span>
+            <span>{t('On this machine · v0.1.0')}</span>
             <span className="live-dot" />
           </div>
         </div>
@@ -253,10 +265,12 @@ function App(): ReactNode {
       <div className="main-shell">
         <div className="topbar">
           <div>
-            <span>Workbench</span>
+            <span>{t('Workbench')}</span>
             <span className="slash">/</span>
             <span>
-              {page === 'setup' ? 'Project setup' : page.charAt(0).toUpperCase() + page.slice(1)}
+              {page === 'setup'
+                ? t('Project setup')
+                : t(page.charAt(0).toUpperCase() + page.slice(1))}
             </span>
           </div>
           <div className="topbar-actions">
@@ -264,7 +278,8 @@ function App(): ReactNode {
               <Spinner text={state.scan.message} />
             ) : (
               <span className="private-indicator">
-                <span className="live-dot" /> Private by default
+                <span className="live-dot" />
+                {t(' Private by default')}
               </span>
             )}
             <button
@@ -275,7 +290,7 @@ function App(): ReactNode {
                   .then(() => notify('Workbench refreshed'))
                   .catch((failure) => notify(failure.message, true))
               }
-              aria-label="Refresh workbench"
+              aria-label={t('Refresh workbench')}
             >
               <RefreshCw size={15} />
             </button>
@@ -291,8 +306,8 @@ function App(): ReactNode {
           {page === 'activity' && <Activity {...props} />}
         </main>
         <footer className="app-footer">
-          <span>Good defaults. Deliberate choices.</span>
-          <span>Skills · MCP · Directives</span>
+          <span>{t('Good defaults. Deliberate choices.')}</span>
+          <span>{t('Skills · MCP · Directives')}</span>
         </footer>
       </div>
       {toast && (
@@ -301,77 +316,89 @@ function App(): ReactNode {
           role={toast.error ? 'alert' : 'status'}
         >
           {toast.error ? <X size={17} /> : <Check size={17} />}
-          <span>{toast.text}</span>
+          <span>{t(toast.text)}</span>
           <button
             type="button"
             onClick={() => setToast(undefined)}
-            aria-label="Dismiss notification"
+            aria-label={t('Dismiss notification')}
           >
             <X size={14} />
           </button>
         </div>
       )}
-      {palette && (
-        <Modal title="Where to?" onClose={() => setPalette(false)}>
-          <SearchBox value={query} onChange={setQuery} placeholder="Find a page or project…" />
-          <div className="command-results">
-            {[...navigation, { id: 'settings' as const, name: 'Settings', icon: Settings2 }]
-              .filter((item) => item.name.toLowerCase().includes(query.toLowerCase()))
-              .map((item) => (
-                <button type="button" key={item.id} onClick={() => navigate(item.id)}>
-                  <item.icon size={17} />
-                  <span>{item.name}</span>
-                  <ArrowUpRight size={15} />
-                </button>
-              ))}
-            {state.projects
-              .filter((project) => project.name.toLowerCase().includes(query.toLowerCase()))
-              .slice(0, 8)
-              .map((project) => (
-                <button
-                  type="button"
-                  key={project.id}
-                  onClick={() => navigate('setup', project.path)}
-                >
-                  <FolderOpen size={17} />
-                  <span>{project.name}</span>
-                  <small>Set up project</small>
-                </button>
-              ))}
-          </div>
-        </Modal>
-      )}
-      {discard && (
-        <Modal
-          title="Keep your draft?"
-          subtitle="These changes have not been saved."
-          onClose={() => setDiscard(undefined)}
-        >
-          <p>{discard.labels.join(', ')}</p>
-          <div className="modal-actions">
-            <Button variant="secondary" onClick={() => setDiscard(undefined)}>
-              Continue editing
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                const pending = discard;
-                setDiscard(undefined);
-                pending.proceed();
-              }}
-            >
-              Discard changes
-            </Button>
-          </div>
-        </Modal>
-      )}
+      <ModalPresence>
+        {palette && (
+          <Modal title={t('Where to?')} onClose={() => setPalette(false)}>
+            <SearchBox
+              value={query}
+              onChange={setQuery}
+              placeholder={t('Find a page or project…')}
+            />
+            <div className="command-results">
+              {[...navigation, { id: 'settings' as const, name: t('Settings'), icon: Settings2 }]
+                .filter((item) =>
+                  t(item.name).toLocaleLowerCase(locale).includes(query.toLocaleLowerCase(locale)),
+                )
+                .map((item) => (
+                  <button type="button" key={item.id} onClick={() => navigate(item.id)}>
+                    <item.icon size={17} />
+                    <span>{t(item.name)}</span>
+                    <ArrowUpRight size={15} />
+                  </button>
+                ))}
+              {state.projects
+                .filter((project) => project.name.toLowerCase().includes(query.toLowerCase()))
+                .slice(0, 8)
+                .map((project) => (
+                  <button
+                    type="button"
+                    key={project.id}
+                    onClick={() => navigate('setup', project.path)}
+                  >
+                    <FolderOpen size={17} />
+                    <span>{project.name}</span>
+                    <small>{t('Set up project')}</small>
+                  </button>
+                ))}
+            </div>
+          </Modal>
+        )}
+      </ModalPresence>
+      <ModalPresence>
+        {discard && (
+          <Modal
+            title={t('Keep your draft?')}
+            subtitle={t('These changes have not been saved.')}
+            onClose={() => setDiscard(undefined)}
+          >
+            <p>{discard.labels.join(', ')}</p>
+            <div className="modal-actions">
+              <Button variant="secondary" onClick={() => setDiscard(undefined)}>
+                {t('Continue editing')}
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  const pending = discard;
+                  setDiscard(undefined);
+                  pending.proceed();
+                }}
+              >
+                {t('Discard changes')}
+              </Button>
+            </div>
+          </Modal>
+        )}
+      </ModalPresence>
     </div>
   );
 }
-createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <Boundary>
-      <App />
-    </Boundary>
-  </React.StrictMode>,
-);
+void localeReady.then(() => {
+  createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <Boundary>
+        <App />
+      </Boundary>
+    </React.StrictMode>,
+  );
+});

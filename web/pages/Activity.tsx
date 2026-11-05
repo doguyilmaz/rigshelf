@@ -3,6 +3,8 @@ import { type ReactNode, useState } from 'react';
 import type { PlanView } from '../../src/core/plan-view';
 import { api, apiId, formatDate, shortPath } from '../api';
 import { Badge, Button, Empty, Modal, Notice, PageHeader } from '../components';
+import { t } from '../i18n';
+import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { PlanReview } from './Setup';
 
@@ -24,7 +26,7 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
       await api(`plans/${apiId(rollback)}/rollback`, 'POST', {});
       await refresh();
       setRollback(undefined);
-      notify('Setup rolled back. Later edits were protected by conflict checks.');
+      notify(t('Setup rolled back. Later edits were protected by conflict checks.'));
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
@@ -34,18 +36,19 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
   return (
     <>
       <PageHeader
-        eyebrow="CHANGES YOU CAN TRACE"
-        title="Nothing behind the curtain."
-        description="Setup plans, library changes, and a way back when you need one."
+        eyebrow={t('CHANGES YOU CAN TRACE')}
+        title={t('Nothing behind the curtain.')}
+        description={t('Setup plans, library changes, and a way back when you need one.')}
       />
       {state.recoveries?.map((recovery) => (
         <div className="recovery-notice" key={recovery.id}>
           <Notice tone="warning">
-            Interrupted write · {recovery.id}. Recovery restores the state before the interruption
-            and refuses later edits.
+            {t('Interrupted write · ')}
+            {recovery.id}
+            {t('. Recovery restores the state before the interruption and refuses later edits.')}
             <div className="button-row">
               <Button variant="secondary" onClick={() => void inspect(recovery.id)}>
-                Inspect plan
+                {t('Inspect plan')}
               </Button>
               <Button
                 disabled={busy}
@@ -58,7 +61,7 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
                     .finally(() => setBusy(false));
                 }}
               >
-                Recover interrupted write
+                {t('Recover interrupted write')}
               </Button>
             </div>
           </Notice>
@@ -67,8 +70,11 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
       {state.plans.length > 0 && (
         <section className="activity-plans">
           <div className="section-caption">
-            <span>PROJECT SETUP PLANS</span>
-            <span>{state.plans.length} saved locally</span>
+            <span>{t('PROJECT SETUP PLANS')}</span>
+            <span>
+              {state.plans.length}
+              {t(' saved locally')}
+            </span>
           </div>
           {[...state.plans]
             .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
@@ -81,19 +87,22 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
                 <div>
                   <strong>{shortPath(value.projectPath)}</strong>
                   <span>
-                    {value.fileCount} file changes · {formatDate(value.createdAt)}
+                    {value.fileCount}
+                    {t(' file changes · ')}
+                    {formatDate(value.createdAt)}
                   </span>
                 </div>
                 <Badge tone={value.status === 'applied' ? 'green' : 'neutral'}>
-                  {value.status}
+                  {t(value.status)}
                 </Badge>
                 <Button variant="ghost" onClick={() => void inspect(value.id)}>
-                  Inspect <ArrowRight size={13} />
+                  {t('Inspect ')}
+                  <ArrowRight size={13} />
                 </Button>
                 {value.status === 'applied' && (
                   <Button variant="ghost" onClick={() => setRollback(value.id)}>
                     <RotateCcw size={13} />
-                    Roll back
+                    {t('Roll back')}
                   </Button>
                 )}
               </div>
@@ -101,8 +110,8 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
         </section>
       )}
       <div className="section-caption activity-label">
-        <span>RECENT ACTIVITY</span>
-        <span>Last 100 events · this machine</span>
+        <span>{t('RECENT ACTIVITY')}</span>
+        <span>{t('Last 100 events · this machine')}</span>
       </div>
       {state.events.length ? (
         <div className="timeline">
@@ -124,36 +133,47 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
           ))}
         </div>
       ) : (
-        <Empty title="A fresh start." text="Your first scan or project setup will appear here." />
-      )}
-      {plan && (
-        <PlanReview
-          plan={plan}
-          onClose={() => setPlan(undefined)}
-          onApplied={() => void refresh()}
-          notify={notify}
+        <Empty
+          title={t('A fresh start.')}
+          text={t('Your first scan or project setup will appear here.')}
         />
       )}
-      {rollback && (
-        <Modal
-          title="Restore the previous setup?"
-          subtitle="Files must still match the applied plan. Later edits will cause a conflict instead of being overwritten."
-          onClose={() => setRollback(undefined)}
-        >
-          <Notice>
-            Existing files are restored from the private plan preimages. Files created by this plan
-            are removed. Empty directories may remain.
-          </Notice>
-          <div className="modal-actions">
-            <Button variant="secondary" onClick={() => setRollback(undefined)}>
-              Keep current setup
-            </Button>
-            <Button variant="danger" disabled={busy} onClick={() => void restore()}>
-              Roll back setup <RotateCcw size={15} />
-            </Button>
-          </div>
-        </Modal>
-      )}
+      <ModalPresence>
+        {plan && (
+          <PlanReview
+            plan={plan}
+            onClose={() => setPlan(undefined)}
+            onApplied={() => void refresh()}
+            notify={notify}
+          />
+        )}
+      </ModalPresence>
+      <ModalPresence>
+        {rollback && (
+          <Modal
+            title={t('Restore the previous setup?')}
+            subtitle={t(
+              'Files must still match the applied plan. Later edits will cause a conflict instead of being overwritten.',
+            )}
+            onClose={() => setRollback(undefined)}
+          >
+            <Notice>
+              {t(
+                'Existing files are restored from the private plan preimages. Files created by this plan are removed. Empty directories may remain.',
+              )}
+            </Notice>
+            <div className="modal-actions">
+              <Button variant="secondary" onClick={() => setRollback(undefined)}>
+                {t('Keep current setup')}
+              </Button>
+              <Button variant="danger" disabled={busy} onClick={() => void restore()}>
+                {t('Roll back setup ')}
+                <RotateCcw size={15} />
+              </Button>
+            </div>
+          </Modal>
+        )}
+      </ModalPresence>
     </>
   );
 }

@@ -29,6 +29,8 @@ import {
 } from '../components';
 import { useDraftGuard } from '../drafts';
 import { countText } from '../format';
+import { t } from '../i18n';
+import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 import { Discover } from './Discover';
@@ -106,7 +108,7 @@ export function Library(props: PageProps): ReactNode {
     try {
       await api('scan', 'POST', {});
       await refresh();
-      notify('Scanning actual project and global files. Existing installations stay in place.');
+      notify(t('Scanning actual project and global files. Existing installations stay in place.'));
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
@@ -121,9 +123,9 @@ export function Library(props: PageProps): ReactNode {
   return (
     <>
       <PageHeader
-        eyebrow="YOUR CAPABILITIES, TOGETHER"
-        title="The library"
-        description="Keep everything you collect. Activate only what a project needs."
+        eyebrow={t('YOUR CAPABILITIES, TOGETHER')}
+        title={t('The library')}
+        description={t('Keep everything you collect. Activate only what a project needs.')}
         action={
           <div className="button-row">
             <Button
@@ -132,27 +134,27 @@ export function Library(props: PageProps): ReactNode {
               disabled={busy || state.scan.state === 'running'}
             >
               {state.scan.state === 'running' ? (
-                <Spinner text="Scanning" />
+                <Spinner text={t('Scanning')} />
               ) : (
                 <>
                   <RefreshCw size={15} />
-                  Scan this machine
+                  {t('Scan this machine')}
                 </>
               )}
             </Button>
             <Button variant="secondary" onClick={() => setDiscovering(true)}>
               <Search size={15} />
-              Discover
+              {t('Discover')}
             </Button>
             <Button onClick={() => setAdding(true)}>
               <Plus size={16} />
-              Add to library
+              {t('Add to library')}
             </Button>
           </div>
         }
       />
       <div className="library-topline">
-        <div className="tabs" role="tablist" aria-label="Library type">
+        <div className="tabs" role="tablist" aria-label={t('Library type')}>
           {(['skills', 'mcp', 'custom', 'sources', 'plugins', 'archived'] as const).map((value) => (
             <button
               type="button"
@@ -162,7 +164,9 @@ export function Library(props: PageProps): ReactNode {
               className={view === value ? 'active' : ''}
               onClick={() => changeView(value)}
             >
-              {value === 'mcp' ? 'MCP servers' : value.charAt(0).toUpperCase() + value.slice(1)}
+              {value === 'mcp'
+                ? t('MCP servers')
+                : t(value.charAt(0).toUpperCase() + value.slice(1))}
               <span>
                 {value === 'sources'
                   ? state.sources.length
@@ -196,7 +200,7 @@ export function Library(props: PageProps): ReactNode {
         {view !== 'sources' && (
           <>
             <Select
-              label="Group library"
+              label={t('Group library')}
               searchable
               value={group}
               onValueChange={(value) => {
@@ -204,7 +208,7 @@ export function Library(props: PageProps): ReactNode {
                 setPage(0);
               }}
               options={[
-                { value: 'all', label: 'All sources & projects' },
+                { value: 'all', label: t('All sources & projects') },
                 ...state.sources
                   .filter((source) => state.entries.some((entry) => entry.sourceId === source.id))
                   .map((source) => ({ value: source.id, label: source.name, group: 'Source' })),
@@ -216,21 +220,21 @@ export function Library(props: PageProps): ReactNode {
               ]}
             />
             <Select
-              label="Filter by installation scope"
+              label={t('Filter by installation scope')}
               value={scope}
               onValueChange={(value) => {
                 setScope(value);
                 setPage(0);
               }}
               options={[
-                { value: 'all', label: 'All locations' },
-                { value: 'global', label: 'Global installations' },
-                { value: 'project', label: 'Project installations' },
-                { value: 'unused', label: 'Library only' },
+                { value: 'all', label: t('All locations') },
+                { value: 'global', label: t('Global installations') },
+                { value: 'project', label: t('Project installations') },
+                { value: 'unused', label: t('Library only') },
               ]}
             />
             <Select
-              label="Filter by tag"
+              label={t('Filter by tag')}
               searchable
               value={tag}
               onValueChange={(value) => {
@@ -238,7 +242,7 @@ export function Library(props: PageProps): ReactNode {
                 setPage(0);
               }}
               options={[
-                { value: 'all', label: 'All tags' },
+                { value: 'all', label: t('All tags') },
                 ...tags.map((value) => ({ value, label: value })),
               ]}
             />
@@ -250,10 +254,10 @@ export function Library(props: PageProps): ReactNode {
       ) : entries.length ? (
         <div className="entry-list">
           <div className="entry-list-head">
-            <span>CAPABILITY</span>
-            <span>SOURCE / TAGS</span>
-            <span>INSTALLED IN</span>
-            <span>REVIEW</span>
+            <span>{t('CAPABILITY')}</span>
+            <span>{t('SOURCE / TAGS')}</span>
+            <span>{t('INSTALLED IN')}</span>
+            <span>{t('REVIEW')}</span>
           </div>
           {families.slice(page * 40, page * 40 + 40).map((family) => {
             const entry = family[0];
@@ -279,28 +283,31 @@ export function Library(props: PageProps): ReactNode {
                   </span>
                   <div>
                     <strong>{entry.name}</strong>{' '}
-                    {family.length > 1 && <Badge>{family.length} versions</Badge>}
-                    <p>{entry.description || 'No description yet'}</p>
+                    {family.length > 1 && (
+                      <Badge>
+                        {family.length}
+                        {t(' versions')}
+                      </Badge>
+                    )}
+                    <p>{entry.description || t('No description yet')}</p>
                   </div>
                 </div>
                 <div className="entry-source">
                   <span>
                     {state.sources.find((source) => source.id === entry.sourceId)?.name ||
-                      'Unknown source'}
+                      t('Unknown source')}
                   </span>
                   <div>
                     {entry.tags.slice(0, 2).map((value) => (
                       <Badge key={value}>{value}</Badge>
                     ))}
-                    {entry.custom && <Badge tone="green">Custom</Badge>}
+                    {entry.custom && <Badge tone="green">{t('Custom')}</Badge>}
                   </div>
                 </div>
                 <div className="entry-locations">
-                  {projects.size
-                    ? `${projects.size} project${projects.size > 1 ? 's' : ''}`
-                    : 'Library only'}
+                  {projects.size ? countText(projects.size, 'project') : t('Library only')}
                   {locations.some((location) => location.scope === 'global') && (
-                    <span>Global copy exists</span>
+                    <span>{t('Global copy exists')}</span>
                   )}
                 </div>
                 <div>
@@ -308,11 +315,14 @@ export function Library(props: PageProps): ReactNode {
                     <Badge
                       tone={findings.some((finding) => finding.level === 'block') ? 'red' : 'amber'}
                     >
-                      {findings.length} finding{findings.length > 1 ? 's' : ''}
+                      {findings.length}
+                      {t(' finding')}
+                      {findings.length > 1 ? 's' : ''}
                     </Badge>
                   ) : (
                     <span className="scan-label">
-                      <span className="live-dot" /> No flags
+                      <span className="live-dot" />
+                      {t(' No flags')}
                     </span>
                   )}
                 </div>
@@ -324,14 +334,16 @@ export function Library(props: PageProps): ReactNode {
         <Empty
           title={
             query || tag !== 'all' || group !== 'all'
-              ? 'No matching capabilities'
-              : 'A good kit starts here.'
+              ? t('No matching capabilities')
+              : t('A good kit starts here.')
           }
-          text="Scan skills already on this machine, add a source, or write something of your own."
+          text={t(
+            'Scan skills already on this machine, add a source, or write something of your own.',
+          )}
         >
           <Button onClick={() => setAdding(true)}>
             <Plus size={15} />
-            Add to library
+            {t('Add to library')}
           </Button>
         </Empty>
       )}
@@ -339,8 +351,8 @@ export function Library(props: PageProps): ReactNode {
         <span>
           {view === 'sources'
             ? countText(sources.length, 'source')
-            : countText(families.length, 'capability group')}{' '}
-          · Content opens on demand
+            : countText(families.length, 'capability group', 'capability groups')}{' '}
+          {t('· Content opens on demand')}
         </span>
         <div className="button-row">
           <Button
@@ -348,7 +360,7 @@ export function Library(props: PageProps): ReactNode {
             disabled={page === 0}
             onClick={() => setPage((value) => value - 1)}
           >
-            Previous
+            {t('Previous')}
           </Button>
           <span>{page + 1}</span>
           <Button
@@ -356,13 +368,16 @@ export function Library(props: PageProps): ReactNode {
             disabled={(page + 1) * 40 >= (view === 'sources' ? sources.length : families.length)}
             onClick={() => setPage((value) => value + 1)}
           >
-            Next
+            {t('Next')}
           </Button>
         </div>
       </div>
       {state.lastScan?.skipped.length ? (
         <details className="warnings">
-          <summary>{state.lastScan.skipped.length} files need attention from the last scan</summary>
+          <summary>
+            {state.lastScan.skipped.length}
+            {t(' files need attention from the last scan')}
+          </summary>
           {[...new Set(state.lastScan.skipped)].map((message) => (
             <p key={message}>{shortPath(message)}</p>
           ))}
@@ -371,38 +386,51 @@ export function Library(props: PageProps): ReactNode {
       <div className="library-footnote">
         <ShieldAlert size={15} />
         <span>
-          “No flags” means the built-in heuristics found nothing. Source reachability and publisher
-          trust are separate.
+          {t(
+            '“No flags” means the built-in heuristics found nothing. Source reachability and publisher trust are separate.',
+          )}
         </span>
       </div>
-      {adding && (
-        <AddToLibrary
-          {...props}
-          onClose={() => setAdding(false)}
-          onSourceAdded={(source) => {
-            setAdding(false);
-            changeView('sources');
-            setQuery('');
-            setSourceDetail(source);
-          }}
-        />
-      )}
-      {detail && <EntryDetail {...props} id={detail} onClose={() => setDetail(undefined)} />}
-      {discovering && (
-        <Discover
-          {...props}
-          onClose={() => setDiscovering(false)}
-          onSource={(source) => {
-            setDiscovering(false);
-            changeView('sources');
-            setQuery('');
-            setSourceDetail(source);
-          }}
-        />
-      )}
-      {sourceDetail && (
-        <SourceDetail {...props} source={sourceDetail} onClose={() => setSourceDetail(undefined)} />
-      )}
+      <ModalPresence>
+        {adding && (
+          <AddToLibrary
+            {...props}
+            onClose={() => setAdding(false)}
+            onSourceAdded={(source) => {
+              setAdding(false);
+              changeView('sources');
+              setQuery('');
+              setSourceDetail(source);
+            }}
+          />
+        )}
+      </ModalPresence>
+      <ModalPresence>
+        {detail && <EntryDetail {...props} id={detail} onClose={() => setDetail(undefined)} />}
+      </ModalPresence>
+      <ModalPresence>
+        {discovering && (
+          <Discover
+            {...props}
+            onClose={() => setDiscovering(false)}
+            onSource={(source) => {
+              setDiscovering(false);
+              changeView('sources');
+              setQuery('');
+              setSourceDetail(source);
+            }}
+          />
+        )}
+      </ModalPresence>
+      <ModalPresence>
+        {sourceDetail && (
+          <SourceDetail
+            {...props}
+            source={sourceDetail}
+            onClose={() => setSourceDetail(undefined)}
+          />
+        )}
+      </ModalPresence>
     </>
   );
 }
@@ -443,8 +471,8 @@ function SourceList({
             {source.status === 'reachable'
               ? 'Reachable'
               : source.status === 'unchecked'
-                ? 'Not checked'
-                : 'Needs attention'}
+                ? t('Not checked')
+                : t('Needs attention')}
           </Badge>
           <ArrowUpRight size={17} />
         </button>
@@ -484,7 +512,7 @@ function AddToLibrary({
         localPath ||
         mcpBody !== template,
     ),
-    'New library item',
+    t('New library item'),
   );
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -521,7 +549,7 @@ function AddToLibrary({
             .filter(Boolean),
         });
       await refresh();
-      notify('Added to your private library. Project files are unchanged.');
+      notify(t('Added to your private library. Project files are unchanged.'));
       onClose();
     } catch (error) {
       notify((error as Error).message, true);
@@ -531,8 +559,8 @@ function AddToLibrary({
   }
   return (
     <Modal
-      title="Add something useful"
-      subtitle="Collect it once. Use it in the projects that need it."
+      title={t('Add something useful')}
+      subtitle={t('Collect it once. Use it in the projects that need it.')}
       onClose={() => guard(onClose)}
     >
       <div className="tabs compact">
@@ -546,12 +574,12 @@ function AddToLibrary({
             }}
           >
             {value === 'source'
-              ? 'Source'
+              ? t('Source')
               : value === 'custom'
-                ? 'Custom skill'
+                ? t('Custom skill')
                 : value === 'local'
-                  ? 'Local folder'
-                  : 'MCP server'}
+                  ? t('Local folder')
+                  : t('MCP server')}
           </button>
         ))}
       </div>
@@ -559,7 +587,7 @@ function AddToLibrary({
         {tab === 'source' && (
           <>
             <label>
-              URL, repository, or installation command
+              {t('URL, repository, or installation command')}
               <input
                 value={url}
                 onChange={(event) => setUrl(event.target.value)}
@@ -568,53 +596,58 @@ function AddToLibrary({
               />
             </label>
             <label>
-              Display name <span>Optional</span>
+              {t('Display name ')}
+              <span>{t('Optional')}</span>
               <input value={name} onChange={(event) => setName(event.target.value)} />
             </label>
             <label>
-              Installation recipe <span>Stored, never executed on import</span>
+              {t('Installation recipe ')}
+              <span>{t('Stored, never executed on import')}</span>
               <input
                 value={recipe}
                 onChange={(event) => setRecipe(event.target.value)}
-                placeholder="bunx skills add owner/repo"
+                placeholder={t('bunx skills add owner/repo')}
               />
             </label>
             <Notice>
-              Sources can contain many skills. Add the source, then choose which skills to snapshot.
+              {t(
+                'Sources can contain many skills. Add the source, then choose which skills to snapshot.',
+              )}
             </Notice>
           </>
         )}
         {tab === 'local' && (
           <>
             <label>
-              Skill directory
+              {t('Skill directory')}
               <input
                 value={localPath}
                 onChange={(event) => setLocalPath(event.target.value)}
-                placeholder="/path/to/my-skill"
+                placeholder={t('/path/to/my-skill')}
                 required
               />
             </label>
             <Notice>
-              Reads SKILL.md and supporting files directly. Symlinked resources and oversized
-              bundles are reported.
+              {t(
+                'Reads SKILL.md and supporting files directly. Symlinked resources and oversized bundles are reported.',
+              )}
             </Notice>
           </>
         )}
         {(tab === 'custom' || tab === 'mcp') && (
           <>
             <label>
-              Name
+              {t('Name')}
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="my-project-workflow"
+                placeholder={t('my-project-workflow')}
                 required
               />
             </label>
             {tab === 'custom' && (
               <label>
-                When should an agent use it?
+                {t('When should an agent use it?')}
                 <input
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
@@ -623,7 +656,7 @@ function AddToLibrary({
               </label>
             )}
             <label>
-              {tab === 'mcp' ? 'Canonical MCP definition · JSON' : 'Instructions · Markdown'}
+              {tab === 'mcp' ? t('Canonical MCP definition · JSON') : t('Instructions · Markdown')}
               <textarea
                 className="code-editor"
                 rows={12}
@@ -634,31 +667,34 @@ function AddToLibrary({
               />
             </label>
             <label>
-              Tags <span>Comma separated</span>
+              {t('Tags ')}
+              <span>{t('Comma separated')}</span>
               <input
                 value={tags}
                 onChange={(event) => setTags(event.target.value)}
-                placeholder="backend, typescript"
+                placeholder={t('backend, typescript')}
               />
             </label>
             {tab === 'mcp' && (
               <Notice>
-                Use environment placeholders for secrets. No server is started when you add a
-                definition.
+                {t(
+                  'Use environment placeholders for secrets. No server is started when you add a definition.',
+                )}
               </Notice>
             )}
           </>
         )}
         <div className="modal-actions">
           <Button variant="secondary" onClick={() => guard(onClose)}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" disabled={busy}>
             {busy ? (
               <Spinner />
             ) : (
               <>
-                Add to library <Plus size={15} />
+                {t('Add to library ')}
+                <Plus size={15} />
               </>
             )}
           </Button>
@@ -686,7 +722,7 @@ function SourceDetail({
       ['name', 'url', 'recipe', 'notes'].some(
         (key) => draft[key as keyof Source] !== source[key as keyof Source],
       ),
-    'Source',
+    t('Source'),
   );
   useEffect(() => {
     if (initial.type !== 'github') return;
@@ -711,7 +747,7 @@ function SourceDetail({
       setEditing(false);
       if (next.url !== source.url) setSkills(undefined);
       await refresh();
-      notify('Source updated. Existing snapshot provenance receipts are retained.');
+      notify(t('Source updated. Existing snapshot provenance receipts are retained.'));
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
@@ -745,7 +781,7 @@ function SourceDetail({
     try {
       const entry = await api<Entry>(`sources/${apiId(source.id)}/import`, 'POST', { path });
       await refresh();
-      notify(`${entry.name} imported. It is available for project setup.`);
+      notify(t('{{name}} imported. It is available for project setup.', { name: entry.name }));
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
@@ -757,43 +793,46 @@ function SourceDetail({
       title={source.name}
       subtitle={
         source.type === 'github'
-          ? 'A source can contain many skills. Import just the ones you want.'
-          : 'Saved reference and installation method.'
+          ? t('A source can contain many skills. Import just the ones you want.')
+          : t('Saved reference and installation method.')
       }
       onClose={() => guard(onClose)}
       wide
     >
       <div className="source-detail-top">
-        <ExternalLink href={source.url}>{source.url || 'Local source'}</ExternalLink>
-        <Badge tone={source.status === 'reachable' ? 'green' : 'neutral'}>{source.status}</Badge>
+        <ExternalLink href={source.url}>{source.url || t('Local source')}</ExternalLink>
+        <Badge tone={source.status === 'reachable' ? 'green' : 'neutral'}>{t(source.status)}</Badge>
         <span className="muted">{formatDate(source.checkedAt)}</span>
       </div>
       {source.repository && (
         <div className="repository-evidence">
           <p className="eyebrow">
-            GITHUB REPOSITORY METADATA · {formatDate(source.repository.checkedAt)}
+            {t('GITHUB REPOSITORY METADATA · ')}
+            {formatDate(source.repository.checkedAt)}
           </p>
           <p>
-            Owner{' '}
+            {t('Owner')}{' '}
             <ExternalLink href={`https://github.com/${source.repository.owner}`}>
               {source.repository.owner}
             </ExternalLink>
             {source.repository.license
-              ? ` · License: ${source.repository.license}`
-              : ' · No declared license found'}
-            {source.repository.archived ? ' · Archived repository' : ''}
+              ? t(' · License: {{license}}', { license: source.repository.license })
+              : t(' · No declared license found')}
+            {source.repository.archived ? t(' · Archived repository') : ''}
           </p>
           {source.repository.description && (
             <p className="muted">{source.repository.description}</p>
           )}
           <small>
-            Repository ownership and a license declaration do not establish safety or endorsement.
+            {t(
+              'Repository ownership and a license declaration do not establish safety or endorsement.',
+            )}
           </small>
         </div>
       )}
       {source.recipe && (
         <div className="recipe">
-          <p className="eyebrow">PREFERRED INSTALLATION RECIPE · NEVER AUTO-EXECUTED</p>
+          <p className="eyebrow">{t('PREFERRED INSTALLATION RECIPE · NEVER AUTO-EXECUTED')}</p>
           <code>{source.recipe}</code>
           <CopyButton text={source.recipe} />
         </div>
@@ -801,14 +840,14 @@ function SourceDetail({
       {editing ? (
         <div className="editor-form">
           <label>
-            Display name
+            {t('Display name')}
             <input
               value={draft.name}
               onChange={(event) => setDraft({ ...draft, name: event.target.value })}
             />
           </label>
           <label>
-            Source URL
+            {t('Source URL')}
             <input
               type="url"
               value={draft.url}
@@ -816,14 +855,14 @@ function SourceDetail({
             />
           </label>
           <label>
-            Installation recipe
+            {t('Installation recipe')}
             <input
               value={draft.recipe}
               onChange={(event) => setDraft({ ...draft, recipe: event.target.value })}
             />
           </label>
           <label>
-            Research notes
+            {t('Research notes')}
             <textarea
               rows={5}
               value={draft.notes}
@@ -832,10 +871,10 @@ function SourceDetail({
           </label>
           <div className="button-row">
             <Button disabled={busy} onClick={() => void save()}>
-              Save source
+              {t('Save source')}
             </Button>
             <Button variant="secondary" onClick={() => setEditing(false)}>
-              Cancel editing
+              {t('Cancel editing')}
             </Button>
           </div>
         </div>
@@ -844,14 +883,17 @@ function SourceDetail({
       )}
       {source.latestRef && (
         <p className="muted">
-          Last checked revision <code>{source.latestRef.slice(0, 12)}</code>
-          {source.skillCount !== undefined && ` · ${source.skillCount} indexed skills`}
+          {t('Last checked revision ')}
+          <code>{source.latestRef.slice(0, 12)}</code>
+          {source.skillCount !== undefined &&
+            t(' · {{count}} indexed skills', { count: source.skillCount })}
         </p>
       )}
       {source.focusSkill && (
         <Notice>
-          Originally saved for <strong>{source.focusSkill}</strong>. Other skills from the same
-          source are available below.
+          {t('Originally saved for ')}
+          <strong>{source.focusSkill}</strong>
+          {t('. Other skills from the same source are available below.')}
         </Notice>
       )}
       <div className="button-row">
@@ -862,12 +904,12 @@ function SourceDetail({
             setEditing(!editing);
           }}
         >
-          Edit source
+          {t('Edit source')}
         </Button>
         {source.url && (
           <Button variant="secondary" onClick={() => void check()} disabled={busy}>
             <RefreshCw size={14} />
-            Check source
+            {t('Check source')}
           </Button>
         )}
         {source.type === 'github' && (
@@ -877,7 +919,7 @@ function SourceDetail({
             ) : (
               <>
                 <Search size={15} />
-                Find skills in source
+                {t('Find skills in source')}
               </>
             )}
           </Button>
@@ -888,12 +930,13 @@ function SourceDetail({
           <SearchBox
             value={query}
             onChange={setQuery}
-            placeholder={`Search ${skills.length} discovered skills…`}
+            placeholder={t('Search {{count}} discovered skills…', { count: skills.length })}
           />
           {skills.length === 0 && (
             <Notice>
-              No SKILL.md files found. This may be a CLI, docs repository, or plugin rather than a
-              skill collection.
+              {t(
+                'No SKILL.md files found. This may be a CLI, docs repository, or plugin rather than a skill collection.',
+              )}
             </Notice>
           )}
           {skills
@@ -910,7 +953,7 @@ function SourceDetail({
                 </div>
                 <Button variant="secondary" disabled={busy} onClick={() => void ingest(skill.path)}>
                   <Download size={13} />
-                  Import snapshot
+                  {t('Import snapshot')}
                 </Button>
               </div>
             ))}
@@ -919,7 +962,7 @@ function SourceDetail({
       <div className="detail-danger">
         {removing ? (
           <>
-            <span>Remove this saved source?</span>
+            <span>{t('Remove this saved source?')}</span>
             <Button
               variant="danger"
               onClick={() => {
@@ -929,16 +972,16 @@ function SourceDetail({
                   .catch((error) => notify(error.message, true));
               }}
             >
-              Remove
+              {t('Remove')}
             </Button>
             <Button variant="ghost" onClick={() => setRemoving(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
           </>
         ) : (
           <button type="button" className="inline-button muted" onClick={() => setRemoving(true)}>
             <Trash2 size={13} />
-            Remove source
+            {t('Remove source')}
           </button>
         )}
       </div>

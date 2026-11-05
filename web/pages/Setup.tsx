@@ -17,6 +17,8 @@ import type { Recommendation } from '../../src/core/recommend';
 import { api, apiId, shortPath } from '../api';
 import { Badge, Button, Modal, Notice, SearchBox, Spinner } from '../components';
 import { useDraftGuard } from '../drafts';
+import { t } from '../i18n';
+import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { ProjectPathInput } from '../ProjectPathInput';
 import { Select } from '../Select';
@@ -67,7 +69,7 @@ export function Setup({
   const [plan, setPlan] = useState<PlanView>();
   const signature = JSON.stringify({ path, requirements, preset, providers, selected });
   const [savedDraft, setSavedDraft] = useState(signature);
-  useDraftGuard(!plan && signature !== savedDraft, 'Project setup');
+  useDraftGuard(!plan && signature !== savedDraft, t('Project setup'));
   useEffect(() => {
     if (initialPath) {
       setPath(initialPath);
@@ -100,7 +102,7 @@ export function Setup({
         result.recommendations.filter((value) => value.selected).map((value) => value.entry.id),
       );
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Could not inspect project', true);
+      notify(error instanceof Error ? error.message : t('Could not inspect project'), true);
     } finally {
       setBusy(false);
     }
@@ -121,7 +123,7 @@ export function Setup({
         }),
       );
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Could not prepare setup', true);
+      notify(error instanceof Error ? error.message : t('Could not prepare setup'), true);
     } finally {
       setBusy(false);
     }
@@ -131,17 +133,18 @@ export function Setup({
       <div className="setup-heading">
         <div>
           <p className="eyebrow">
-            <span className="tiny-line" /> THE RIGHT START
+            <span className="tiny-line" />
+            {t(' THE RIGHT START')}
           </p>
           <h1>
-            Every project.
+            {t('Every project.')}
             <br />
-            <em>Ready for your agents.</em>
+            <em>{t('Ready for your agents.')}</em>
           </h1>
           <p>
-            Bring the skills, tools, and guidance you need.
+            {t('Bring the skills, tools, and guidance you need.')}
             <br />
-            Leave the rest in your library.
+            {t('Leave the rest in your library.')}
           </p>
         </div>
         <KitIllustration />
@@ -151,11 +154,11 @@ export function Setup({
           <section className="form-section">
             <SectionTitle
               number="01"
-              title="Where are we building?"
+              title={t('Where are we building?')}
               detail="New folder or existing project. Both feel at home."
             />
             <label className="field-label" htmlFor="project-path">
-              Project directory
+              {t('Project directory')}
             </label>
             <ProjectPathInput
               value={path}
@@ -166,7 +169,8 @@ export function Setup({
               }}
             />
             <label className="field-label" htmlFor="requirements">
-              What are you making? <span>Optional</span>
+              {t('What are you making? ')}
+              <span>{t('Optional')}</span>
             </label>
             <textarea
               id="requirements"
@@ -176,15 +180,15 @@ export function Setup({
                 setRequirements(event.target.value);
                 setDetected(undefined);
               }}
-              placeholder="An Expo app with Better Auth and a Hono API…"
+              placeholder={t('An Expo app with Better Auth and a Hono API…')}
             />
             <div className="preset-choice">
               <label className="field-label" htmlFor="preset-choice">
-                Starting preset
+                {t('Starting preset')}
               </label>
               <Select
                 id="preset-choice"
-                label="Starting preset"
+                label={t('Starting preset')}
                 searchable
                 value={preset}
                 onValueChange={(next) => {
@@ -194,7 +198,7 @@ export function Setup({
                   setDetected(undefined);
                 }}
                 options={[
-                  { value: 'auto', label: 'Detect from the project' },
+                  { value: 'auto', label: t('Detect from the project') },
                   ...state.presets.map((value) => ({ value: value.id, label: value.name })),
                 ]}
               />
@@ -205,11 +209,11 @@ export function Setup({
               variant={detected ? 'secondary' : 'primary'}
             >
               {busy && !detected ? (
-                <Spinner text="Reading the project" />
+                <Spinner text={t('Reading the project')} />
               ) : (
                 <>
                   <ScanLine size={16} />
-                  {detected ? 'Inspect again' : 'Build my kit'}
+                  {detected ? t('Inspect again') : t('Build my kit')}
                   <ArrowRight size={16} />
                 </>
               )}
@@ -222,7 +226,7 @@ export function Setup({
                   <span>
                     {detected.project.stacks.length
                       ? detected.project.stacks.join(' · ')
-                      : 'No stack detected — your preset will guide setup'}
+                      : t('No stack detected — your preset will guide setup')}
                   </span>
                 </div>
                 <Badge tone="green">
@@ -242,15 +246,15 @@ export function Setup({
             ))}
             {Boolean(detected?.project.workspaces?.length) && (
               <p className="field-help">
-                {detected?.project.workspaces?.length} workspaces included in this project’s
-                recommendations.
+                {detected?.project.workspaces?.length}
+                {t(' workspaces included in this project’s recommendations.')}
               </p>
             )}
           </section>
           <section className="form-section">
             <SectionTitle
               number="02"
-              title="Choose your agents"
+              title={t('Choose your agents')}
               detail="One kit. Written in each agent’s own format."
             />
             <div className="agent-grid">
@@ -289,21 +293,22 @@ export function Setup({
               ))}
             </div>
             <p className="field-help">
-              Using T3? Select its underlying agent harness. Model choice and skill discovery are
-              separate.
+              {t(
+                'Using T3? Select its underlying agent harness. Model choice and skill discovery are separate.',
+              )}
             </p>
           </section>
           <section className="form-section">
             <SectionTitle
               number="03"
-              title="Make it yours"
+              title={t('Make it yours')}
               detail="A focused kit, with room for your own choices."
             />
             {!detected ? (
               <div className="kit-placeholder">
                 <Layers2 size={25} strokeWidth={1.4} />
-                <p>Your kit takes shape here.</p>
-                <span>Choose a project to see recommendations from your library.</span>
+                <p>{t('Your kit takes shape here.')}</p>
+                <span>{t('Choose a project to see recommendations from your library.')}</span>
               </div>
             ) : (
               <>
@@ -320,20 +325,23 @@ export function Setup({
                     ))
                   ) : (
                     <Notice>
-                      No matching skills yet. Browse the library or add a source. Your scoped
-                      directives can still be applied.
+                      {t(
+                        'No matching skills yet. Browse the library or add a source. Your scoped directives can still be applied.',
+                      )}
                     </Notice>
                   )}
                 </div>
                 {detected.missing.length > 0 && (
                   <p className="field-help">
-                    Not in your library: {detected.missing.join(', ')}.{' '}
+                    {t('Not in your library: ')}
+                    {detected.missing.join(', ')}.{' '}
                     <button
                       type="button"
                       className="inline-button"
                       onClick={() => navigate('library')}
                     >
-                      Find or import skills <ArrowRight size={12} />
+                      {t('Find or import skills ')}
+                      <ArrowRight size={12} />
                     </button>
                   </p>
                 )}
@@ -345,15 +353,15 @@ export function Setup({
               onClick={() => setBrowse((value) => !value)}
               aria-expanded={browse}
             >
-              <Plus size={15} /> Add from library{' '}
-              <ChevronDown size={15} className={browse ? 'rotated' : ''} />
+              <Plus size={15} />
+              {t(' Add from library')} <ChevronDown size={15} className={browse ? 'rotated' : ''} />
             </button>
             {browse && (
               <div className="browse-library">
                 <SearchBox
                   value={query}
                   onChange={setQuery}
-                  placeholder="Search skills and MCP servers…"
+                  placeholder={t('Search skills and MCP servers…')}
                 />
                 <div className="browse-results">
                   {state.entries
@@ -379,14 +387,19 @@ export function Setup({
             )}
             {detected?.guidanceIssues?.map((rule) => (
               <details className="guidance-finding" key={rule.id}>
-                <summary>Directive: {rule.name}</summary>
+                <summary>
+                  {t('Directive: ')}
+                  {rule.name}
+                </summary>
                 {rule.findings.map((finding) => (
                   <Notice tone="warning" key={finding.code}>
                     {finding.message}
                   </Notice>
                 ))}
                 <p className="field-help">
-                  Review this directive in Directives. Credential findings cannot be overridden.
+                  {t(
+                    'Review this directive in Directives. Credential findings cannot be overridden.',
+                  )}
                 </p>
               </details>
             ))}
@@ -402,7 +415,7 @@ export function Setup({
                   checked={reviewed}
                   onChange={(event) => setReviewed(event.target.checked)}
                 />{' '}
-                I reviewed the selected content’s flagged instructions.{' '}
+                {t('I reviewed the selected content’s flagged instructions.')}{' '}
                 {selectedEntries.some((entry) =>
                   entry.findings.some((finding) => finding.level !== 'info'),
                 ) && (
@@ -417,41 +430,46 @@ export function Setup({
                       )
                     }
                   >
-                    Inspect findings
+                    {t('Inspect findings')}
                   </button>
                 )}
               </label>
             )}
           </section>
           <details className="advanced-setup">
-            <summary>Existing installations</summary>
+            <summary>{t('Existing installations')}</summary>
             <label className="check-label">
               <input
                 type="checkbox"
                 checked={replaceExisting}
                 onChange={(event) => setReplaceExisting(event.target.checked)}
               />
-              Replace differing skill files in this reviewed plan
+              {t('Replace differing skill files in this reviewed plan')}
             </label>
             <p className="field-help">
-              Original bytes are retained for rollback. Symbolic links outside this project are
-              protected. Keep this off for automatic additions.
+              {t(
+                'Original bytes are retained for rollback. Symbolic links outside this project are protected. Keep this off for automatic additions.',
+              )}
             </p>
           </details>
           <div className="setup-submit">
             <div>
-              <strong>{selected.length} capabilities</strong>
-              <span>+ scoped project guidance</span>
+              <strong>
+                {selected.length}
+                {t(' capabilities')}
+              </strong>
+              <span>{t('+ scoped project guidance')}</span>
             </div>
             <Button
               disabled={!path.trim() || !providers.length || busy}
               onClick={() => void prepare()}
             >
               {busy && detected ? (
-                <Spinner text="Preparing changes" />
+                <Spinner text={t('Preparing changes')} />
               ) : (
                 <>
-                  Review setup <ArrowRight size={16} />
+                  {t('Review setup ')}
+                  <ArrowRight size={16} />
                 </>
               )}
             </Button>
@@ -459,45 +477,48 @@ export function Setup({
         </div>
         <aside className="setup-aside">
           <div className="kit-note">
-            <p className="eyebrow">YOUR PROJECT KIT</p>
+            <p className="eyebrow">{t('YOUR PROJECT KIT')}</p>
             <div className="kit-note-icon">
               <Layers2 size={27} strokeWidth={1.4} />
             </div>
             <h2>
-              A little context.
-              <br />A lot more clarity.
+              {t('A little context.')}
+              <br />
+              {t('A lot more clarity.')}
             </h2>
-            <p>Your whole library stays here. Only your selected kit goes into the project.</p>
+            <p>
+              {t('Your whole library stays here. Only your selected kit goes into the project.')}
+            </p>
             <ul>
               <li>
                 <Check size={14} />
-                Skills loaded on demand
+                {t('Skills loaded on demand')}
               </li>
               <li>
                 <Check size={14} />
-                MCP in the right format
+                {t('MCP in the right format')}
               </li>
               <li>
                 <Check size={14} />
-                Guidance in your style
+                {t('Guidance in your style')}
               </li>
             </ul>
             <div className="kit-note-bottom">
               <ShieldCheck size={16} />
               <span>
-                Preview every file.
+                {t('Preview every file.')}
                 <br />
-                Roll back when you need to.
+                {t('Roll back when you need to.')}
               </span>
             </div>
           </div>
           <div className="preset-shortcuts">
             <div className="section-caption">
-              <span>A HEAD START</span>
+              <span>{t('A HEAD START')}</span>
               <button
                 type="button"
                 onClick={() => navigate('presets')}
-                aria-label="View all presets"
+                aria-label={t('View all presets')}
               >
                 <ArrowRight size={16} />
               </button>
@@ -526,36 +547,41 @@ export function Setup({
           </div>
           {!state.entries.length && (
             <div className="library-nudge">
-              <p>Your library is waiting.</p>
-              <span>Find skills already on this machine, or add your first source.</span>
+              <p>{t('Your library is waiting.')}</p>
+              <span>{t('Find skills already on this machine, or add your first source.')}</span>
               <Button variant="secondary" onClick={() => navigate('library')}>
-                Build your library <ArrowRight size={14} />
+                {t('Build your library ')}
+                <ArrowRight size={14} />
               </Button>
             </div>
           )}
         </aside>
       </div>
-      {inspecting && (
-        <EntryDetail
-          state={state}
-          refresh={refresh}
-          notify={notify}
-          navigate={navigate}
-          id={inspecting}
-          onClose={() => setInspecting(undefined)}
-        />
-      )}
-      {plan && (
-        <PlanReview
-          plan={plan}
-          onClose={() => setPlan(undefined)}
-          onApplied={() => {
-            setSavedDraft(signature);
-            void refresh();
-          }}
-          notify={notify}
-        />
-      )}
+      <ModalPresence>
+        {inspecting && (
+          <EntryDetail
+            state={state}
+            refresh={refresh}
+            notify={notify}
+            navigate={navigate}
+            id={inspecting}
+            onClose={() => setInspecting(undefined)}
+          />
+        )}
+      </ModalPresence>
+      <ModalPresence>
+        {plan && (
+          <PlanReview
+            plan={plan}
+            onClose={() => setPlan(undefined)}
+            onApplied={() => {
+              setSavedDraft(signature);
+              void refresh();
+            }}
+            notify={notify}
+          />
+        )}
+      </ModalPresence>
     </>
   );
 }
@@ -597,7 +623,7 @@ function KitIllustration(): ReactNode {
         <Layers2 size={27} strokeWidth={1.3} />
         <div />
         <div />
-        <small>YOUR PROJECT KIT</small>
+        <small>{t('YOUR PROJECT KIT')}</small>
         <span className="illustration-check">
           <Check size={15} />
         </span>
@@ -634,7 +660,7 @@ function CapabilityRow({
       </div>
       {flagged && (
         <Badge tone={entry.findings.some((finding) => finding.level === 'block') ? 'red' : 'amber'}>
-          Review
+          {t('Review')}
         </Badge>
       )}
       <Badge>{entry.kind}</Badge>
@@ -673,9 +699,9 @@ export function PlanReview({
     };
   }, [plan.id, change, notify]);
   const content = !change
-    ? 'Your project already matches this kit.'
+    ? t('Your project already matches this kit.')
     : !preview
-      ? 'Loading file preview…'
+      ? t('Loading file preview…')
       : before
         ? preview.before
         : preview.after;
@@ -684,9 +710,9 @@ export function PlanReview({
     try {
       setPlan(await api<PlanView>(`plans/${apiId(plan.id)}/apply`, 'POST', {}));
       onApplied();
-      notify('Project kit applied. Start or reload your agent session.');
+      notify(t('Project kit applied. Start or reload your agent session.'));
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Setup failed', true);
+      notify(error instanceof Error ? error.message : t('Setup failed'), true);
     } finally {
       setBusy(false);
     }
@@ -696,11 +722,11 @@ export function PlanReview({
       title={
         plan.purpose === 'document'
           ? plan.status === 'applied'
-            ? 'Document updated.'
-            : 'Review document changes'
+            ? t('Document updated.')
+            : t('Review document changes')
           : plan.status === 'applied'
-            ? 'Your project is ready.'
-            : 'Review your setup'
+            ? t('Your project is ready.')
+            : t('Review your setup')
       }
       subtitle={`${shortPath(plan.projectPath)} · ${plan.providers.join(', ')}`}
       onClose={onClose}
@@ -708,13 +734,18 @@ export function PlanReview({
     >
       {plan.status === 'applied' && (
         <Notice>
-          <strong>Kit installed.</strong> Start a new agent session or use its reload command to
-          discover the new capabilities.
+          <strong>{t('Kit installed.')}</strong>
+          {t(
+            ' Start a new agent session or use its reload command to discover the new capabilities.',
+          )}
         </Notice>
       )}
       <div className="plan-layout">
         <div className="plan-files">
-          <p className="eyebrow">{plan.changes.length} FILE CHANGES</p>
+          <p className="eyebrow">
+            {plan.changes.length}
+            {t(' FILE CHANGES')}
+          </p>
           {plan.changes.map((value, index) => (
             <button
               type="button"
@@ -740,29 +771,29 @@ export function PlanReview({
         </div>
         <div className="plan-content">
           <div className="code-toolbar">
-            <span>{change?.reason || 'No file selected'}</span>
+            <span>{change?.reason || t('No file selected')}</span>
             <div className="segmented">
               <button
                 type="button"
                 className={before ? 'active' : ''}
                 onClick={() => setBefore(true)}
               >
-                Before
+                {t('Before')}
               </button>
               <button
                 type="button"
                 className={!before ? 'active' : ''}
                 onClick={() => setBefore(false)}
               >
-                After
+                {t('After')}
               </button>
             </div>
           </div>
           {preview && (preview.redacted || preview.truncated) && (
             <Notice>
-              {preview.redacted ? 'Sensitive-looking text is masked. ' : ''}
+              {preview.redacted ? t('Sensitive-looking text is masked. ') : ''}
               {preview.truncated
-                ? 'Preview is truncated; full bytes remain in the private plan.'
+                ? t('Preview is truncated; full bytes remain in the private plan.')
                 : ''}
             </Notice>
           )}
@@ -770,14 +801,17 @@ export function PlanReview({
         </div>
       </div>
       <details className="warnings">
-        <summary>{plan.warnings.length} compatibility notes</summary>
+        <summary>
+          {plan.warnings.length}
+          {t(' compatibility notes')}
+        </summary>
         {plan.warnings.map((warning) => (
           <p key={warning}>{warning}</p>
         ))}
       </details>
       <div className="modal-actions">
         <Button variant="secondary" onClick={onClose}>
-          {plan.status === 'applied' ? 'Done' : 'Back to kit'}
+          {plan.status === 'applied' ? 'Done' : t('Back to kit')}
         </Button>
         {plan.status === 'planned' && (
           <Button
@@ -785,12 +819,12 @@ export function PlanReview({
             disabled={busy || (plan.changes.length === 0 && !plan.requiresAdoption)}
           >
             {busy ? (
-              <Spinner text="Applying kit" />
+              <Spinner text={t('Applying kit')} />
             ) : (
               <>
                 {plan.changes.length
-                  ? `Apply ${plan.changes.length} changes`
-                  : 'Confirm reviewed kit'}{' '}
+                  ? t('Apply {{count}} changes', { count: plan.changes.length })
+                  : t('Confirm reviewed kit')}{' '}
                 <ArrowRight size={16} />
               </>
             )}

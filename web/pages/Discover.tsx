@@ -4,6 +4,7 @@ import type { Discovery } from '../../src/core/discovery';
 import type { Source } from '../../src/core/model';
 import { api, formatDate } from '../api';
 import { Badge, Button, ExternalLink, Modal, Notice, SearchBox, Spinner } from '../components';
+import { t } from '../i18n';
 import type { PageProps } from '../main';
 
 export function Discover({
@@ -42,8 +43,8 @@ export function Discover({
   }
   return (
     <Modal
-      title="Find the next useful skill"
-      subtitle="Search the public directory. Research a source before importing a snapshot."
+      title={t('Find the next useful skill')}
+      subtitle={t('Search the public directory. Research a source before importing a snapshot.')}
       onClose={onClose}
       wide
     >
@@ -51,8 +52,8 @@ export function Discover({
         <SearchBox
           value={query}
           onChange={setQuery}
-          placeholder="Expo gestures, Go APIs, SwiftUI…"
-          label="Public discovery query"
+          placeholder={t('Expo gestures, Go APIs, SwiftUI…')}
+          label={t('Public discovery query')}
         />
         <Button type="submit" disabled={busy || query.trim().length < 2}>
           {busy ? (
@@ -60,18 +61,19 @@ export function Discover({
           ) : (
             <>
               <Search size={15} />
-              Search directory
+              {t('Search directory')}
             </>
           )}
         </Button>
       </form>
       <p className="field-help">
-        Only this search phrase is sent to skills.sh. Use public technology names, without private
-        project details.
+        {t(
+          'Only this search phrase is sent to skills.sh. Use public technology names, without private project details.',
+        )}
       </p>
       {!result && state.discoveries?.length ? (
         <div className="discovery-history">
-          <p className="eyebrow">SAVED SUGGESTIONS</p>
+          <p className="eyebrow">{t('SAVED SUGGESTIONS')}</p>
           {state.discoveries.map((value) => (
             <button
               type="button"
@@ -83,7 +85,9 @@ export function Discover({
             >
               {value.query}
               <span>
-                {value.skills.length} results · {formatDate(value.checkedAt)}
+                {value.skills.length}
+                {t(' results · ')}
+                {formatDate(value.checkedAt)}
               </span>
             </button>
           ))}
@@ -92,11 +96,14 @@ export function Discover({
       {result && (
         <>
           <p className="eyebrow">
-            {result.skills.length} RESULTS · {formatDate(result.checkedAt)}
+            {result.skills.length}
+            {t(' RESULTS · ')}
+            {formatDate(result.checkedAt)}
           </p>
           <Notice>
-            Directory presence and install counts are popularity signals. They do not establish
-            publisher identity or security.
+            {t(
+              'Directory presence and install counts are popularity signals. They do not establish publisher identity or security.',
+            )}
           </Notice>
           <div className="source-skill-results">
             {result.skills.map((skill) => (
@@ -105,17 +112,21 @@ export function Discover({
                   <strong>{skill.name}</strong>
                   <ExternalLink href={skill.url}>{skill.source}</ExternalLink>
                 </div>
-                <Badge>{skill.installs.toLocaleString()} installs</Badge>
+                <Badge>
+                  {skill.installs.toLocaleString()}
+                  {t(' installs')}
+                </Badge>
                 <Button variant="secondary" disabled={busy} onClick={() => void add(skill.url)}>
                   <Plus size={14} />
-                  Research source
+                  {t('Research source')}
                 </Button>
               </div>
             ))}
             {!result.skills.length && (
               <p>
-                No matching directory results. Try a more specific technology or add a known source
-                URL.
+                {t(
+                  'No matching directory results. Try a more specific technology or add a known source URL.',
+                )}
               </p>
             )}
           </div>

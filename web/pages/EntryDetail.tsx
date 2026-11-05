@@ -13,6 +13,7 @@ import {
   Spinner,
 } from '../components';
 import { useDraftGuard } from '../drafts';
+import { t } from '../i18n';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 
@@ -34,7 +35,7 @@ type Props = PageProps & { id: string; onClose: () => void };
 export function EntryDetail(props: Props): ReactNode {
   const [selected, setSelected] = useState(props.id);
   const [dirty, setDirty] = useState(false);
-  const guard = useDraftGuard(dirty, 'Skill snapshot');
+  const guard = useDraftGuard(dirty, t('Skill snapshot'));
   const metadata = props.state.entries.find((entry) => entry.id === selected);
   if (!metadata) return null;
   const versions = props.state.entries
@@ -48,15 +49,15 @@ export function EntryDetail(props: Props): ReactNode {
   return (
     <Modal
       title={metadata.name}
-      subtitle="Immutable snapshots. Project changes always go through a plan."
+      subtitle={t('Immutable snapshots. Project changes always go through a plan.')}
       onClose={() => guard(props.onClose)}
       wide
     >
       {versions.length > 1 && (
         <label className="version-picker" htmlFor="snapshot-version">
-          Snapshot version
+          {t('Snapshot version')}
           <Select
-            label="Snapshot version"
+            label={t('Snapshot version')}
             id="snapshot-version"
             value={selected}
             onValueChange={(value) => {
@@ -157,7 +158,7 @@ function EntryInspector({
             });
       await refresh();
       onRevision(next.id);
-    }, 'New snapshot saved. Supporting files and existing project pins are preserved.');
+    }, t('New snapshot saved. Supporting files and existing project pins are preserved.'));
   }
   const tagValues = tags
     .split(',')
@@ -167,10 +168,16 @@ function EntryInspector({
     <>
       <div className="detail-badges">
         <Badge>{entry.kind}</Badge>
-        {entry.custom && <Badge tone="green">Custom</Badge>}
-        {entry.archived && <Badge tone="amber">Archived</Badge>}
-        <Badge>Snapshot {entry.digest.slice(0, 10)}</Badge>
-        <span className="muted">Imported {formatDate(entry.updatedAt)}</span>
+        {entry.custom && <Badge tone="green">{t('Custom')}</Badge>}
+        {entry.archived && <Badge tone="amber">{t('Archived')}</Badge>}
+        <Badge>
+          {t('Snapshot ')}
+          {entry.digest.slice(0, 10)}
+        </Badge>
+        <span className="muted">
+          {t('Imported ')}
+          {formatDate(entry.updatedAt)}
+        </span>
       </div>
       <div className="tabs compact">
         {['overview', 'content', 'files', 'locations'].map((value) => (
@@ -180,7 +187,7 @@ function EntryInspector({
             className={tab === value ? 'active' : ''}
             onClick={() => (fileDirty ? guard(() => setTab(value)) : setTab(value))}
           >
-            {value.charAt(0).toUpperCase() + value.slice(1)}
+            {t(value.charAt(0).toUpperCase() + value.slice(1))}
             {value === 'files' && detail && ` (${detail.files.length})`}
             {value === 'locations' && ` (${locations.length})`}
           </button>
@@ -191,13 +198,13 @@ function EntryInspector({
         <div className="detail-overview">
           <div className="editor-form">
             <label>
-              Tags
+              {t('Tags')}
               <input value={tags} onChange={(event) => setTags(event.target.value)} />
             </label>
             <label htmlFor="entry-source">
-              Source relationship
+              {t('Source relationship')}
               <Select
-                label="Source relationship"
+                label={t('Source relationship')}
                 id="entry-source"
                 value={source}
                 onValueChange={setSource}
@@ -215,16 +222,17 @@ function EntryInspector({
                 )
               }
             >
-              Save relationships
+              {t('Save relationships')}
             </Button>
             {entry.derivedFrom && (
               <p className="muted">
-                Derived from snapshot <code>{entry.derivedFrom}</code>
+                {t('Derived from snapshot ')}
+                <code>{entry.derivedFrom}</code>
               </p>
             )}
             {entry.origins?.length ? (
               <div>
-                <p className="eyebrow">PROVENANCE RECEIPTS</p>
+                <p className="eyebrow">{t('PROVENANCE RECEIPTS')}</p>
                 {entry.origins.map((origin) => (
                   <div
                     className="provenance-receipt"
@@ -241,7 +249,7 @@ function EntryInspector({
             ) : null}
           </div>
           <div>
-            <p className="eyebrow">CONTENT REVIEW</p>
+            <p className="eyebrow">{t('CONTENT REVIEW')}</p>
             {entry.findings.length ? (
               entry.findings.map((finding) => (
                 <div className={`finding ${finding.level}`} key={`${finding.code}:${finding.file}`}>
@@ -261,7 +269,7 @@ function EntryInspector({
                 </div>
               ))
             ) : (
-              <Notice>No heuristic flags. This is not a security guarantee.</Notice>
+              <Notice>{t('No heuristic flags. This is not a security guarantee.')}</Notice>
             )}
             <div className="button-row detail-actions">
               <Button
@@ -282,7 +290,7 @@ function EntryInspector({
                 }
               >
                 <Check size={14} />
-                {trusted ? 'Revoke automation approval' : 'Approve snapshot for automation'}
+                {trusted ? t('Revoke automation approval') : t('Approve snapshot for automation')}
               </Button>
               {entry.upstreamPath !== undefined && (
                 <Button
@@ -317,7 +325,7 @@ function EntryInspector({
                   }
                 >
                   <RefreshCw size={14} />
-                  Fetch latest snapshot
+                  {t('Fetch latest snapshot')}
                 </Button>
               )}
             </div>
@@ -330,9 +338,9 @@ function EntryInspector({
             <div className="code-toolbar">
               <span>
                 {entry.kind === 'mcp'
-                  ? 'Canonical definition · JSON'
+                  ? t('Canonical definition · JSON')
                   : entry.kind === 'plugin'
-                    ? 'Native plugin installation recipe'
+                    ? t('Native plugin installation recipe')
                     : 'SKILL.md'}
               </span>
               <CopyButton text={detail.entry.body} />
@@ -342,7 +350,7 @@ function EntryInspector({
                 {entry.kind === 'skill' && (
                   <>
                     <label>
-                      Skill name
+                      {t('Skill name')}
                       <input
                         value={name}
                         maxLength={64}
@@ -350,7 +358,7 @@ function EntryInspector({
                       />
                     </label>
                     <label>
-                      Description
+                      {t('Description')}
                       <textarea
                         rows={3}
                         value={description}
@@ -362,8 +370,8 @@ function EntryInspector({
                 )}
                 <label>
                   {entry.kind === 'mcp'
-                    ? 'MCP definition'
-                    : 'Instructions · frontmatter and resources are retained'}
+                    ? t('MCP definition')
+                    : t('Instructions · frontmatter and resources are retained')}
                   <textarea
                     className="code-editor"
                     rows={18}
@@ -382,7 +390,7 @@ function EntryInspector({
                   <>
                     <Button disabled={busy || !draft.trim()} onClick={() => void revision()}>
                       <Save size={14} />
-                      Save new snapshot
+                      {t('Save new snapshot')}
                     </Button>
                     <Button
                       variant="secondary"
@@ -392,7 +400,7 @@ function EntryInspector({
                         setDescription(entry.description);
                       }}
                     >
-                      Cancel editing
+                      {t('Cancel editing')}
                     </Button>
                   </>
                 ) : (
@@ -410,12 +418,12 @@ function EntryInspector({
                         setEditing(true);
                       }}
                     >
-                      {entry.custom ? 'Edit content' : 'Edit a custom fork'}
+                      {entry.custom ? t('Edit content') : t('Edit a custom fork')}
                     </Button>
                     {!entry.custom && entry.kind === 'skill' && (
                       <Button variant="secondary" disabled={busy} onClick={() => void revision()}>
                         <Copy size={14} />
-                        Fork with supporting files
+                        {t('Fork with supporting files')}
                       </Button>
                     )}
                   </>
@@ -424,7 +432,7 @@ function EntryInspector({
             )}
           </>
         ) : (
-          <Spinner text="Loading content" />
+          <Spinner text={t('Loading content')} />
         ))}
       {tab === 'files' &&
         (detail ? (
@@ -433,7 +441,7 @@ function EntryInspector({
             onDirtyChange={setFileDirty}
           />
         ) : (
-          <Spinner text="Loading files" />
+          <Spinner text={t('Loading files')} />
         ))}
       {tab === 'locations' && (
         <div className="location-list">
@@ -444,8 +452,8 @@ function EntryInspector({
                 <div>
                   <code>{shortPath(location.path)}</code>
                   <span>
-                    {location.provider} · {location.storage || location.scope} · observed{' '}
-                    {formatDate(location.lastSeen)}
+                    {location.provider} · {location.storage || location.scope}
+                    {t(' · observed')} {formatDate(location.lastSeen)}
                   </span>
                 </div>
                 <Badge>{location.scope}</Badge>
@@ -453,8 +461,8 @@ function EntryInspector({
             ))
           ) : (
             <Empty
-              title="Kept in your library"
-              text="This snapshot has no observed project installation yet."
+              title={t('Kept in your library')}
+              text={t('This snapshot has no observed project installation yet.')}
             />
           )}
         </div>
@@ -472,11 +480,13 @@ function EntryInspector({
                 )
               }
             >
-              Restore snapshot
+              {t('Restore snapshot')}
             </Button>
             {confirm ? (
               <>
-                <span>Permanently delete this snapshot? Referenced snapshots are protected.</span>
+                <span>
+                  {t('Permanently delete this snapshot? Referenced snapshots are protected.')}
+                </span>
                 <Button
                   variant="danger"
                   disabled={busy}
@@ -487,7 +497,7 @@ function EntryInspector({
                     }, 'Unreferenced snapshot deleted.')
                   }
                 >
-                  Delete permanently
+                  {t('Delete permanently')}
                 </Button>
               </>
             ) : (
@@ -497,13 +507,13 @@ function EntryInspector({
                 onClick={() => setConfirm(true)}
               >
                 <Trash2 size={13} />
-                Delete permanently…
+                {t('Delete permanently…')}
               </button>
             )}
           </>
         ) : confirm ? (
           <>
-            <span>Archive this snapshot? Project pins and files stay available.</span>
+            <span>{t('Archive this snapshot? Project pins and files stay available.')}</span>
             <Button
               variant="danger"
               disabled={busy}
@@ -514,16 +524,16 @@ function EntryInspector({
                 }, 'Snapshot archived.')
               }
             >
-              Archive snapshot
+              {t('Archive snapshot')}
             </Button>
             <Button variant="ghost" onClick={() => setConfirm(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
           </>
         ) : (
           <button type="button" className="inline-button muted" onClick={() => setConfirm(true)}>
             <Trash2 size={13} />
-            Archive snapshot
+            {t('Archive snapshot')}
           </button>
         )}
       </div>
@@ -590,8 +600,8 @@ function SnapshotFiles({
       onRevision(entry.id);
       notify(
         remove
-          ? 'Supporting file removed in a new snapshot.'
-          : 'Supporting file saved as a new snapshot.',
+          ? t('Supporting file removed in a new snapshot.')
+          : t('Supporting file saved as a new snapshot.'),
       );
     } catch (error) {
       notify((error as Error).message, true);
@@ -599,7 +609,7 @@ function SnapshotFiles({
       setBusy(false);
     }
   }
-  if (!detail.files.length) return <Notice>No supporting files for this entry type.</Notice>;
+  if (!detail.files.length) return <Notice>{t('No supporting files for this entry type.')}</Notice>;
   return (
     <>
       <div className="file-list">
@@ -612,8 +622,11 @@ function SnapshotFiles({
           >
             <FileText size={15} />
             <code>{value.path}</code>
-            <span>{(value.bytes / 1024).toFixed(1)} KB</span>
-            {value.executable && <Badge tone="amber">Executable</Badge>}
+            <span>
+              {(value.bytes / 1024).toFixed(1)}
+              {t(' KB')}
+            </span>
+            {value.executable && <Badge tone="amber">{t('Executable')}</Badge>}
           </button>
         ))}
       </div>
@@ -629,18 +642,18 @@ function SnapshotFiles({
             }
           >
             {' '}
-            {adding ? 'Cancel new file' : 'Add supporting file'}{' '}
+            {adding ? t('Cancel new file') : t('Add supporting file')}{' '}
           </Button>
         </div>
       )}
       {adding && (
         <div className="editor-form">
           <label>
-            Relative file path
+            {t('Relative file path')}
             <input value={newPath} onChange={(event) => setNewPath(event.target.value)} />
           </label>
           <label>
-            New file content
+            {t('New file content')}
             <textarea
               className="code-editor"
               rows={12}
@@ -649,16 +662,16 @@ function SnapshotFiles({
               spellCheck={false}
             />
           </label>
-          <label className="checkbox-label">
+          <label className="check-label">
             <input
               type="checkbox"
               checked={executable}
               onChange={(event) => setExecutable(event.target.checked)}
             />
-            Executable resource
+            {t('Executable resource')}
           </label>
           <Button disabled={busy || !newPath.trim()} onClick={() => void save()}>
-            Save new file
+            {t('Save new file')}
           </Button>
         </div>
       )}
@@ -668,23 +681,26 @@ function SnapshotFiles({
           <div className="file-preview">
             <div className="code-toolbar">
               <code>{file.path}</code>
-              <span>{file.bytes.toLocaleString()} bytes</span>
+              <span>
+                {file.bytes.toLocaleString()}
+                {t(' bytes')}
+              </span>
             </div>
             {file.binary ? (
-              <Notice>Binary resource. Kept intact in its snapshot.</Notice>
+              <Notice>{t('Binary resource. Kept intact in its snapshot.')}</Notice>
             ) : (
               <>
                 {(file.redacted || file.truncated) && (
                   <Notice tone="warning">
-                    {file.redacted ? 'Sensitive-looking text is masked. ' : ''}
-                    {file.truncated ? 'Preview is truncated. ' : ''}Editing is disabled to protect
-                    the original bytes.
+                    {file.redacted ? t('Sensitive-looking text is masked. ') : ''}
+                    {file.truncated ? t('Preview is truncated. ') : ''}
+                    {t('Editing is disabled to protect the original bytes.')}
                   </Notice>
                 )}
                 {detail.entry.custom && !file.redacted && !file.truncated ? (
                   <>
                     <label className="editor-form">
-                      File content
+                      {t('File content')}
                       <textarea
                         className="code-editor"
                         rows={16}
@@ -695,27 +711,27 @@ function SnapshotFiles({
                     </label>
                     <Button disabled={busy || draft === file.text} onClick={() => void save()}>
                       <Save size={14} />
-                      Save file revision
+                      {t('Save file revision')}
                     </Button>
                     {file.path !== 'SKILL.md' && (
                       <div className="button-row">
                         {removing ? (
                           <>
-                            <span>Remove this file in a new snapshot?</span>
+                            <span>{t('Remove this file in a new snapshot?')}</span>
                             <Button
                               variant="danger"
                               disabled={busy}
                               onClick={() => void save(true)}
                             >
-                              Remove file
+                              {t('Remove file')}
                             </Button>
                             <Button variant="ghost" onClick={() => setRemoving(false)}>
-                              Keep file
+                              {t('Keep file')}
                             </Button>
                           </>
                         ) : (
                           <Button variant="ghost" onClick={() => setRemoving(true)}>
-                            Remove supporting file…
+                            {t('Remove supporting file…')}
                           </Button>
                         )}
                       </div>
@@ -728,7 +744,7 @@ function SnapshotFiles({
             )}
           </div>
         ) : (
-          <Spinner text="Loading file" />
+          <Spinner text={t('Loading file')} />
         ))}
     </>
   );

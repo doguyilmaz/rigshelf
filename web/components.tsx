@@ -9,6 +9,10 @@ import {
   X,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { t } from './i18n';
+import { useModalPresence } from './ModalPresence';
+
+const MODAL_EXIT_MS = 160;
 
 export function Button({
   children,
@@ -62,6 +66,23 @@ export function Modal({
   wide?: boolean;
 }): ReactNode {
   const dialog = useRef<HTMLDialogElement>(null);
+  const presence = useModalPresence();
+  const requestClose = () => {
+    if (!presence?.exiting) onClose();
+  };
+  useEffect(() => {
+    if (!presence?.exiting) return;
+    const finish = () => {
+      dialog.current?.close();
+      presence.finish();
+    };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finish();
+      return;
+    }
+    const timer = setTimeout(finish, MODAL_EXIT_MS);
+    return () => clearTimeout(timer);
+  }, [presence]);
   useEffect(() => {
     dialog.current?.showModal();
     return () => dialog.current?.close();
@@ -69,29 +90,36 @@ export function Modal({
   return (
     <dialog
       ref={dialog}
+      data-exiting={presence?.exiting || undefined}
+      inert={presence?.exiting || undefined}
       className={`modal ${wide ? 'wide' : ''}`}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        requestClose();
       }}
       onClick={(event) => {
-        if (event.target === dialog.current) onClose();
+        if (event.target === dialog.current) requestClose();
       }}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && !event.defaultPrevented) {
           event.preventDefault();
-          onClose();
+          requestClose();
         }
       }}
       aria-label={title}
     >
       <div className="modal-head">
         <div>
-          <p className="eyebrow">WORKBENCH</p>
+          <p className="eyebrow">{t('WORKBENCH')}</p>
           <h2>{title}</h2>
           {subtitle && <p className="muted">{subtitle}</p>}
         </div>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={requestClose}
+          aria-label={t('Close dialog')}
+        >
           <X size={20} />
         </button>
       </div>
@@ -122,8 +150,8 @@ export function Empty({
 export function SearchBox({
   value,
   onChange,
-  placeholder = 'Search the library…',
-  label = 'Search',
+  placeholder = t('Search the library…'),
+  label = t('Search'),
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -140,14 +168,20 @@ export function SearchBox({
         aria-label={label}
       />
       {value && (
-        <button type="button" onClick={() => onChange('')} aria-label="Clear search">
+        <button type="button" onClick={() => onChange('')} aria-label={t('Clear search')}>
           <X size={14} />
         </button>
       )}
     </label>
   );
 }
-export function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }): ReactNode {
+export function CopyButton({
+  text,
+  label = t('Copy'),
+}: {
+  text: string;
+  label?: string;
+}): ReactNode {
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
   return (
@@ -164,7 +198,7 @@ export function CopyButton({ text, label = 'Copy' }: { text: string; label?: str
       }}
     >
       {copied ? <Check size={14} /> : <Copy size={14} />}{' '}
-      {failed ? 'Select and copy below' : copied ? 'Copied' : label}
+      {failed ? t('Select and copy below') : copied ? t('Copied') : label}
     </Button>
   );
 }
@@ -182,7 +216,7 @@ export function Notice({
     </div>
   );
 }
-export function Spinner({ text = 'Working…' }: { text?: string }): ReactNode {
+export function Spinner({ text = t('Working…') }: { text?: string }): ReactNode {
   return (
     <span className="loading-inline">
       <Loader2 size={16} className="spin" />

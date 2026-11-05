@@ -15,6 +15,10 @@ The initial automated checks did not establish that the interface met the desire
 | Escape handling assumed there were no nested popups | Popup dismissal is scoped; focus returns to its trigger | Closing a menu must preserve its containing editor and draft. |
 | Page changes briefly faded text and shifted content | Immediate page rendering | Frequent navigation should remain clear and stable. |
 | Mobile icon controls lost their text labels | Explicit accessible names for Settings and Quick jump | Icon-only controls remain understandable to assistive technology. |
+| Dialogs recentered when data arrived or tabs changed | Stable upper anchor and a fixed, internally scrolling editor frame | Headers and close controls stay in place. |
+| Conditional removal skipped exit motion | Retain the editor for a 160 ms exit, then close and restore focus | Opening and closing remain continuous; exiting controls are inert. |
+| Replacing a dialog could stack two dark backdrops | One shared backdrop follows the active dialog stack | Editor changes do not flash a darker background. |
+| English-only interface | Browser-persisted English/Turkish selection and a lazily loaded catalog | Language changes preserve drafts and original library content. |
 
 New browser cases cover open popups, long/Unicode labels, empty filtering, selected values, modal containment, Escape/focus return, six viewport widths and short desktop windows. Evidence stays private under ignored QA output. Existing management flow assertions now exercise the custom controls rather than native select APIs.
 
@@ -29,3 +33,5 @@ The standalone [project setup prototype](../design/prototypes/project-setup.html
 | Console / Files visible | Dense dark workspace with context and file-preview columns | Fast inspection for frequent multi-agent use | Higher information density. |
 
 No direction is approved yet. The user requested alternatives before a visual redesign. The working name also remains provisional; see [naming](NAMING.md). Keep functional fixes independent of the eventual visual choice.
+
+After `bun run build`, the running workbench also serves `/prototypes/project-setup.html?v=1` (single screen), `?v=2` (guided) and `?v=3` (file preview). The build extracts the prototype script into a local asset so these pages work with the application's existing Content Security Policy; no inline-script exception is added.

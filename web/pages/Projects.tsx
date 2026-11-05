@@ -16,6 +16,8 @@ import {
 } from '../components';
 import { useDraftGuard } from '../drafts';
 import { countText, PAGE_SIZE } from '../format';
+import { t } from '../i18n';
+import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 import { RuleEditor } from './Directives';
@@ -36,13 +38,13 @@ export function Projects(props: PageProps): ReactNode {
   return (
     <>
       <PageHeader
-        eyebrow="A HOME FOR EVERY KIT"
-        title="Your projects"
-        description="Different stacks. Different agents. The right setup for each one."
+        eyebrow={t('A HOME FOR EVERY KIT')}
+        title={t('Your projects')}
+        description={t('Different stacks. Different agents. The right setup for each one.')}
         action={
           <Button onClick={() => navigate('setup', '')}>
             <Plus size={16} />
-            Set up a project
+            {t('Set up a project')}
           </Button>
         }
       />
@@ -53,7 +55,7 @@ export function Projects(props: PageProps): ReactNode {
             setQuery(value);
             setPage(0);
           }}
-          placeholder="Find a project…"
+          placeholder={t('Find a project…')}
         />
         <Select
           value={stack}
@@ -61,10 +63,10 @@ export function Projects(props: PageProps): ReactNode {
             setStack(value);
             setPage(0);
           }}
-          label="Filter project stack"
+          label={t('Filter project stack')}
           searchable
           options={[
-            { value: 'all', label: 'All stacks' },
+            { value: 'all', label: t('All stacks') },
             ...stacks.map((value) => ({ value, label: value })),
           ]}
         />
@@ -88,7 +90,7 @@ export function Projects(props: PageProps): ReactNode {
                   <button
                     type="button"
                     className="icon-button"
-                    aria-label={`Inspect ${project.name}`}
+                    aria-label={t('Inspect {{name}}', { name: project.name })}
                     onClick={() => setSelected(project)}
                   >
                     <ArrowUpRight size={18} />
@@ -102,7 +104,7 @@ export function Projects(props: PageProps): ReactNode {
                   {project.stacks.slice(0, 4).map((value) => (
                     <Badge key={value}>{value}</Badge>
                   ))}
-                  {!project.stacks.length && <Badge>Stack unclassified</Badge>}
+                  {!project.stacks.length && <Badge>{t('Stack unclassified')}</Badge>}
                 </div>
                 <div className="project-card-bottom">
                   <span>
@@ -110,7 +112,7 @@ export function Projects(props: PageProps): ReactNode {
                     {approved && (
                       <span className="auto-label">
                         <Zap size={12} />
-                        Auto-add approved
+                        {t('Auto-add approved')}
                       </span>
                     )}
                   </span>
@@ -119,7 +121,8 @@ export function Projects(props: PageProps): ReactNode {
                     className="inline-button"
                     onClick={() => navigate('setup', project.path)}
                   >
-                    Set up <ArrowRight size={14} />
+                    {t('Set up ')}
+                    <ArrowRight size={14} />
                   </button>
                 </div>
               </article>
@@ -128,11 +131,14 @@ export function Projects(props: PageProps): ReactNode {
         </div>
       ) : (
         <Empty
-          title="Meet your next project."
-          text="Scan your development folders to find existing projects, or set up a new directory."
+          title={t('Meet your next project.')}
+          text={t(
+            'Scan your development folders to find existing projects, or set up a new directory.',
+          )}
         >
           <Button onClick={() => navigate('library')}>
-            Scan this machine <ArrowRight size={15} />
+            {t('Scan this machine ')}
+            <ArrowRight size={15} />
           </Button>
         </Empty>
       )}
@@ -145,7 +151,7 @@ export function Projects(props: PageProps): ReactNode {
               disabled={page === 0}
               onClick={() => setPage((value) => value - 1)}
             >
-              Previous
+              {t('Previous')}
             </Button>
             <span>{page + 1}</span>
             <Button
@@ -153,14 +159,16 @@ export function Projects(props: PageProps): ReactNode {
               disabled={(page + 1) * PAGE_SIZE >= projects.length}
               onClick={() => setPage((value) => value + 1)}
             >
-              Next
+              {t('Next')}
             </Button>
           </div>
         </div>
       )}
-      {selected && (
-        <ProjectDetail {...props} project={selected} onClose={() => setSelected(undefined)} />
-      )}
+      <ModalPresence>
+        {selected && (
+          <ProjectDetail {...props} project={selected} onClose={() => setSelected(undefined)} />
+        )}
+      </ModalPresence>
     </>
   );
 }
@@ -191,12 +199,12 @@ function ProjectDetail({
     stacks: project.stacks.join(', '),
   });
   const [ruleDirty, setRuleDirty] = useState(false);
-  const guardRule = useDraftGuard(ruleDirty, 'Promoted directive');
+  const guardRule = useDraftGuard(ruleDirty, t('Promoted directive'));
   const guard = useDraftGuard(
     name !== savedClassification.name ||
       stacks !== savedClassification.stacks ||
       Boolean(editing && document && draft !== document.content),
-    'Project details',
+    t('Project details'),
   );
   const approved = state.approvals?.find((value) => value.id === project.id)?.enabled || false;
   async function openDocument(path: string): Promise<void> {
@@ -226,7 +234,7 @@ function ProjectDetail({
       });
       await refresh();
       setSavedClassification({ name, stacks });
-      notify('Project classification saved');
+      notify(t('Project classification saved'));
     } catch (error) {
       notify((error as Error).message, true);
     }
@@ -240,29 +248,30 @@ function ProjectDetail({
     >
       <div className="project-detail-layout">
         <div>
-          <p className="eyebrow">PROJECT CLASSIFICATION</p>
+          <p className="eyebrow">{t('PROJECT CLASSIFICATION')}</p>
           {project.discovery === 'configuration' && (
             <Notice>
-              Referenced by a user-level project MCP configuration. Project source files have not
-              been scanned.
+              {t(
+                'Referenced by a user-level project MCP configuration. Project source files have not been scanned.',
+              )}
             </Notice>
           )}
           <div className="editor-form">
             <label>
-              Display name
+              {t('Display name')}
               <input value={name} onChange={(event) => setName(event.target.value)} />
             </label>
             <label>
-              Stack tags
+              {t('Stack tags')}
               <input value={stacks} onChange={(event) => setStacks(event.target.value)} />
             </label>
             <Button variant="secondary" onClick={() => void save()}>
-              Save classification
+              {t('Save classification')}
             </Button>
           </div>
           {project.workspaces?.length ? (
             <div className="workspace-list">
-              <p className="eyebrow">WORKSPACES</p>
+              <p className="eyebrow">{t('WORKSPACES')}</p>
               {project.workspaces.map((workspace) => (
                 <p key={workspace.path}>
                   <code>{workspace.path}</code>
@@ -273,10 +282,11 @@ function ProjectDetail({
           ) : null}
           <div className="automation-box">
             <Zap size={20} />
-            <h3>Stay ready as you build</h3>
+            <h3>{t('Stay ready as you build')}</h3>
             <p>
-              When dependencies change, add only snapshots you have explicitly approved. The project
-              needs an applied kit first.
+              {t(
+                'When dependencies change, add only snapshots you have explicitly approved. The project needs an applied kit first.',
+              )}
             </p>
             <label className="check-label">
               <input
@@ -291,15 +301,15 @@ function ProjectDetail({
                     .catch((error) => notify(error.message, true));
                 }}
               />
-              Allow trusted automatic additions
+              {t('Allow trusted automatic additions')}
             </label>
             <small>
-              Active while the local workbench is running. Watcher errors appear in Activity.
+              {t('Active while the local workbench is running. Watcher errors appear in Activity.')}
             </small>
           </div>
         </div>
         <div>
-          <p className="eyebrow">INSTRUCTIONS & MEMORY FILES</p>
+          <p className="eyebrow">{t('INSTRUCTIONS & MEMORY FILES')}</p>
           <div className="document-buttons">
             {project.documents.map((path) => (
               <button type="button" key={path} onClick={() => guard(() => void openDocument(path))}>
@@ -310,9 +320,9 @@ function ProjectDetail({
             ))}
           </div>
           {!project.documents.length && (
-            <Notice>No instruction or memory files found at this project root.</Notice>
+            <Notice>{t('No instruction or memory files found at this project root.')}</Notice>
           )}
-          {busy && <Spinner text="Reading document" />}
+          {busy && <Spinner text={t('Reading document')} />}
           {document && (
             <>
               <div className="code-toolbar">
@@ -321,12 +331,14 @@ function ProjectDetail({
               </div>
               {document.redacted && (
                 <Notice tone="warning">
-                  Sensitive-looking text is masked. Editing is disabled to preserve the original.
+                  {t(
+                    'Sensitive-looking text is masked. Editing is disabled to preserve the original.',
+                  )}
                 </Notice>
               )}
               {editing ? (
                 <label className="editor-form">
-                  Document content
+                  {t('Document content')}
                   <textarea
                     className="code-editor"
                     rows={16}
@@ -344,7 +356,7 @@ function ProjectDetail({
                   disabled={document.redacted}
                   onClick={() => setEditing(!editing)}
                 >
-                  {editing ? 'Cancel editing' : 'Edit document'}
+                  {editing ? t('Cancel editing') : t('Edit document')}
                 </Button>
                 {editing && (
                   <Button
@@ -362,7 +374,7 @@ function ProjectDetail({
                         .finally(() => setBusy(false));
                     }}
                   >
-                    Review document changes
+                    {t('Review document changes')}
                   </Button>
                 )}
                 <Button
@@ -379,55 +391,67 @@ function ProjectDetail({
                     })
                   }
                 >
-                  Create a reusable directive <ArrowRight size={14} />
+                  {t('Create a reusable directive ')}
+                  <ArrowRight size={14} />
                 </Button>
               </div>
             </>
           )}
           <p className="field-help">
-            Files are read on request. Memory never becomes session history or automatic global
-            guidance.
+            {t(
+              'Files are read on request. Memory never becomes session history or automatic global guidance.',
+            )}
           </p>
         </div>
       </div>
-      {rule && (
-        <Modal
-          title="Promote selected guidance"
-          subtitle="Starts scoped to this project. Review private details before choosing a broader scope."
-          onClose={() => guardRule(() => setRule(undefined))}
-          wide
-        >
-          <RuleEditor
-            state={state}
-            refresh={refresh}
+      <ModalPresence>
+        {rule && (
+          <Modal
+            title={t('Promote selected guidance')}
+            subtitle={t(
+              'Starts scoped to this project. Review private details before choosing a broader scope.',
+            )}
+            onClose={() => guardRule(() => setRule(undefined))}
+            wide
+          >
+            <RuleEditor
+              state={state}
+              refresh={refresh}
+              notify={notify}
+              navigate={navigate}
+              rule={rule}
+              onRemove={() => setRule(undefined)}
+              onDirtyChange={setRuleDirty}
+            />
+          </Modal>
+        )}
+      </ModalPresence>
+      <ModalPresence>
+        {plan && (
+          <PlanReview
+            plan={plan}
+            onClose={() => setPlan(undefined)}
+            onApplied={() => {
+              setEditing(false);
+              void openDocument(document!.path);
+              void refresh();
+            }}
             notify={notify}
-            navigate={navigate}
-            rule={rule}
-            onRemove={() => setRule(undefined)}
-            onDirtyChange={setRuleDirty}
           />
-        </Modal>
-      )}
-      {plan && (
-        <PlanReview
-          plan={plan}
-          onClose={() => setPlan(undefined)}
-          onApplied={() => {
-            setEditing(false);
-            void openDocument(document!.path);
-            void refresh();
-          }}
-          notify={notify}
-        />
-      )}
+        )}
+      </ModalPresence>
       <div className="modal-actions">
-        <span className="muted">Detected {formatDate(project.detectedAt)}</span>
+        <span className="muted">
+          {t('Detected ')}
+          {formatDate(project.detectedAt)}
+        </span>
         <Button
           onClick={() => {
             navigate('setup', project.path);
           }}
         >
-          Review project setup <ArrowRight size={16} />
+          {t('Review project setup ')}
+          <ArrowRight size={16} />
         </Button>
       </div>
     </Modal>

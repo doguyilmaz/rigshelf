@@ -44,12 +44,15 @@ Each requirement retains an identifier so implementation and deferred work can b
 | R28 | Pleasant setup | Few clear steps, informative empty/loading/error states, accessible responsive UI, useful progress. No decorative fake metrics or nonfunctional controls. |
 | R29 | Documentation | Written architecture, decisions, source research, threat model, test evidence, limitations, and continuing roadmap. |
 | R30 | Independent setup product | Keep the implementation independent and do not import another product’s catalog. Inspect actual files directly. Backup is secondary; fast project setup across agent harnesses is primary. Possible future integration must not influence initial complexity. |
+| R31 | Review visual alternatives | Show interactive layout alternatives and direct preview URLs before adopting a redesign. The product name remains provisional and requires a clear comparison of researched candidates. |
+| R32 | Stable dialogs | Smooth open/close and editor replacement; stable frame during asynchronous content and tabs, one backdrop, preserved keyboard/focus behavior, and reduced-motion support. |
+| R33 | Interface localization | English/Turkish now, with at least six complete languages required for the first public release. Persist the browser choice, preserve drafts, and never translate authored library or project content implicitly. |
 
 ## Interaction design
 
 Primary action: **Set up a project**. Navigation: Setup, Library, Projects, Presets, Directives, Activity, Settings. A source is a collection; a skill is a capability; a kit is the small selection activated for a project. Keep those concepts distinct in the interface. Details use focused dialogs; setup uses a reviewable sequence. Trust labels describe evidence, not decoration. Backup never leads the experience.
 
-Visual direction: a quiet technical workbench with warm paper surfaces, deep ink, restrained copper accents, fine rules, generous space, readable typography, and small purposeful motion. Dense information belongs in searchable lists rather than an ocean of statistic cards.
+Current implementation baseline, pending user review of the interactive alternatives: a quiet technical workbench with warm paper surfaces, deep ink, restrained copper accents, fine rules, generous space, readable typography, and small purposeful motion. Dense information belongs in searchable lists rather than an ocean of statistic cards.
 
 ## Architectural boundaries
 

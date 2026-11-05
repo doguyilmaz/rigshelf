@@ -4,6 +4,8 @@ import type { Preset } from '../../src/core/model';
 import { api, apiId } from '../api';
 import { Badge, Button, Modal, Notice, PageHeader, SearchBox, Spinner } from '../components';
 import { useDraftGuard } from '../drafts';
+import { t } from '../i18n';
+import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 
@@ -31,19 +33,19 @@ export function Presets(props: PageProps): ReactNode {
   return (
     <>
       <PageHeader
-        eyebrow="GOOD DEFAULTS, ON REPEAT"
-        title="A head start, saved."
-        description="Build a small foundation once. Adapt it for every kind of project."
+        eyebrow={t('GOOD DEFAULTS, ON REPEAT')}
+        title={t('A head start, saved.')}
+        description={t('Build a small foundation once. Adapt it for every kind of project.')}
         action={
           <Button onClick={() => setEditing(fresh())}>
             <Plus size={16} />
-            New preset
+            {t('New preset')}
           </Button>
         }
       />
       <div className="library-toolbar">
-        <SearchBox value={query} onChange={setQuery} placeholder="Find a preset…" />
-        <span className="muted">Presets inherit. Your choices stay editable.</span>
+        <SearchBox value={query} onChange={setQuery} placeholder={t('Find a preset…')} />
+        <span className="muted">{t('Presets inherit. Your choices stay editable.')}</span>
       </div>
       <div className="preset-grid">
         {state.presets
@@ -87,8 +89,8 @@ export function Presets(props: PageProps): ReactNode {
                 </div>
                 <div className="preset-card-bottom">
                   <span>
-                    {selectors.length + parents.flatMap((value) => value.entryIds).length} selectors
-                    / explicit picks
+                    {selectors.length + parents.flatMap((value) => value.entryIds).length}
+                    {t(' selectors / explicit picks')}
                   </span>
                   <Settings2 size={14} />
                 </div>
@@ -96,9 +98,11 @@ export function Presets(props: PageProps): ReactNode {
             );
           })}
       </div>
-      {editing && (
-        <PresetEditor {...props} preset={editing} onClose={() => setEditing(undefined)} />
-      )}
+      <ModalPresence>
+        {editing && (
+          <PresetEditor {...props} preset={editing} onClose={() => setEditing(undefined)} />
+        )}
+      </ModalPresence>
     </>
   );
 }
@@ -131,7 +135,7 @@ function PresetEditor({
     setBusy(true);
     try {
       if (isNew && value.id && state.presets.some((preset) => preset.id === value.id))
-        throw new Error('That preset ID already exists. Choose another ID.');
+        throw new Error(t('That preset ID already exists. Choose another ID.'));
       await api('presets', 'PUT', {
         ...value,
         id:
@@ -150,7 +154,7 @@ function PresetEditor({
           .filter(Boolean),
       });
       await refresh();
-      notify('Preset saved');
+      notify(t('Preset saved'));
       onClose();
     } catch (error) {
       notify((error as Error).message, true);
@@ -166,7 +170,7 @@ function PresetEditor({
         name: `${value.name} copy`,
       });
       await refresh();
-      notify('Preset duplicated');
+      notify(t('Preset duplicated'));
       onClose();
     } catch (error) {
       notify((error as Error).message, true);
@@ -177,14 +181,14 @@ function PresetEditor({
     : undefined;
   return (
     <Modal
-      title={isNew ? 'A new starting point' : value.name}
-      subtitle="Combine inherited guidance with a focused selection."
+      title={isNew ? t('A new starting point') : value.name}
+      subtitle={t('Combine inherited guidance with a focused selection.')}
       onClose={() => guardClose(onClose)}
     >
       <form className="editor-form" onSubmit={(event) => void save(event)}>
         <div className="form-two-columns">
           <label>
-            Name
+            {t('Name')}
             <input
               value={value.name}
               onChange={(event) => change('name', event.target.value)}
@@ -192,17 +196,17 @@ function PresetEditor({
             />
           </label>
           <label>
-            Preset ID
+            {t('Preset ID')}
             <input
               value={value.id}
               onChange={(event) => change('id', event.target.value)}
               disabled={!isNew}
-              placeholder="generated-from-name"
+              placeholder={t('generated-from-name')}
             />
           </label>
         </div>
         <label>
-          Description
+          {t('Description')}
           <textarea
             rows={2}
             value={value.description}
@@ -211,15 +215,15 @@ function PresetEditor({
         </label>
         <div className="form-two-columns">
           <label htmlFor="preset-parent">
-            Inherit from
+            {t('Inherit from')}
             <Select
-              label="Inherit from"
+              label={t('Inherit from')}
               id="preset-parent"
               value={value.parentId || ''}
               onValueChange={(parentId) => change('parentId', parentId || null)}
               searchable
               options={[
-                { value: '', label: 'No parent' },
+                { value: '', label: t('No parent') },
                 ...state.presets
                   .filter((item) => item.id !== value.id)
                   .map((item) => ({ value: item.id, label: item.name })),
@@ -227,35 +231,36 @@ function PresetEditor({
             />
           </label>
           <label>
-            Stack tags
+            {t('Stack tags')}
             <input
               value={stacks}
               onChange={(event) => setStacks(event.target.value)}
-              placeholder="mobile, expo"
+              placeholder={t('mobile, expo')}
             />
           </label>
         </div>
         {inherited && (
           <Notice>
             <GitBranch size={14} />
-            Inherits{' '}
+            {t('Inherits')}{' '}
             {chain(state.presets, inherited)
               .map((item) => item.name)
               .join(' → ')}
-            . Cycles are rejected.
+            {t('. Cycles are rejected.')}
           </Notice>
         )}
         <label>
-          Skill name selectors <span>One per line. Missing matches are reported during setup.</span>
+          {t('Skill name selectors ')}
+          <span>{t('One per line. Missing matches are reported during setup.')}</span>
           <textarea
             rows={6}
             className="code-editor"
             value={selectors}
             onChange={(event) => setSelectors(event.target.value)}
-            placeholder="react-native-best-practices"
+            placeholder={t('react-native-best-practices')}
           />
         </label>
-        <p className="field-label">Default agents</p>
+        <p className="field-label">{t('Default agents')}</p>
         <div className="agent-checks">
           {state.adapters.map((agent) => (
             <label key={agent.id} className="check-label">
@@ -276,17 +281,18 @@ function PresetEditor({
           ))}
         </div>
         <details className="advanced" onToggle={(event) => setAdvanced(event.currentTarget.open)}>
-          <summary>Explicit library picks and exclusions</summary>
+          <summary>{t('Explicit library picks and exclusions')}</summary>
           {advanced && (
             <>
               <SearchBox
                 value={pickQuery}
                 onChange={setPickQuery}
-                placeholder="Find a skill or MCP snapshot…"
+                placeholder={t('Find a skill or MCP snapshot…')}
               />
               <p className="field-help">
-                Showing up to 60 matching snapshots. Included and excluded pins stay selected when
-                hidden.
+                {t(
+                  'Showing up to 60 matching snapshots. Included and excluded pins stay selected when hidden.',
+                )}
               </p>
               <div className="explicit-picks">
                 {state.entries
@@ -320,7 +326,7 @@ function PresetEditor({
                             )
                           }
                         />
-                        Include
+                        {t('Include')}
                       </label>
                       <label>
                         <input
@@ -335,7 +341,7 @@ function PresetEditor({
                             )
                           }
                         />
-                        Exclude
+                        {t('Exclude')}
                       </label>
                     </div>
                   ))}
@@ -349,11 +355,11 @@ function PresetEditor({
               <>
                 <Button variant="ghost" onClick={() => void duplicate()}>
                   <Copy size={14} />
-                  Duplicate
+                  {t('Duplicate')}
                 </Button>
                 <Button variant="ghost" onClick={() => setDeleting(true)}>
                   <Trash2 size={14} />
-                  Remove
+                  {t('Remove')}
                 </Button>
               </>
             )}
@@ -363,14 +369,15 @@ function PresetEditor({
               <Spinner />
             ) : (
               <>
-                Save preset <Check size={15} />
+                {t('Save preset ')}
+                <Check size={15} />
               </>
             )}
           </Button>
         </div>
         {deleting && (
           <Notice tone="warning">
-            Remove this preset? Child presets must be reassigned first.
+            {t('Remove this preset? Child presets must be reassigned first.')}
             <div className="button-row">
               <Button
                 variant="danger"
@@ -381,10 +388,10 @@ function PresetEditor({
                     .catch((error) => notify(error.message, true));
                 }}
               >
-                Remove preset
+                {t('Remove preset')}
               </Button>
               <Button variant="ghost" onClick={() => setDeleting(false)}>
-                Keep it
+                {t('Keep it')}
               </Button>
             </div>
           </Notice>

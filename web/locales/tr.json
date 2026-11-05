@@ -491,7 +491,6 @@
   "All tags": "Tüm etiketler",
   "All stacks": "Tüm teknolojiler",
   "Only when I ask": "Yalnızca istediğimde",
-  "Expo\\nSwiftUI\\nKotlin": "Expo\\nSwiftUI\\nKotlin",
   "Apply {{count}} changes": "{{count}} değişikliği uygula",
   "Inspect {{name}}": "{{name}} projesini incele",
   "{{name}} imported. It is available for project setup.": "{{name}} içe aktarıldı. Proje kurulumu için kullanılabilir.",
@@ -527,5 +526,6 @@
   "Plugins": "Eklentiler",
   "New directive": "Yeni yönerge",
   "New preset": "Yeni ön ayar",
-  "Could not load the language. Reload the page and try again.": "Dil yüklenemedi. Sayfayı yenileyip tekrar deneyin."
+  "Could not load the language. Reload the page and try again.": "Dil yüklenemedi. Sayfayı yenileyip tekrar deneyin.",
+  "Expo\nSwiftUI\nKotlin": "Expo\nSwiftUI\nKotlin"
 }

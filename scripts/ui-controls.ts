@@ -110,6 +110,62 @@ try {
   if (!settingsBox || settingsBox.y + settingsBox.height > 600)
     throw new Error('Sidebar settings escaped the short viewport.');
   checks.push('Sidebar settings remain reachable in a short desktop window.');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  let release = () => {};
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/entries/*', async (request) => {
+    await pending;
+    await request.continue();
+  });
+  const entry = page.locator('.entry-list-row').first();
+  await entry.click();
+  const editor = page.locator('dialog.modal');
+  await expect.poll(() => editor.evaluate((node) => getComputedStyle(node).opacity)).toBe('1');
+  const beforeLoad = await editor.boundingBox();
+  release();
+  await editor.getByRole('button', { name: /^Files/ }).click();
+  await expect(editor.locator('.file-list')).toBeVisible();
+  const afterLoad = await editor.boundingBox();
+  if (
+    !beforeLoad ||
+    !afterLoad ||
+    Math.abs(beforeLoad.y - afterLoad.y) > 1 ||
+    Math.abs(beforeLoad.height - afterLoad.height) > 1
+  )
+    throw new Error('Loading content or switching tabs moved the editor frame.');
+  await editor.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await expect(editor).toHaveAttribute('data-exiting', 'true');
+  await expect(editor).toHaveAttribute('inert', '');
+  await expect(editor).toHaveCount(0);
+  await expect(entry).toBeFocused();
+  await page.unroute('**/api/entries/*');
+  checks.push(
+    'Normal-motion dialogs retain their frame across delayed data and tabs, leave before unmounting, and restore focus.',
+  );
+  await page.getByRole('button', { name: 'Add to library', exact: true }).click();
+  const addSource = page.getByRole('dialog', { name: 'Add something useful', exact: true });
+  await addSource
+    .getByLabel('URL, repository, or installation command')
+    .fill('A local motion-review reference');
+  await addSource.getByLabel('Display name').fill('Motion review reference');
+  await addSource.getByRole('button', { name: 'Add to library', exact: true }).click();
+  const nextEditor = page.getByRole('dialog', { name: 'Motion review reference', exact: true });
+  await expect(nextEditor).toBeVisible();
+  await expect(page.locator('dialog.modal')).toHaveCount(1);
+  await nextEditor.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await expect(page.locator('dialog.modal')).toHaveCount(0);
+  checks.push('Replacing one editor with another settles to one dialog and shares one backdrop.');
+  await page.goto(`${new URL(server.accessUrl).origin}/prototypes/project-setup.html?v=1`);
+  await page.getByRole('button', { name: 'Step by step', exact: true }).click();
+  await expect(page.locator('.prototype-app')).toHaveClass(/canvas/);
+  await page.getByRole('button', { name: 'Files visible', exact: true }).click();
+  await expect(page.locator('.prototype-app')).toHaveClass(/console/);
+  await page.getByRole('button', { name: 'All together', exact: true }).click();
+  await expect(page.locator('.prototype-app')).toHaveClass(/workbench/);
+  checks.push('The served design preview switches layouts under the unchanged application CSP.');
   if (errors.length) throw new Error(errors.join('\n'));
   const report = { checks, errors, widths: [1440, 1280, 1024, 768, 390, 320] };
   await Bun.write(join(directory, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
