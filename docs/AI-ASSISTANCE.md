@@ -4,7 +4,7 @@ Start with what you have: a link, an installation command, rough notes or a desc
 
 The same assistance is available in Presets, Directives, Skill/MCP editing, editable project documents and project setup. Use **Create**, **Improve**, **Convert to format** or **Suggest**. A short request can fill several related fields. Current fields can be inspected alongside the proposal; structured JSON stays in an optional detail view. A changed editor makes an older proposal unusable until regenerated. Unsaved AI input participates in the existing draft guards.
 
-Project assistance receives the supplied requirements/stack and up to 80 matching library names, tags and short descriptions. It does not receive Skill bodies, source memory files, conversations or the whole project. Suggested snapshot IDs must belong to that offered context. Using a project proposal updates requirements and refreshes the suggested kit; it does not create a setup plan or Apply it. Existing manual choices remain under the setup selection rules.
+Project assistance receives the supplied requirements/stack and up to 80 matching library names, tags and short descriptions. It does not receive Skill bodies, source memory files, conversations or the whole project. Suggested snapshot IDs must belong to that offered context. Using a project proposal updates requirements and refreshes the suggested kit; it does not create a setup plan or Apply it. Suggested additions preserve an already selected revision; they cannot replace it with another snapshot of the same capability. Existing manual choices remain under the setup selection rules.
 
 ## Provider modes
 

@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Copy, GitBranch, Plus, Settings2, Trash2 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import type { Preset } from '../../src/core/model';
+import { AiAssist } from '../AiAssist';
 import { api, apiId } from '../api';
 import { Badge, Button, Modal, Notice, PageHeader, SearchBox, Spinner } from '../components';
 import { useDraftGuard } from '../drafts';
@@ -8,6 +9,7 @@ import { t } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
+import { setupAdditions } from '../setup-selection';
 
 function chain(presets: Preset[], preset: Preset, seen = new Set<string>()): Preset[] {
   if (seen.has(preset.id)) return [];
@@ -118,12 +120,14 @@ function PresetEditor({
   const [selectors, setSelectors] = useState(preset.selectors.join('\n'));
   const [stacks, setStacks] = useState(preset.stacks.join(', '));
   const [busy, setBusy] = useState(false);
+  const [aiDirty, setAiDirty] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isNew = !preset.id;
   const [advanced, setAdvanced] = useState(false);
   const [pickQuery, setPickQuery] = useState('');
   const guardClose = useDraftGuard(
-    JSON.stringify(value) !== JSON.stringify(preset) ||
+    aiDirty ||
+      JSON.stringify(value) !== JSON.stringify(preset) ||
       selectors !== preset.selectors.join('\n') ||
       stacks !== preset.stacks.join(', '),
     'Preset',
@@ -186,6 +190,29 @@ function PresetEditor({
       onClose={() => guardClose(onClose)}
     >
       <form className="editor-form" onSubmit={(event) => void save(event)}>
+        <AiAssist
+          onDirtyChange={setAiDirty}
+          settings={state.settings}
+          entries={state.entries}
+          task="preset"
+          label={t('Build this Preset with AI')}
+          current={JSON.stringify({ ...value, selectors, stacks })}
+          onUse={(draft) => {
+            if (draft.kind !== 'preset') return;
+            setValue((current) => ({
+              ...current,
+              name: draft.name,
+              description: draft.description,
+              providers: draft.providers,
+              entryIds: [
+                ...current.entryIds,
+                ...setupAdditions(current.entryIds, draft.entryIds, state.entries),
+              ],
+            }));
+            setSelectors(draft.selectors.join('\n'));
+            setStacks(draft.stacks.join(', '));
+          }}
+        />
         <div className="form-two-columns">
           <label>
             {t('Name')}

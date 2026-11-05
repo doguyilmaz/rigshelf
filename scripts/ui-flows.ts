@@ -169,6 +169,7 @@ try {
 
   await page.getByRole('button', { name: 'Add to library', exact: true }).first().click();
   let dialog = page.getByRole('dialog', { name: 'Add something useful' });
+  await dialog.getByRole('button', { name: 'Source', exact: true }).click();
   await dialog
     .getByLabel('URL, repository, or installation command')
     .fill('A manually curated reference without a remote URL');
@@ -238,12 +239,11 @@ try {
   );
   await page.getByRole('button', { name: 'Save directive' }).click();
   await expect(page.getByText('Directive saved.', { exact: false })).toBeVisible();
-  await page.getByRole('button', { name: 'Prepare AI review' }).click();
-  dialog = page.getByRole('dialog', { name: 'A second pair of eyes' });
-  await expect(dialog.getByText('Prompt for your current agent')).toBeVisible();
-  await audit('ai-handoff');
-  await close(dialog);
-  checks.push('Scoped directives save; AI handoff prepares a prompt without launching a model.');
+  await page.getByRole('button', { name: 'Create, improve or format this directive' }).click();
+  await expect(page.getByLabel('What should AI prepare?', { exact: true })).toBeVisible();
+  await audit('ai-assistance-entry');
+  await page.getByRole('button', { name: 'Close AI assistance', exact: true }).click();
+  checks.push('Scoped directives save; AI assistance opens without launching a model.');
   checks.push('Unsaved preset and directive drafts survive cancelled navigation.');
 
   await nav('Projects');

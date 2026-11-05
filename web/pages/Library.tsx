@@ -22,6 +22,7 @@ import {
 } from '../../src/core/library';
 import type { Entry, Source } from '../../src/core/model';
 import { foldSearch } from '../../src/core/taxonomy';
+import { AiAssist } from '../AiAssist';
 import { api, apiId, formatDate, shortPath } from '../api';
 import {
   Badge,
@@ -495,12 +496,13 @@ function SourceList({
 }
 
 function AddToLibrary({
+  state,
   refresh,
   notify,
   onClose,
   onSourceAdded,
 }: PageProps & { onClose: () => void; onSourceAdded: (source: Source) => void }): ReactNode {
-  const [tab, setTab] = useState<'source' | 'custom' | 'local' | 'mcp'>('source');
+  const [tab, setTab] = useState<'assist' | 'source' | 'custom' | 'local' | 'mcp'>('assist');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [skillBody, setSkillBody] = useState('');
@@ -514,9 +516,11 @@ function AddToLibrary({
   const [recipe, setRecipe] = useState('');
   const [localPath, setLocalPath] = useState('');
   const [busy, setBusy] = useState(false);
+  const [aiDirty, setAiDirty] = useState(false);
   const guard = useDraftGuard(
     Boolean(
-      name ||
+      aiDirty ||
+        name ||
         description ||
         skillBody ||
         tags ||
@@ -577,144 +581,196 @@ function AddToLibrary({
       onClose={() => guard(onClose)}
     >
       <div className="tabs compact">
-        {(['source', 'custom', 'local', 'mcp'] as const).map((value) => (
+        {(['assist', 'source', 'custom', 'local', 'mcp'] as const).map((value) => (
           <button
             type="button"
             key={value}
             className={tab === value ? 'active' : ''}
             onClick={() => {
-              setTab(value);
+              if (aiDirty) guard(() => setTab(value));
+              else setTab(value);
             }}
           >
-            {value === 'source'
-              ? t('Source')
-              : value === 'custom'
-                ? t('Custom skill')
-                : value === 'local'
-                  ? t('Local folder')
-                  : t('MCP server')}
+            {value === 'assist'
+              ? t('Start with AI')
+              : value === 'source'
+                ? t('Source')
+                : value === 'custom'
+                  ? t('Custom skill')
+                  : value === 'local'
+                    ? t('Local folder')
+                    : t('MCP server')}
           </button>
         ))}
       </div>
-      <form onSubmit={(event) => void submit(event)} className="editor-form">
-        {tab === 'source' && (
-          <>
-            <label>
-              {t('URL, repository, or installation command')}
-              <input
-                value={url}
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://github.com/expo/skills"
-                required
-              />
-            </label>
-            <label>
-              {t('Display name ')}
-              <span>{t('Optional')}</span>
-              <input value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <label>
-              {t('Installation recipe ')}
-              <span>{t('Stored, never executed on import')}</span>
-              <input
-                value={recipe}
-                onChange={(event) => setRecipe(event.target.value)}
-                placeholder={t('bunx skills add owner/repo')}
-              />
-            </label>
-            <Notice>
-              {t(
-                'Sources can contain many skills. Add the source, then choose which skills to snapshot.',
-              )}
-            </Notice>
-          </>
-        )}
-        {tab === 'local' && (
-          <>
-            <div className="directory-input-field">
-              <label htmlFor="local-skill-directory">{t('Skill directory')}</label>
-              <DirectoryPathInput
-                id="local-skill-directory"
-                label={t('Skill directory')}
-                value={localPath}
-                onValueChange={setLocalPath}
-                placeholder={t('/path/to/my-skill')}
-                required
-              />
-            </div>
-            <Notice>
-              {t(
-                'Reads SKILL.md and supporting files directly. Symlinked resources and oversized bundles are reported.',
-              )}
-            </Notice>
-          </>
-        )}
-        {(tab === 'custom' || tab === 'mcp') && (
-          <>
-            <label>
-              {t('Name')}
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={t('my-project-workflow')}
-                required
-              />
-            </label>
-            {tab === 'custom' && (
+      {tab !== 'local' && (
+        <AiAssist
+          key={tab}
+          onDirtyChange={setAiDirty}
+          settings={state.settings}
+          task={tab === 'custom' ? 'skill' : tab === 'mcp' ? 'mcp' : 'library'}
+          defaultOpen={tab === 'assist'}
+          label={tab === 'assist' ? t('Paste or describe it') : t('Fill or improve with AI')}
+          current={
+            tab === 'assist'
+              ? ''
+              : JSON.stringify(
+                  tab === 'source'
+                    ? { name, input: url, recipe }
+                    : tab === 'mcp'
+                      ? { name, mcp: body, tags }
+                      : { name, description, body, tags },
+                )
+          }
+          onUse={(draft) => {
+            if (draft.kind === 'source') {
+              setTab('source');
+              setName(draft.name);
+              setUrl(draft.input);
+              setRecipe(draft.recipe);
+            }
+            if (draft.kind === 'skill') {
+              setTab('custom');
+              setName(draft.name);
+              setDescription(draft.description);
+              setSkillBody(draft.body);
+              setTags(draft.tags.join(', '));
+            }
+            if (draft.kind === 'mcp') {
+              setTab('mcp');
+              setName(draft.name);
+              setMcpBody(JSON.stringify(draft.mcp, null, 2));
+              setTags(draft.tags.join(', '));
+            }
+          }}
+        />
+      )}
+      {tab !== 'assist' && (
+        <form onSubmit={(event) => void submit(event)} className="editor-form">
+          {tab === 'source' && (
+            <>
               <label>
-                {t('When should an agent use it?')}
+                {t('URL, repository, or installation command')}
                 <input
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                  placeholder="https://github.com/expo/skills"
                   required
                 />
               </label>
-            )}
-            <label>
-              {tab === 'mcp' ? t('Canonical MCP definition · JSON') : t('Instructions · Markdown')}
-              <textarea
-                className="code-editor"
-                rows={12}
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-                required
-                spellCheck={false}
-              />
-            </label>
-            <label>
-              {t('Tags ')}
-              <span>{t('Comma separated')}</span>
-              <input
-                value={tags}
-                onChange={(event) => setTags(event.target.value)}
-                placeholder={t('backend, typescript')}
-              />
-            </label>
-            {tab === 'mcp' && (
+              <label>
+                {t('Display name ')}
+                <span>{t('Optional')}</span>
+                <input value={name} onChange={(event) => setName(event.target.value)} />
+              </label>
+              <label>
+                {t('Installation recipe ')}
+                <span>{t('Stored, never executed on import')}</span>
+                <input
+                  value={recipe}
+                  onChange={(event) => setRecipe(event.target.value)}
+                  placeholder={t('bunx skills add owner/repo')}
+                />
+              </label>
               <Notice>
                 {t(
-                  'Use environment placeholders for secrets. No server is started when you add a definition.',
+                  'Sources can contain many skills. Add the source, then choose which skills to snapshot.',
                 )}
               </Notice>
-            )}
-          </>
-        )}
-        <div className="modal-actions">
-          <Button variant="secondary" onClick={() => guard(onClose)}>
-            {t('Cancel')}
-          </Button>
-          <Button type="submit" disabled={busy}>
-            {busy ? (
-              <Spinner />
-            ) : (
-              <>
-                {t('Add to library ')}
-                <Plus size={15} />
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
+            </>
+          )}
+          {tab === 'local' && (
+            <>
+              <div className="directory-input-field">
+                <label htmlFor="local-skill-directory">{t('Skill directory')}</label>
+                <DirectoryPathInput
+                  id="local-skill-directory"
+                  label={t('Skill directory')}
+                  value={localPath}
+                  onValueChange={setLocalPath}
+                  placeholder={t('/path/to/my-skill')}
+                  required
+                />
+              </div>
+              <Notice>
+                {t(
+                  'Reads SKILL.md and supporting files directly. Symlinked resources and oversized bundles are reported.',
+                )}
+              </Notice>
+            </>
+          )}
+          {(tab === 'custom' || tab === 'mcp') && (
+            <>
+              <label>
+                {t('Name')}
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder={t('my-project-workflow')}
+                  required
+                />
+              </label>
+              {tab === 'custom' && (
+                <label>
+                  {t('When should an agent use it?')}
+                  <input
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    required
+                  />
+                </label>
+              )}
+              <div>
+                <label htmlFor="new-library-body">
+                  {tab === 'mcp'
+                    ? t('Canonical MCP definition · JSON')
+                    : t('Instructions · Markdown')}
+                </label>
+                <textarea
+                  id="new-library-body"
+                  className="code-editor"
+                  rows={12}
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  required
+                  spellCheck={false}
+                />
+              </div>
+              <label>
+                {t('Tags ')}
+                <span>{t('Comma separated')}</span>
+                <input
+                  value={tags}
+                  onChange={(event) => setTags(event.target.value)}
+                  placeholder={t('backend, typescript')}
+                />
+              </label>
+              {tab === 'mcp' && (
+                <Notice>
+                  {t(
+                    'Use environment placeholders for secrets. No server is started when you add a definition.',
+                  )}
+                </Notice>
+              )}
+            </>
+          )}
+          <div className="modal-actions">
+            <Button variant="secondary" onClick={() => guard(onClose)}>
+              {t('Cancel')}
+            </Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? (
+                <Spinner />
+              ) : (
+                <>
+                  {t('Add to library ')}
+                  <Plus size={15} />
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      )}
     </Modal>
   );
 }

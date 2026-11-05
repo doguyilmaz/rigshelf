@@ -1,16 +1,22 @@
 import { ArrowRight, FileCode2, FolderOpen, Plus } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useEffect, useState } from 'react';
 import type { FilePreview, PlanView } from '../../src/core/plan-view';
+import { AiAssist } from '../AiAssist';
 import { api, apiId, shortPath } from '../api';
 import { Badge, Button, Modal, Notice, Spinner } from '../components';
 import { t } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { ProjectPathInput } from '../ProjectPathInput';
+import { setupAdditions } from '../setup-selection';
 import { type SetupProps, useProjectSetup } from '../useProjectSetup';
 import { EntryDetail } from './EntryDetail';
 import { KitRow } from './KitRows';
-import { SetupKitPicker } from './SetupKitPicker';
+
+const SetupKitPicker = lazy(() =>
+  import('./SetupKitPicker').then((module) => ({ default: module.SetupKitPicker })),
+);
+
 import { SetupOptions } from './SetupOptions';
 
 export function Setup(props: SetupProps): ReactNode {
@@ -149,6 +155,31 @@ export function Setup(props: SetupProps): ReactNode {
                   </Notice>
                 ))}
                 <section className="setup-kit-section" aria-labelledby="project-kit-heading">
+                  {active && (
+                    <AiAssist
+                      settings={state.settings}
+                      entries={state.entries}
+                      task="requirements"
+                      label={t('Describe the project to AI')}
+                      current={JSON.stringify({
+                        requirements: setup.requirements,
+                        stacks: setup.detected.project.stacks,
+                        agents: setup.providers,
+                        selected: setup.selected,
+                      })}
+                      onUse={(draft) => {
+                        if (draft.kind !== 'requirements') return;
+                        setup.changeRequirements(draft.text);
+                        for (const id of setupAdditions(
+                          setup.selected,
+                          draft.entryIds,
+                          state.entries,
+                        ))
+                          setup.toggleEntry(id);
+                        void setup.inspect(setup.path, draft.text, setup.preset);
+                      }}
+                    />
+                  )}
                   <div className="setup-kit-heading">
                     <div>
                       <h2 id="project-kit-heading">{t('Project kit')}</h2>
@@ -328,17 +359,19 @@ export function Setup(props: SetupProps): ReactNode {
       </div>
       <ModalPresence>
         {active && picker && (
-          <SetupKitPicker
-            state={state}
-            selected={setup.selected}
-            toggle={setup.toggleEntry}
-            inspect={setInspecting}
-            onClose={() => setPicker(false)}
-            openLibrary={() => {
-              setPicker(false);
-              navigate('library');
-            }}
-          />
+          <Suspense fallback={<Spinner text={t('Loading page…')} />}>
+            <SetupKitPicker
+              state={state}
+              selected={setup.selected}
+              toggle={setup.toggleEntry}
+              inspect={setInspecting}
+              onClose={() => setPicker(false)}
+              openLibrary={() => {
+                setPicker(false);
+                navigate('library');
+              }}
+            />
+          </Suspense>
         )}
       </ModalPresence>
       <ModalPresence>

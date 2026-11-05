@@ -1341,6 +1341,159 @@ label {
   max-width: 880px;
   min-width: 0;
 }
+.ai-assist {
+  padding: 16px;
+  margin: 12px 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fafafa;
+  min-width: 0;
+}
+.ai-assist-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.ai-assist-heading strong {
+  font-size: 14px;
+}
+.ai-assist-heading p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 5px;
+}
+.ai-assist .field-label {
+  margin: 12px 0 6px;
+  font-size: 12px;
+}
+.ai-assist textarea {
+  min-height: 92px;
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ai-intents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.ai-intents button {
+  font-size: 11px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: white;
+}
+.ai-intents button[aria-pressed="true"] {
+  border-color: #777;
+  background: #ededed;
+}
+.ai-provider-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.ai-provider-row > div {
+  min-width: 0;
+}
+.ai-provider-row.single {
+  grid-template-columns: 1fr;
+}
+.ai-assist .ai-provider-row input,
+.ai-assist .ai-provider-row .select-trigger {
+  height: 40px;
+  min-height: 40px;
+}
+.ai-proposal {
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.ai-request {
+  min-width: 0;
+}
+.ai-request > summary {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 8px 0 12px;
+  color: var(--muted);
+}
+.ai-request:not([data-preview]) > summary {
+  display: none;
+}
+.ai-proposal > .button-row {
+  margin: 12px 0;
+}
+.ai-draft-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ai-draft-title h3 {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.ai-draft-preview > p {
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 10px 0;
+}
+.ai-draft-preview pre {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 280px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.ai-draft-preview .ai-readable-content {
+  font-family: inherit;
+}
+.ai-draft-preview li {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.ai-structured-fields {
+  margin-top: 16px;
+}
+.ai-proposal > p {
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 8px 0 14px;
+}
+.ai-draft-compare {
+  margin: 12px 0;
+}
+.ai-draft-compare pre {
+  overflow: auto;
+  max-height: 300px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.ai-draft-compare summary {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 8px 0;
+}
+@media (max-width: 500px) {
+  .ai-provider-row {
+    grid-template-columns: 1fr;
+  }
+  .ai-assist {
+    padding: 12px;
+  }
+}
 .setup-project-section {
   margin-bottom: 24px;
 }

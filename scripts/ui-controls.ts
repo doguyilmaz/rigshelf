@@ -213,6 +213,7 @@ try {
   );
   await page.getByRole('button', { name: 'Add to library', exact: true }).click();
   const addSource = page.getByRole('dialog', { name: 'Add something useful', exact: true });
+  await addSource.getByRole('button', { name: 'Source', exact: true }).click();
   await addSource
     .getByLabel('URL, repository, or installation command')
     .fill('A local motion-review reference');

@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
 import { reviseSkill } from '../src/core/skill-revisions';
-import { setupSelection } from '../web/setup-selection';
+import { setupAdditions, setupSelection } from '../web/setup-selection';
 import { fixture, sampleSkill } from './helpers';
 
 const cleanups: (() => Promise<void>)[] = [];
@@ -46,4 +46,19 @@ test('existing recommended archived snapshots remain pinned; unavailable content
   expect(setupSelection([existing.id, 'missing'], new Map(), data.store.entries(true))).toEqual([
     existing.id,
   ]);
+});
+
+test('AI suggestions add missing capabilities without replacing a selected snapshot revision', async () => {
+  const data = await fixture();
+  cleanups.push(data.cleanup);
+  const pinned = sampleSkill(data.store, 'pinned-guide');
+  const newer = reviseSkill(data.store, pinned.id, { body: 'A newer revision.' });
+  const additional = sampleSkill(data.store, 'another-guide');
+  expect(
+    setupAdditions(
+      [pinned.id],
+      [newer.id, additional.id, additional.id, 'missing'],
+      data.store.entries(true),
+    ),
+  ).toEqual([additional.id]);
 });

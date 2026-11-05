@@ -6,6 +6,8 @@ The first setup screen starts with a folder choice. **Try an example** below it 
 
 ## Import your existing tools
 
+For new content, use **Library → Add to library → Start with AI**. Paste a link, command or rough notes, choose Provider/model and generate. Review the prepared fields, choose **Use draft**, then save. You can also create/improve/format Presets, directives, editable documents and Skill/MCP content with the same panel. **Describe the project to AI** prepares project requirements and library suggestions. [AI assistance](AI-ASSISTANCE.md) explains native CLI login and connected-Agent modes.
+
 1. In **Settings → Where to look**, review project roots and global discovery. Save changed preferences.
 2. In **Library**, use **Scan this machine**. Physical AI locations are inspected even when gitignored or untracked. Supported Skills and sanitized MCP definitions enter your private library. This does not activate them in an agent or edit originals.
 3. Review partial/unavailable-location diagnostics. In **Projects**, use AI file types to separate instructions, memory, rules, Agents, Commands, Config, Plugins and Hooks. Global files have their own group. Skill snapshots and installation relationships are browsed in Library.

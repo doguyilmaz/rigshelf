@@ -2,6 +2,7 @@ import { ArrowRight, ArrowUpRight, FolderOpen, Plus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import type { Project, Rule } from '../../src/core/model';
 import type { PlanView } from '../../src/core/plan-view';
+import { AiAssist } from '../AiAssist';
 import { api, apiId, formatDate, shortPath } from '../api';
 import {
   Badge,
@@ -193,6 +194,7 @@ function ProjectDetail({
     kind?: string;
   }>();
   const [draft, setDraft] = useState('');
+  const [aiDirty, setAiDirty] = useState(false);
   const [editing, setEditing] = useState(false);
   const [plan, setPlan] = useState<PlanView>();
   const [rule, setRule] = useState<Rule>();
@@ -206,7 +208,8 @@ function ProjectDetail({
   const [ruleDirty, setRuleDirty] = useState(false);
   const guardRule = useDraftGuard(ruleDirty, t('Promoted directive'));
   const guard = useDraftGuard(
-    name !== savedClassification.name ||
+    aiDirty ||
+      name !== savedClassification.name ||
       stacks !== savedClassification.stacks ||
       Boolean(editing && document && draft !== document.content),
     t('Project details'),
@@ -348,16 +351,27 @@ function ProjectDetail({
                 </Notice>
               )}
               {editing ? (
-                <label className="editor-form">
-                  {t('Document content')}
+                <div className="editor-form">
+                  <AiAssist
+                    onDirtyChange={setAiDirty}
+                    settings={state.settings}
+                    task="text"
+                    label={t('Improve or format with AI')}
+                    current={draft}
+                    onUse={(proposal) => {
+                      if (proposal.kind === 'text') setDraft(proposal.text);
+                    }}
+                  />
+                  <label htmlFor="project-document-content">{t('Document content')}</label>
                   <textarea
+                    id="project-document-content"
                     className="code-editor"
                     rows={16}
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     spellCheck={false}
                   />
-                </label>
+                </div>
               ) : (
                 <pre className="content-preview document-preview">{document.content}</pre>
               )}
@@ -365,7 +379,11 @@ function ProjectDetail({
                 <Button
                   variant="secondary"
                   disabled={document.redacted || document.readOnly}
-                  onClick={() => setEditing(!editing)}
+                  onClick={() => {
+                    if (editing && (aiDirty || draft !== document.content))
+                      guard(() => setEditing(false));
+                    else setEditing(!editing);
+                  }}
                 >
                   {editing ? t('Cancel editing') : t('Edit document')}
                 </Button>

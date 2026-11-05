@@ -2,6 +2,7 @@ import { Check, Copy, FileText, FolderOpen, RefreshCw, Save, Trash2 } from 'luci
 import { type ReactNode, useEffect, useState } from 'react';
 import type { Entry } from '../../src/core/model';
 import { isClassificationTag } from '../../src/core/taxonomy';
+import { AiAssist } from '../AiAssist';
 import { api, apiId, formatDate, shortPath } from '../api';
 import { ClassificationEditor } from '../ClassificationEditor';
 import {
@@ -111,12 +112,17 @@ function EntryInspector({
   const [name, setName] = useState(entry.custom ? entry.name : `${entry.name.slice(0, 56)}-custom`);
   const [description, setDescription] = useState(entry.description);
   const [fileDirty, setFileDirty] = useState(false);
+  const [aiDirty, setAiDirty] = useState(false);
   useEffect(() => {
     onDirtyChange(
-      editing || fileDirty || tags !== entry.tags.join(', ') || source !== entry.sourceId,
+      editing ||
+        aiDirty ||
+        fileDirty ||
+        tags !== entry.tags.join(', ') ||
+        source !== entry.sourceId,
     );
     return () => onDirtyChange(false);
-  }, [editing, fileDirty, tags, source, entry.tags, entry.sourceId, onDirtyChange]);
+  }, [editing, aiDirty, fileDirty, tags, source, entry.tags, entry.sourceId, onDirtyChange]);
   const locations = state.installations.filter((location) => location.entryId === id);
   const trusted = state.trust?.some((value) => value.id === id && value.digest === entry.digest);
   useEffect(() => {
@@ -149,14 +155,14 @@ function EntryInspector({
       const next =
         entry.kind === 'mcp'
           ? await api<Entry>('mcp', 'POST', {
-              name: entry.name,
+              name,
               mcp: JSON.parse(draft),
-              tags: entry.tags,
+              tags: tagValues,
             })
           : await api<Entry>('fork', 'POST', {
               fromId: id,
               name,
-              ...(editing ? { body: draft, description } : {}),
+              ...(editing ? { body: draft, description, tags: tagValues } : {}),
             });
       await refresh();
       onRevision(next.id);
@@ -187,7 +193,7 @@ function EntryInspector({
             type="button"
             key={value}
             className={tab === value ? 'active' : ''}
-            onClick={() => (fileDirty ? guard(() => setTab(value)) : setTab(value))}
+            onClick={() => (fileDirty || aiDirty ? guard(() => setTab(value)) : setTab(value))}
           >
             {t(value.charAt(0).toUpperCase() + value.slice(1))}
             {value === 'files' && detail && ` (${detail.files.length})`}
@@ -368,26 +374,52 @@ function EntryInspector({
             </div>
             {editing ? (
               <div className="editor-form">
+                <AiAssist
+                  onDirtyChange={setAiDirty}
+                  settings={state.settings}
+                  task={entry.kind === 'mcp' ? 'mcp' : 'skill'}
+                  label={t('Improve or format with AI')}
+                  current={JSON.stringify({
+                    name,
+                    description,
+                    body: draft,
+                    tags: tags
+                      .split(',')
+                      .map((tag) => tag.trim())
+                      .filter(Boolean),
+                  })}
+                  onUse={(proposal) => {
+                    if (proposal.kind === 'skill') {
+                      setName(proposal.name);
+                      setDescription(proposal.description);
+                      setDraft(proposal.body);
+                      setTags(proposal.tags.join(', '));
+                    }
+                    if (proposal.kind === 'mcp') {
+                      setName(proposal.name);
+                      setDraft(JSON.stringify(proposal.mcp, null, 2));
+                      setTags(proposal.tags.join(', '));
+                    }
+                  }}
+                />
+                <label>
+                  {entry.kind === 'skill' ? t('Skill name') : t('Name')}
+                  <input
+                    value={name}
+                    maxLength={64}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </label>
                 {entry.kind === 'skill' && (
-                  <>
-                    <label>
-                      {t('Skill name')}
-                      <input
-                        value={name}
-                        maxLength={64}
-                        onChange={(event) => setName(event.target.value)}
-                      />
-                    </label>
-                    <label>
-                      {t('Description')}
-                      <textarea
-                        rows={3}
-                        value={description}
-                        maxLength={1024}
-                        onChange={(event) => setDescription(event.target.value)}
-                      />
-                    </label>
-                  </>
+                  <label>
+                    {t('Description')}
+                    <textarea
+                      rows={3}
+                      value={description}
+                      maxLength={1024}
+                      onChange={(event) => setDescription(event.target.value)}
+                    />
+                  </label>
                 )}
                 <label>
                   {entry.kind === 'mcp'
@@ -415,11 +447,14 @@ function EntryInspector({
                     </Button>
                     <Button
                       variant="secondary"
-                      onClick={() => {
-                        setEditing(false);
-                        setName(entry.custom ? entry.name : `${entry.name.slice(0, 56)}-custom`);
-                        setDescription(entry.description);
-                      }}
+                      onClick={() =>
+                        guard(() => {
+                          setEditing(false);
+                          setName(entry.custom ? entry.name : `${entry.name.slice(0, 56)}-custom`);
+                          setDescription(entry.description);
+                          setTags(entry.tags.join(', '));
+                        })
+                      }
                     >
                       {t('Cancel editing')}
                     </Button>

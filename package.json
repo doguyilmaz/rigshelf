@@ -16,7 +16,7 @@
     "verify": "bun run check && bun run check:locales && bun test && bun run build",
     "lint": "biome check src web tests scripts design",
     "format": "biome check --write src web tests scripts design",
-    "test:ui": "bun scripts/ui-smoke.ts && bun scripts/ui-flows.ts && bun scripts/ui-stress.ts && bun scripts/ui-controls.ts && bun scripts/ui-localization.ts && bun scripts/ui-library.ts && bun scripts/ui-directory-picker.ts && bun scripts/ui-onboarding.ts && bun scripts/ui-setup-usability.ts",
+    "test:ui": "bun scripts/ui-smoke.ts && bun scripts/ui-flows.ts && bun scripts/ui-stress.ts && bun scripts/ui-controls.ts && bun scripts/ui-localization.ts && bun scripts/ui-library.ts && bun scripts/ui-directory-picker.ts && bun scripts/ui-onboarding.ts && bun scripts/ui-setup-usability.ts && bun scripts/ui-ai-assistance.ts",
     "check:locales": "bun scripts/check-locales.ts"
   },
   "dependencies": {

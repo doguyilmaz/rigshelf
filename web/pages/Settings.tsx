@@ -216,7 +216,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
             <h2>{t('AI, when you ask')}</h2>
             <p>
               {t(
-                'Use the MCP tools in an active agent session. For CLI selections, the review button prepares a prompt. Ollama can produce a proposal locally.',
+                'Create and format drafts with Claude Code, Codex or Ollama. Your connected Agent can also answer draft requests through MCP. Generation runs only when you ask; review before saving.',
               )}
             </p>
             <div className="form-two-columns">
@@ -230,14 +230,17 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
                     update('aiRunner', runner as SettingsValue['aiRunner'])
                   }
                   options={[
-                    { value: 'none', label: t('Current agent / MCP handoff') },
+                    { value: 'none', label: t('Choose in AI panels') },
+                    { value: 'session', label: t('Current Agent · MCP drafts') },
                     ...['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok', 'ollama'].map(
                       (runner) => ({
                         value: runner,
                         label:
                           runner === 'ollama'
                             ? t('Ollama · local generation')
-                            : t('{{runner}} · prompt handoff', { runner }),
+                            : ['claude', 'codex'].includes(runner)
+                              ? t('{{runner}} · direct drafts', { runner })
+                              : t('{{runner}} · connected Agent via MCP', { runner }),
                       }),
                     ),
                   ]}
@@ -250,6 +253,16 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
                     value={value.ollamaModel}
                     onChange={(event) => update('ollamaModel', event.target.value)}
                     placeholder={t('Your installed model name')}
+                  />
+                </label>
+              )}
+              {['claude', 'codex'].includes(value.aiRunner) && (
+                <label>
+                  {t('Model')}
+                  <input
+                    value={value.aiModel}
+                    onChange={(event) => update('aiModel', event.target.value)}
+                    placeholder={t('Provider default')}
                   />
                 </label>
               )}

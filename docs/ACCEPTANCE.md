@@ -9,7 +9,7 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R03 | Preset create/edit/duplicate/delete, inheritance, pins and exclusions. Explicit pins are retained beyond the small automatic recommendation limit. |
 | R04 | Seventeen presets cover the requested mobile, Apple, Android, web and backend branches, plus common CLI/JVM/Astro workflows. Classification is editable. |
 | R05 | Manifest/workspace detection, requirements, recommendation reasons, manual selections and new/existing directories. Exact technology matches precede overlapping alternatives. |
-| R06 | Six documented harness mappings. T3 model choice is separate from its harness. Ollama provides optional local proposals; other runners use prompt handoff/current-session MCP. |
+| R06 | Six documented project Harness mappings. T3 model choice is separate from its Harness. Authoring can use native Claude Code/Codex generation, local Ollama or connected-Agent MCP proposals; other unattended runner formats remain explicit gaps. |
 | R07 | Resources, executable modes, invocation-policy checks, native MCP conversion and explicit bridge requirements. Unsupported semantics are reported or refused. |
 | R08 | bunx/npx, marketplace, CLI, curl and manual recipes remain data. GitHub snapshots and local imports never execute installers or hooks. |
 | R09 | Immutable commit/content pins, dated checks, indexes, latest snapshot fetches and before/after plans. Unchanged content retains historical commit receipts. Installed pins change only through setup. |
@@ -47,6 +47,7 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R41 | First-use welcome, reopenable workflow guide and a local review/Apply/rollback simulation. Browser checks verify zero example API requests, unchanged real project/plan counts, preserved setup drafts, dismissal persistence, both locales and narrow layouts. See [quickstart](QUICKSTART.md). |
 | R42 | AGENTS.md, CONTRIBUTING.md and README use `bun run check` and `bun run format`; verify/lint and applicable browser suites remain required. |
 | R43 | Folder-first single-page setup, selected kit rows, optional disclosures, draft retention across navigation and discard protection for replacing edited projects. Suggestion refresh preserves exact manual pins, family exclusions and Agents. The picker groups revisions, pages the full result set and separates type/platform/technology/search. Browser fixtures exercise navigation, catalog updates, nested inspection, selection, narrow layouts and unchanged source files. Current-tab drafts are not persisted across reloads. |
+| R44 | A shared on-demand AI panel prepares validated drafts and fills the corresponding editor after review. Library starts with note/link/command intake; existing forms remain available. Native runners, connected-Agent completion, cancellation, offered-ID validation, masked bounded context and private retention share domain behavior. A readable preview leads; structured fields are optional. See [AI assistance](AI-ASSISTANCE.md) for runner compatibility, privacy and lifecycle limits. |
 
 ## Operating limits
 

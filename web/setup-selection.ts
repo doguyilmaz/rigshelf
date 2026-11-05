@@ -1,6 +1,28 @@
 import type { Entry } from '../src/core/model';
 import { slug } from '../src/core/names';
 
+/** AI suggestions can add capabilities, but cannot replace an already chosen revision. */
+export function setupAdditions(
+  selected: string[],
+  suggested: string[],
+  entries: Omit<Entry, 'body'>[],
+): string[] {
+  const available = new Map(entries.map((entry) => [entry.id, entry]));
+  const family = (entry: Omit<Entry, 'body'>) => `${entry.kind}:${slug(entry.name)}`;
+  const chosen = new Set(
+    selected.flatMap((id) => {
+      const entry = available.get(id);
+      return entry ? [family(entry)] : [];
+    }),
+  );
+  return suggested.filter((id) => {
+    const entry = available.get(id);
+    if (!entry || !['skill', 'mcp'].includes(entry.kind) || chosen.has(family(entry))) return false;
+    chosen.add(family(entry));
+    return true;
+  });
+}
+
 /** Keep deliberate choices and exact snapshot versions ahead of refreshed suggestions. */
 export function setupSelection(
   recommended: string[],

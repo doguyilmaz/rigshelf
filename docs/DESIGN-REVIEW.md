@@ -137,3 +137,18 @@ The usability review found that Setup asked for optional requirements, a preset 
 No new persistent session/context store is introduced. Draft retention ends at a reload or closed tab; browser unsaved-change protection remains. Existing reviewed plans, source preconditions, Apply and rollback still own all project writes. Neutral surfaces and restrained dialog motion remain; this is a focused interaction correction, not final naming or visual approval.
 
 Private browser evidence covers the first screen, nested filtered picker, navigation and responsive drafts. The example remains a separate zero-request simulation. See [quickstart](QUICKSTART.md) for the revised daily flow.
+
+## AI-assisted authoring
+
+Simpler navigation still left the user responsible for classifying resources, naming them, writing invocation conditions and composing Markdown/JSON. The shared AI workflow starts from the user's material and prepares related fields together.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Add to library opened a manual source form | A note/link/command brief leads; manual forms remain available | Start from what the user has. |
+| Most AI choices produced copyable prompts | Native Claude Code/Codex or Ollama generate drafts; connected Agents answer bounded MCP requests | Remove copying without inventing unattended integrations. |
+| AI assistance existed only for directive text | One Create/Improve/Convert/Suggest panel serves authoring and project requirements | Help where the work happens. |
+| Multi-field output required retyping | Use draft fills typed fields; existing saves/plans remain separate | Remove mechanical work while preserving review. |
+| JSON dominated preview and adoption fell below long output | Readable fields lead, structured data is optional, and Use draft sits above the result | Make the result and next action clear. |
+| Late output and navigation could lose work | Signature-bound adoption, AI draft guards and cancellation protect newer edits and pending work | Avoid invisible loss and abandoned runs. |
+
+The AI panel and focused kit picker load on demand. Browser preferences contain only Provider/model selection. Neutral surfaces and stable dialog frames remain; final naming and visual approval are still separate.
