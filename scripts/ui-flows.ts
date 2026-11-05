@@ -187,6 +187,15 @@ try {
   await audit('draft-protection');
   await discard.getByRole('button', { name: 'Continue editing', exact: true }).click();
   await expect(dialog.getByLabel('Name', { exact: true })).toHaveValue('Focused Expo');
+  const parentBounds = await dialog.getByLabel('Inherit from', { exact: true }).boundingBox();
+  const tagBounds = await dialog.getByLabel('Stack tags', { exact: true }).boundingBox();
+  if (
+    !parentBounds ||
+    !tagBounds ||
+    Math.abs(parentBounds.y - tagBounds.y) > 1 ||
+    Math.abs(parentBounds.height - tagBounds.height) > 1
+  )
+    throw new Error('Adjacent editor selects and text inputs are misaligned.');
   await audit('preset-editor');
   await dialog.getByRole('button', { name: 'Save preset' }).click();
   await expect(dialog).toHaveCount(0);

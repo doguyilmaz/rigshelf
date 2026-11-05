@@ -7,7 +7,6 @@ import {
   Layers2,
   Plus,
   ScanLine,
-  ShieldCheck,
 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import type { Entry, Finding, Project, Provider } from '../../src/core/model';
@@ -144,24 +143,49 @@ export function Setup({
               title={t('Project')}
               detail={t('New or existing project directory.')}
             />
-            <label className="field-label" htmlFor="project-path">
-              {t('Project directory')}
-            </label>
-            <ProjectPathInput
-              value={path}
-              projects={state.projects}
-              onValueChange={(next) => {
-                setPath(next);
-                setDetected(undefined);
-              }}
-            />
+            <div className="setup-project-fields">
+              <div>
+                <label className="field-label" htmlFor="project-path">
+                  {t('Project directory')}
+                </label>
+                <ProjectPathInput
+                  value={path}
+                  projects={state.projects}
+                  onValueChange={(next) => {
+                    setPath(next);
+                    setDetected(undefined);
+                  }}
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="preset-choice">
+                  {t('Starting preset')}
+                </label>
+                <Select
+                  id="preset-choice"
+                  label={t('Starting preset')}
+                  searchable
+                  value={preset}
+                  onValueChange={(next) => {
+                    setPreset(next);
+                    const chosen = state.presets.find((value) => value.id === next);
+                    if (chosen) setProviders(chosen.providers);
+                    setDetected(undefined);
+                  }}
+                  options={[
+                    { value: 'auto', label: t('Detect from the project') },
+                    ...state.presets.map((value) => ({ value: value.id, label: value.name })),
+                  ]}
+                />
+              </div>
+            </div>
             <label className="field-label" htmlFor="requirements">
               {t('What are you making? ')}
               <span>{t('Optional')}</span>
             </label>
             <textarea
               id="requirements"
-              rows={3}
+              rows={2}
               value={requirements}
               onChange={(event) => {
                 setRequirements(event.target.value);
@@ -169,27 +193,6 @@ export function Setup({
               }}
               placeholder={t('An Expo app with Better Auth and a Hono API…')}
             />
-            <div className="preset-choice">
-              <label className="field-label" htmlFor="preset-choice">
-                {t('Starting preset')}
-              </label>
-              <Select
-                id="preset-choice"
-                label={t('Starting preset')}
-                searchable
-                value={preset}
-                onValueChange={(next) => {
-                  setPreset(next);
-                  const chosen = state.presets.find((value) => value.id === next);
-                  if (chosen) setProviders(chosen.providers);
-                  setDetected(undefined);
-                }}
-                options={[
-                  { value: 'auto', label: t('Detect from the project') },
-                  ...state.presets.map((value) => ({ value: value.id, label: value.name })),
-                ]}
-              />
-            </div>
             <Button
               disabled={!path.trim() || busy}
               onClick={() => void detect()}
@@ -293,9 +296,8 @@ export function Setup({
             />
             {!detected ? (
               <div className="kit-placeholder">
-                <Layers2 size={25} strokeWidth={1.4} />
-                <p>{t('Your kit takes shape here.')}</p>
-                <span>{t('Choose a project to see recommendations from your library.')}</span>
+                <Layers2 size={20} strokeWidth={1.4} />
+                <p>{t('Choose a project to see recommendations from your library.')}</p>
               </div>
             ) : (
               <>
@@ -464,44 +466,26 @@ export function Setup({
         </div>
         <aside className="setup-aside">
           <div className="kit-note">
-            <p className="eyebrow">{t('YOUR PROJECT KIT')}</p>
-            <div className="kit-note-icon">
-              <Layers2 size={27} strokeWidth={1.4} />
-            </div>
-            <h2>
-              {t('A little context.')}
-              <br />
-              {t('A lot more clarity.')}
-            </h2>
-            <p>
-              {t('Your whole library stays here. Only your selected kit goes into the project.')}
-            </p>
+            <h2>{t('What gets added')}</h2>
             <ul>
               <li>
                 <Check size={14} />
-                {t('Skills loaded on demand')}
+                {t('Selected skills')}
               </li>
               <li>
                 <Check size={14} />
-                {t('MCP in the right format')}
+                {t('MCP configuration')}
               </li>
               <li>
                 <Check size={14} />
-                {t('Guidance in your style')}
+                {t('Project guidance')}
               </li>
             </ul>
-            <div className="kit-note-bottom">
-              <ShieldCheck size={16} />
-              <span>
-                {t('Preview every file.')}
-                <br />
-                {t('Roll back when you need to.')}
-              </span>
-            </div>
+            <p>{t('Nothing is written until you review and apply the plan.')}</p>
           </div>
           <div className="preset-shortcuts">
             <div className="section-caption">
-              <span>{t('A HEAD START')}</span>
+              <span>{t('Presets')}</span>
               <button
                 type="button"
                 onClick={() => navigate('presets')}

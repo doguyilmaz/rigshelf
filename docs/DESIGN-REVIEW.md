@@ -65,3 +65,21 @@ The first neutral pass only overrode part of the legacy theme. The live server w
 Red and amber remain reserved for destructive actions, warnings and errors. These checks establish palette consistency, not user approval of the overall design.
 
 Verification: `bun run verify` passed with 93 tests and matching 700-message English/Turkish catalogs; `bun run lint` and all six `bun run test:ui` suites passed. Rendered-color checks cover the setup/detection/review flow, all six other primary pages, management editors, source popups at six widths and the three earlier layout prototypes. Private screenshots and reports stay under ignored `.local/qa`.
+
+## Select and form spacing refinement
+
+The select menu had a reproducible layout defect: Base UI keeps its empty-result live region mounted, but our unconditional padding left a 30 px spacer even with matching options. The regression case measured 36 px between search and the first result before the correction. The region remains mounted and announced; only an actual empty message receives padding.
+
+| Before | After | Why |
+| --- | --- | --- |
+| A padded empty-result region appeared above matching options | Empty regions occupy no space; a real empty result retains its message and live announcement | Remove the blank band without hiding feedback from assistive technology. |
+| Narrow source menus wrapped long names across many lines | Searchable menus have a useful minimum width, bounded by the viewport; names use at most two visual lines with full accessible names and titles | Keep choices scannable and retain the full value. |
+| Every facet count occupied a separate description line | Counts align on the option row; selection marks reserve a stable column | Show more relevant choices without shifting labels. |
+| Popup list height ignored its hint and clear-action footer | A bounded flex column gives the list the remaining scrollable space | Preserve search and actions in short windows. |
+| Setup's preset label and value sat on opposite sides of a wide row | Directory and preset fields have labels above them and align at desktop widths; narrower layouts stack | Make label/value relationships clear. |
+| Custom selects in editor forms omitted the input label gap | Shared 40 px editor controls and matching label spacing | Adjacent fields align and use readable text. |
+| Oversized slogan card and empty kit illustration stretched setup | Short factual setup note, a compact empty kit row and smaller section gaps | Give useful controls more of the screen. |
+
+Browser checks now cover empty-to-populated search transitions, inline facet counts, label proximity and desktop alignment, two-line long source options, nested popup Escape/focus behavior and six viewport widths. Screenshots are reviewed privately; passing these checks does not establish final visual approval.
+
+Verification: `bun run verify` passed (93 tests; 705 matching English/Turkish messages), `bun run lint` passed, and all six `bun run test:ui` suites passed after the final editor-alignment changes. The popup-spacing assertion was observed failing on the original 30 px spacer before the fix. One unrelated occupied test port exposed a fixture collision; the HTTP test fixture now retries that specific startup error and cleans up even if startup fails.

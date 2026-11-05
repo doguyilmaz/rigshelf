@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
-import { chromium, expect } from '@playwright/test';
+import { chromium, expect, type Page } from '@playwright/test';
 import { route } from '../src/core/service';
 import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
@@ -31,9 +31,45 @@ page.on('pageerror', (error) => errors.push(error.message));
 const directory = resolve('.local/qa/controls');
 await mkdir(directory, { recursive: true });
 const checks: string[] = [];
+async function assertCompactPopup(page: Page, state: string): Promise<void> {
+  const layout = await page.locator('.select-popup').evaluate((popup) => {
+    const empty = popup.querySelector('.select-empty');
+    const search =
+      popup.querySelector('.multi-select-hint') || popup.querySelector('.select-search');
+    const first = popup.querySelector('[role="option"]');
+    return {
+      emptyHeight: empty && !empty.textContent?.trim() ? empty.getBoundingClientRect().height : 0,
+      searchGap:
+        search && first
+          ? first.getBoundingClientRect().top - search.getBoundingClientRect().bottom
+          : 0,
+    };
+  });
+  if (layout.emptyHeight > 1 || layout.searchGap > 16)
+    throw new Error(`Unused popup space in ${state}: ${JSON.stringify(layout)}`);
+}
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
+  for (const width of [1440, 1280, 1024, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    const layout = await page.locator('.setup-project-fields').evaluate((fields) => {
+      const label = fields.querySelector('label[for="preset-choice"]')!.getBoundingClientRect();
+      const control = fields.querySelector('.select-trigger')!.getBoundingClientRect();
+      const path = fields.querySelector('.path-input')!.getBoundingClientRect();
+      return { gap: control.top - label.bottom, topDifference: Math.abs(path.top - control.top) };
+    });
+    if (layout.gap < 4 || layout.gap > 10 || (width >= 1200 && layout.topDifference > 1))
+      throw new Error(`Misaligned setup controls at ${width}px: ${JSON.stringify(layout)}`);
+    if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
+      throw new Error(`Setup overflows at ${width}px`);
+    if (width === 1440 || width === 390)
+      await page.screenshot({ path: join(directory, `setup-${width}.png`), fullPage: true });
+  }
+  checks.push(
+    'Setup labels stay next to their controls at six widths, with aligned desktop fields.',
+  );
+  await page.setViewportSize({ width: 1280, height: 800 });
   const path = page.getByLabel('Project directory', { exact: true });
   await path.fill('~/Projects/a-new-project');
   await path.press('Escape');
@@ -43,6 +79,8 @@ try {
   await preset.click();
   const presetSearch = page.getByLabel('Search starting preset', { exact: true });
   await presetSearch.fill('hono');
+  await expect(page.getByRole('option', { name: 'Bun + Hono', exact: true })).toBeVisible();
+  await assertCompactPopup(page, 'preset search');
   await presetSearch.press('ArrowDown');
   await presetSearch.press('Enter');
   await expect(preset).toHaveText('Bun + Hono');
@@ -50,6 +88,20 @@ try {
 
   await page.getByRole('button', { name: 'Library', exact: true }).click();
   await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
+  await page.getByLabel('Platform & area', { exact: true }).click();
+  await expect(page.locator('.select-option-count').first()).toHaveText('1');
+  await assertCompactPopup(page, 'facet options with inline counts');
+  await page.locator('.select-search input').fill('missing-platform');
+  await expect(page.getByText('No matching options.', { exact: true })).toBeVisible();
+  await expect(page.locator('.select-empty[role="status"]')).toBeVisible();
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await page.locator('.select-search input').fill('');
+  await expect(page.getByRole('option').first()).toBeVisible();
+  await assertCompactPopup(page, 'facet results restored after empty search');
+  await page.keyboard.press('Escape');
+  checks.push(
+    'Facet counts share the option row; empty-search announcements keep no spacer when results return.',
+  );
   await page.locator('.entry-list-row').first().click();
   const dialog = page.getByRole('dialog').first();
   const relationship = dialog.getByLabel('Source relationship', { exact: true });
@@ -83,6 +135,11 @@ try {
     await page.getByLabel('Search source', { exact: true }).fill('Mobile Engineering');
     const option = page.getByRole('option', { name: source.name, exact: true });
     await expect(option).toBeVisible();
+    await assertCompactPopup(page, `source search at ${width}px`);
+    const optionHeight = (await option.boundingBox())?.height;
+    if (!optionHeight || optionHeight > 60)
+      throw new Error(`Long source label overwhelms ${width}px menu: ${optionHeight}px`);
+    await expect(option.locator('.select-option-copy')).toHaveAttribute('title', source.name);
     await assertNeutralTheme(page, `source popup at ${width}px`);
     const popup = page.locator('.select-popup');
     const bounds = await popup.boundingBox();

@@ -698,5 +698,10 @@
   "You can save up to 12 views. Use an existing name to update a view.": "En fazla 12 görünüm kaydedebilirsiniz. Güncellemek için mevcut bir adı kullanın.",
   "Platform": "Platform",
   "Tag": "Etiket",
-  "Loading page…": "Sayfa yükleniyor…"
+  "Loading page…": "Sayfa yükleniyor…",
+  "What gets added": "Neler eklenir",
+  "Selected skills": "Seçilen skill’ler",
+  "MCP configuration": "MCP yapılandırması",
+  "Project guidance": "Proje yönergeleri",
+  "Nothing is written until you review and apply the plan.": "Planı inceleyip uygulayana kadar hiçbir dosya yazılmaz."
 }

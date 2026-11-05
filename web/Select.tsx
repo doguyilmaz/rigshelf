@@ -8,6 +8,7 @@ export interface SelectOption {
   value: string;
   label: string;
   group?: string;
+  count?: number;
 }
 interface SelectProps {
   value: string;
@@ -88,6 +89,7 @@ function SearchableSelect({
       <Combobox.Portal container={container}>
         <Combobox.Positioner
           className="select-positioner"
+          data-searchable
           sideOffset={6}
           align="start"
           positionMethod="fixed"
@@ -124,13 +126,15 @@ function SearchableOptions({
             className="select-option"
             aria-label={labels.get(item)?.label || item}
           >
-            <span className="select-option-copy">
+            <span className="select-option-copy" title={labels.get(item)?.label || item}>
               <span>{labels.get(item)?.label || item}</span>
               {labels.get(item)?.group && <small>{t(labels.get(item)?.group || '')}</small>}
             </span>
-            <Combobox.ItemIndicator className="select-check">
-              <Check size={15} />
-            </Combobox.ItemIndicator>
+            <span className="select-option-mark" aria-hidden="true">
+              <Combobox.ItemIndicator className="select-check">
+                <Check size={14} />
+              </Combobox.ItemIndicator>
+            </span>
           </Combobox.Item>
         )}
       </Combobox.List>
@@ -183,12 +187,14 @@ function SimpleSelect({
                   value={option.value}
                   className="select-option"
                 >
-                  <SelectPrimitive.ItemText className="select-option-copy">
+                  <SelectPrimitive.ItemText className="select-option-copy" title={option.label}>
                     {option.label}
                   </SelectPrimitive.ItemText>
-                  <SelectPrimitive.ItemIndicator className="select-check">
-                    <Check size={15} />
-                  </SelectPrimitive.ItemIndicator>
+                  <span className="select-option-mark" aria-hidden="true">
+                    <SelectPrimitive.ItemIndicator className="select-check">
+                      <Check size={14} />
+                    </SelectPrimitive.ItemIndicator>
+                  </span>
                 </SelectPrimitive.Item>
               ))}
             </SelectPrimitive.List>

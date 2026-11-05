@@ -2,7 +2,7 @@ import { Combobox } from '@base-ui/react/combobox';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { foldSearch } from '../src/core/taxonomy';
-import { t } from './i18n';
+import { getLocale, t } from './i18n';
 import type { SelectOption } from './Select';
 
 export function MultiSelect({
@@ -67,6 +67,7 @@ export function MultiSelect({
         <Combobox.Portal container={container}>
           <Combobox.Positioner
             className="select-positioner"
+            data-searchable
             sideOffset={6}
             positionMethod="fixed"
             align="start"
@@ -89,13 +90,20 @@ export function MultiSelect({
                     className="select-option"
                     aria-label={labels.get(value)?.label || value}
                   >
-                    <span className="select-option-copy">
+                    <span className="select-option-copy" title={labels.get(value)?.label || value}>
                       <span>{labels.get(value)?.label || value}</span>
                       {labels.get(value)?.group && <small>{labels.get(value)?.group}</small>}
                     </span>
-                    <Combobox.ItemIndicator className="select-check">
-                      <Check size={15} />
-                    </Combobox.ItemIndicator>
+                    {labels.get(value)?.count !== undefined && (
+                      <span className="select-option-count">
+                        {labels.get(value)!.count!.toLocaleString(getLocale())}
+                      </span>
+                    )}
+                    <span className="select-option-mark" aria-hidden="true">
+                      <Combobox.ItemIndicator className="select-check">
+                        <Check size={14} />
+                      </Combobox.ItemIndicator>
+                    </span>
                   </Combobox.Item>
                 )}
               </Combobox.List>

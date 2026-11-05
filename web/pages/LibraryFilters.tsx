@@ -15,7 +15,6 @@ import {
 } from '../../src/core/taxonomy';
 import type { AppState } from '../api';
 import { Button, Modal } from '../components';
-import { countText } from '../format';
 import { t } from '../i18n';
 import type { useLibraryPreferences } from '../library-preferences';
 import { ModalPresence } from '../ModalPresence';
@@ -148,16 +147,16 @@ function categoryOptions(
     .map((item) => ({
       value: item.id,
       label: t(item.label),
-      group: countText(counts.get(item.id) || 0, 'item'),
+      count: counts.get(item.id) || 0,
     }));
   for (const id of selected)
     if (id !== 'unclassified' && !definitions.some((item) => item.id === id))
-      result.push({ value: id, label: id, group: countText(0, 'item') });
+      result.push({ value: id, label: id, count: 0 });
   if (counts.has('unclassified') || selected.includes('unclassified'))
     result.push({
       value: 'unclassified',
       label: t('Unclassified'),
-      group: countText(counts.get('unclassified') || 0, 'item'),
+      count: counts.get('unclassified') || 0,
     });
   return result;
 }
@@ -195,7 +194,7 @@ export function LibraryFilterPanel({
   const tagOptions = [...new Set([...tagCounts.keys(), ...filters.tags])]
     .filter((tag) => !isClassificationTag(tag) && tag !== 'unclassified')
     .sort()
-    .map((tag) => ({ value: tag, label: tag, group: countText(tagCounts.get(tag) || 0, 'item') }));
+    .map((tag) => ({ value: tag, label: tag, count: tagCounts.get(tag) || 0 }));
   const refineCount = libraryFilterChips(filters, onChange, state).filter(
     (chip) =>
       ![
