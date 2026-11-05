@@ -135,6 +135,20 @@ export interface Installation {
   lastSeen: string;
   storage?: 'project-config' | 'user-config' | 'user-project-config' | 'plugin-cache';
 }
+export interface DocumentLocation {
+  id: string;
+  path: string;
+  sourcePath: string;
+  canonicalPath: string;
+  root: string;
+  rootIdentity: string;
+  relativePath: string;
+  provider: string;
+  scope: 'project' | 'user-project' | 'global';
+  kind: 'instruction' | 'memory' | 'rule';
+  readOnly: boolean;
+  aliases?: string[];
+}
 export interface Project {
   id: string;
   name: string;
@@ -143,6 +157,8 @@ export interface Project {
   dependencies: string[];
   providers: string[];
   documents: string[];
+  documentLocations?: DocumentLocation[];
+  inventoryWarnings?: string[];
   detectedAt: string;
   requirements: string;
   warnings?: string[];

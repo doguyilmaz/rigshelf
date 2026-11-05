@@ -1,12 +1,26 @@
 import type { Dirent } from 'node:fs';
 import { lstat, readdir, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, relative, resolve, sep } from 'node:path';
+import { userAiRoots } from './ai-config-roots';
 import { detectProject, exists, ignoredDirectories, inferTags, readText } from './detect';
+import {
+  globalGuidance,
+  localGuidance,
+  mergedGuidance,
+  projectAiContexts,
+  userProjectMemory,
+} from './guidance-inventory';
 import { importSkillDirectory } from './ingest';
+import {
+  type AiConfigRoot,
+  dependencyDirectories,
+  privateRuntimeDirectories,
+  skillPaths,
+} from './inventory-paths';
 import type { Kit } from './kit';
 import { mcpLocationGroups } from './mcp-locations';
-import { type Entry, McpSchema, type Project, type Source } from './model';
+import { type DocumentLocation, type Entry, McpSchema, type Project, type Source } from './model';
 import { ownedProject } from './ownership';
 import { canonicalMcp, object, readConfig } from './providers';
 import { hash, inside, now, redact, scanText } from './safety';
@@ -27,26 +41,7 @@ export interface ScanProgress {
   result?: ScanResult;
 }
 export let scanProgress: ScanProgress = { state: 'idle', message: 'No scan yet', scanned: 0 };
-const skillPaths: [string, string][] = [
-  ['.agents/skills', 'agents'],
-  ['.claude/skills', 'claude'],
-  ['.codex/skills', 'codex'],
-  ['.kiro/skills', 'kiro'],
-  ['.opencode/skills', 'opencode'],
-  ['.agent/skills', 'antigravity'],
-  ['.gemini/skills', 'gemini'],
-  ['.cursor/skills', 'cursor'],
-  ['.windsurf/skills', 'windsurf'],
-  ['.cline/skills', 'cline'],
-  ['.roo/skills', 'roo'],
-  ['.factory/skills', 'factory'],
-  ['.github/skills', 'copilot'],
-  ['.continue/skills', 'continue'],
-  ['.trae/skills', 'trae'],
-  ['.goose/skills', 'goose'],
-  ['.crush/skills', 'crush'],
-  ['.grok/skills', 'grok'],
-];
+const MAX_REFERENCED_PROJECTS = 512;
 const mcpPaths: [string, string, string, 'json' | 'toml' | 'jsonc'][] = [
   ['.mcp.json', 'claude', 'mcpServers', 'json'],
   ['.codex/config.toml', 'codex', 'mcp_servers', 'toml'],
@@ -59,6 +54,25 @@ const mcpPaths: [string, string, string, 'json' | 'toml' | 'jsonc'][] = [
   ['.gemini/settings.json', 'gemini', 'mcpServers', 'json'],
   ['.grok/config.toml', 'grok', 'mcp_servers', 'toml'],
 ];
+function configMcpPaths(root: AiConfigRoot): typeof mcpPaths {
+  const paths: Record<string, typeof mcpPaths> = {
+    codex: [['config.toml', 'codex', 'mcp_servers', 'toml']],
+    claude: [
+      ['settings.json', 'claude', 'mcpServers', 'json'],
+      ['.claude.json', 'claude', 'mcpServers', 'json'],
+    ],
+    kiro: [['settings/mcp.json', 'kiro', 'mcpServers', 'json']],
+    opencode: [
+      ['opencode.json', 'opencode', 'mcp', 'jsonc'],
+      ['opencode.jsonc', 'opencode', 'mcp', 'jsonc'],
+    ],
+    antigravity: [['mcp_config.json', 'antigravity', 'mcpServers', 'json']],
+    gemini: [['settings.json', 'gemini', 'mcpServers', 'json']],
+    grok: [['config.toml', 'grok', 'mcp_servers', 'toml']],
+    cursor: [['mcp.json', 'cursor', 'mcpServers', 'json']],
+  };
+  return paths[root.provider] || [];
+}
 
 async function discoverProjects(
   root: string,
@@ -115,10 +129,33 @@ async function discoverSkills(
   if (depth > 12) return;
   const canonical = await realpath(root).catch(() => undefined);
   if (!canonical || visited.has(canonical)) return;
+  if (
+    canonical
+      .split(sep)
+      .some(
+        (part) =>
+          dependencyDirectories.has(part) || ['.ssh', '.aws', '.gnupg', '.azure'].includes(part),
+      )
+  ) {
+    bounds.skipped.push(`${root}: Dependency or private skill target excluded.`);
+    return;
+  }
   if (!bounds.roots.some((allowed) => inside(allowed, canonical))) {
     bounds.skipped.push(
       `${root}: External ${bounds.scope} skill link excluded. Import its target explicitly, or include its known global skill root in the scan.`,
     );
+    return;
+  }
+  if (
+    bounds.roots
+      .filter((allowed) => inside(allowed, canonical))
+      .every((allowed) =>
+        relative(allowed, canonical)
+          .split(sep)
+          .some((part) => privateRuntimeDirectories.has(part)),
+      )
+  ) {
+    bounds.skipped.push(`${root}: Private runtime skill target excluded.`);
     return;
   }
   visited.add(canonical);
@@ -184,33 +221,76 @@ async function importMcp(
   observed: Set<string>,
   configurations: Set<string>,
   kit?: Kit,
+  explicitPaths?: typeof mcpPaths,
+  seenFiles = new Set<string>(),
+  allowedRoots: string[] = [root],
 ): Promise<number> {
   let count = 0;
-  const paths = project
-    ? mcpPaths
-    : ([
-        ...mcpPaths,
-        ['.claude.json', 'claude', 'mcpServers', 'json'],
-        ['.config/opencode/opencode.json', 'opencode', 'mcp', 'jsonc'],
-        ['.config/opencode/opencode.jsonc', 'opencode', 'mcp', 'jsonc'],
-        ['.gemini/config/mcp_config.json', 'antigravity', 'mcpServers', 'json'],
-        ['.gemini/antigravity/mcp_config.json', 'antigravity', 'mcpServers', 'json'],
-      ] as typeof mcpPaths);
+  const canonicalRoots = (
+    await Promise.all(allowedRoots.map((allowed) => realpath(allowed).catch(() => undefined)))
+  ).filter((allowed): allowed is string => Boolean(allowed));
+  const paths =
+    explicitPaths ||
+    (project
+      ? mcpPaths
+      : ([
+          ...mcpPaths,
+          ['.claude.json', 'claude', 'mcpServers', 'json'],
+          ['.config/opencode/opencode.json', 'opencode', 'mcp', 'jsonc'],
+          ['.config/opencode/opencode.jsonc', 'opencode', 'mcp', 'jsonc'],
+          ['.gemini/config/mcp_config.json', 'antigravity', 'mcpServers', 'json'],
+          ['.gemini/antigravity/mcp_config.json', 'antigravity', 'mcpServers', 'json'],
+        ] as typeof mcpPaths));
   for (const [localPath, provider, key, format] of paths) {
     const path = join(root, localPath);
     try {
+      const canonicalPath = await realpath(path).catch(() => undefined);
+      if (
+        canonicalPath &&
+        (basename(canonicalPath) !== basename(path) ||
+          !canonicalRoots.some(
+            (allowed) =>
+              inside(allowed, canonicalPath) &&
+              !relative(allowed, canonicalPath)
+                .split(sep)
+                .some((part) => privateRuntimeDirectories.has(part)),
+          ) ||
+          canonicalPath
+            .split(sep)
+            .some(
+              (part) =>
+                dependencyDirectories.has(part) ||
+                ['.ssh', '.aws', '.gnupg', '.azure'].includes(part),
+            ))
+      ) {
+        skipped.push(`${path}: Non-configuration or private target excluded.`);
+        continue;
+      }
+      const keyForFile = `${project?.id || 'global'}:${provider}:${canonicalPath || path}`;
+      if (canonicalPath && seenFiles.has(keyForFile)) {
+        configurations.add(path);
+        continue;
+      }
       const text = await readText(path, 4 * 1024 * 1024);
       if (text === undefined) {
         configurations.add(path);
         continue;
       }
       const config = readConfig(text, format);
+      seenFiles.add(keyForFile);
       configurations.add(path);
       for (const group of mcpLocationGroups(store, config, key, localPath, project))
         for (const [name, raw] of Object.entries(group.servers)) {
           const canonical = canonicalMcp(raw);
           if (!canonical) continue;
-          const mcp = McpSchema.parse(sanitizeMcp(canonical));
+          const parsed = McpSchema.safeParse(sanitizeMcp(canonical));
+          if (!parsed.success) {
+            skipped.push(
+              `${path}#${group.fragment}${name}: Invalid MCP definition excluded; other servers in this file were still inspected.`,
+            );
+            continue;
+          }
+          const mcp = parsed.data;
           const body = JSON.stringify(mcp, null, 2);
           const findings = scanText(body, localPath);
           if (/(?:\/Users\/|\/home\/|[A-Z]:\\\\)/.test(body))
@@ -272,40 +352,96 @@ async function importMcp(
           });
           count++;
         }
-    } catch (error) {
-      skipped.push(`${path}: ${error instanceof Error ? error.message : 'Invalid configuration'}`);
+    } catch {
+      skipped.push(
+        `${path}: MCP configuration could not be indexed. Check its format, size and permissions.`,
+      );
     }
   }
   return count;
 }
 
+async function inventoryProject(
+  store: Store,
+  path: string,
+  roots: AiConfigRoot[],
+  shared: DocumentLocation[],
+  home: string,
+  refreshGlobals: boolean,
+) {
+  const previous = store.get<Project>('project', `project-${hash(path).slice(0, 20)}`);
+  const project = {
+    ...(await detectProject(path)),
+    ...store.get<object>('project-override', `project-${hash(path).slice(0, 20)}`),
+  };
+  const discovered = await projectAiContexts(path);
+  const local = await localGuidance(path, discovered.paths, roots, home);
+  const memory = await userProjectMemory(path, roots);
+  project.documentLocations = mergedGuidance(
+    local.files,
+    memory.files,
+    shared,
+    refreshGlobals
+      ? []
+      : (previous?.documentLocations || []).filter((file) => file.scope !== 'project'),
+  );
+  project.documents = local.files.filter((file) => !file.readOnly).map((file) => file.path);
+  project.inventoryWarnings = [...discovered.warnings, ...local.warnings, ...memory.warnings];
+  store.put('project', project);
+  return { project, contexts: discovered.paths };
+}
+
 export async function scan(
   store: Store,
-  options: { roots?: string[]; globals?: boolean; home?: string } = {},
+  options: {
+    roots?: string[];
+    globals?: boolean;
+    home?: string;
+    environment?: NodeJS.ProcessEnv;
+  } = {},
 ): Promise<ScanResult> {
   if (scanProgress.state === 'running') throw new Error('A scan is already running.');
   scanProgress = { state: 'running', message: 'Finding project manifests', scanned: 0 };
   const home = options.home || homedir();
+  const includeGlobals = options.globals ?? store.settings().scanGlobals;
   const result: ScanResult = { projects: 0, skills: 0, mcps: 0, skipped: [], completedAt: '' };
   const imported = new Map<string, Entry>();
   const observed = new Set<string>(),
     configurations = new Set<string>(),
     completeRoots: string[] = [];
   try {
+    const configRoots = includeGlobals
+      ? await userAiRoots(home, result.skipped, options.environment)
+      : [];
+    const sharedGuidance = await globalGuidance(configRoots, home);
+    result.skipped.push(...sharedGuidance.warnings);
+    const contexts = new Map<string, string[]>();
     const projects = new Set<string>();
     for (const root of options.roots || store.settings().roots) {
       const expanded = resolve(root.startsWith('~/') ? join(home, root.slice(2)) : root);
       if (await discoverProjects(expanded, projects, result.skipped)) completeRoots.push(expanded);
     }
-    const targets: { root: string; project?: Project; paths: [string, string][] }[] = [];
+    const targets: {
+      root: string;
+      project?: Project;
+      paths: [string, string][];
+      mcpPaths?: typeof mcpPaths;
+    }[] = [];
     for (const path of projects) {
       try {
-        const project = {
-          ...(await detectProject(path)),
-          ...store.get<object>('project-override', `project-${hash(path).slice(0, 20)}`),
-        };
-        store.put('project', project);
-        targets.push({ root: path, project, paths: skillPaths });
+        const detail = await inventoryProject(
+          store,
+          path,
+          configRoots,
+          sharedGuidance.files,
+          home,
+          includeGlobals,
+        );
+        const { project } = detail;
+        result.skipped.push(...(project.inventoryWarnings || []));
+        contexts.set(path, detail.contexts);
+        for (const context of detail.contexts)
+          targets.push({ root: context, project, paths: skillPaths });
         result.projects++;
       } catch (error) {
         result.skipped.push(
@@ -313,18 +449,25 @@ export async function scan(
         );
       }
     }
-    if (options.globals ?? store.settings().scanGlobals)
+    if (includeGlobals)
       targets.push({
         root: home,
-        paths: [
-          ...skillPaths,
-          ['.config/opencode/skills', 'opencode'],
-          ['.codex/plugins/cache', 'codex-plugin'],
-          ['.claude/plugins/cache', 'claude-plugin'],
-          ['.gemini/config/skills', 'antigravity'],
-          ['.gemini/antigravity/skills', 'antigravity'],
-        ],
+        paths: [],
       });
+    for (const root of configRoots)
+      targets.push({
+        root: root.path,
+        paths: [
+          ['skills', root.provider],
+          ...(['codex', 'claude'].includes(root.provider)
+            ? [['plugins/cache', `${root.provider}-plugin`] as [string, string]]
+            : []),
+        ],
+        mcpPaths: configMcpPaths(root),
+      });
+    const configBoundaries = (
+      await Promise.all(configRoots.map((root) => realpath(root.path).catch(() => undefined)))
+    ).filter((root): root is string => Boolean(root));
     const globalRoots = (
       await Promise.all(
         targets
@@ -335,11 +478,23 @@ export async function scan(
             ),
           ),
       )
-    ).filter((root): root is string => Boolean(root));
+    ).filter(
+      (root): root is string =>
+        Boolean(root) &&
+        !configBoundaries.some(
+          (config) =>
+            inside(config, root!) &&
+            relative(config, root!)
+              .split(sep)
+              .some((part) => privateRuntimeDirectories.has(part)),
+        ),
+    );
+    const scannedGlobalSkills = new Set<string>();
+    const scannedMcpFiles = new Set<string>();
     for (const target of targets) {
       const kit = target.project
         ? (
-            await ownedProject(store, target.root).catch((error) => {
+            await ownedProject(store, target.project.path).catch((error) => {
               result.skipped.push(
                 `${target.root}/.kitfold/kit.json: ${error instanceof Error ? error.message : 'Invalid kit manifest'}`,
               );
@@ -350,7 +505,12 @@ export async function scan(
       scanProgress.message = target.project
         ? `Reading ${target.project.name}`
         : 'Reading global skills';
-      for (const [localPath, provider] of target.paths)
+      for (const [localPath, provider] of target.paths) {
+        if (!target.project) {
+          const canonical = await realpath(join(target.root, localPath)).catch(() => undefined);
+          if (!canonical || scannedGlobalSkills.has(`${provider}:${canonical}`)) continue;
+          scannedGlobalSkills.add(`${provider}:${canonical}`);
+        }
         await discoverSkills(
           join(target.root, localPath),
           async (path) => {
@@ -395,6 +555,7 @@ export async function scan(
             scope: target.project ? 'project' : 'global',
           },
         );
+      }
       result.mcps += await importMcp(
         store,
         target.root,
@@ -403,8 +564,63 @@ export async function scan(
         observed,
         configurations,
         kit,
+        target.mcpPaths,
+        scannedMcpFiles,
+        [target.project?.path || target.root, ...configRoots.map((root) => root.path)],
       );
+      if (!target.project) {
+        for (const referenced of store.projects()) {
+          if (projects.has(referenced.path) || referenced.discovery !== 'configuration') continue;
+          if (contexts.size >= MAX_REFERENCED_PROJECTS) {
+            const warning = 'Referenced project limit reached; AI inventory is partial.';
+            if (!result.skipped.includes(warning)) result.skipped.push(warning);
+            break;
+          }
+          const authorized = completeRoots.some(
+            (root) =>
+              inside(root, referenced.path) &&
+              !relative(root, referenced.path)
+                .split(sep)
+                .some((part) => ignoredDirectories.has(part)),
+          );
+          if (!authorized || !(await lstat(referenced.path).catch(() => undefined))?.isDirectory())
+            continue;
+          try {
+            const detail = await inventoryProject(
+              store,
+              referenced.path,
+              configRoots,
+              sharedGuidance.files,
+              home,
+              includeGlobals,
+            );
+            projects.add(referenced.path);
+            contexts.set(referenced.path, detail.contexts);
+            for (const context of detail.contexts)
+              targets.push({ root: context, project: detail.project, paths: skillPaths });
+            result.skipped.push(...(detail.project.inventoryWarnings || []));
+            result.projects++;
+          } catch (error) {
+            result.skipped.push(
+              `${referenced.path}: ${error instanceof Error ? error.message : 'AI discovery failed'}`,
+            );
+          }
+        }
+      }
     }
+    // Global configurations can reveal a nested project which source-root grouping did not traverse.
+    for (const project of store.projects()) {
+      if (!includeGlobals || contexts.has(project.path)) continue;
+      const memory = await userProjectMemory(project.path, configRoots);
+      project.documentLocations = mergedGuidance(
+        (project.documentLocations || []).filter((file) => file.scope === 'project'),
+        memory.files,
+        sharedGuidance.files,
+      );
+      project.inventoryWarnings = memory.warnings;
+      store.put('project', project);
+    }
+    result.skipped = [...new Set(result.skipped)];
     result.completedAt = now();
     for (const project of store.projects())
       if (
@@ -422,7 +638,8 @@ export async function scan(
       }
       const inScope =
         location.scope === 'global'
-          ? Boolean(options.globals ?? store.settings().scanGlobals) && inside(home, file)
+          ? includeGlobals &&
+            (inside(home, file) || configRoots.some((root) => inside(root.path, file)))
           : completeRoots.some((root) => inside(root, file));
       if (!inScope || name !== undefined) continue;
       try {

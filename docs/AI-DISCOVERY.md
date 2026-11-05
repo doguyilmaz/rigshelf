@@ -1,0 +1,37 @@
+# AI file discovery
+
+Discovery reads existing installations into the private catalog. It does not install, activate, move or delete anything in a source project or global harness configuration. Gitignore rules do not control discovery: known AI locations are inspected even when ignored or untracked. Repository configuration and discovered files do not grant setup or automation permission.
+
+## Locations and scope
+
+| Location | Indexed data | Display scope |
+| --- | --- | --- |
+| Project root and bounded nested source directories | Known instruction filenames, harness rules/steering, known memory directories, Skills and MCP configuration | Project files |
+| Claude configuration `projects/<full-path-key>/memory` | Markdown memory index and topic-file metadata for that project | Project memory outside the repository |
+| Known user harness roots | Root Markdown guidance, rules/steering, dedicated memory files, Skills, supported plugin caches and MCP configuration | Global guidance or global installations |
+| `~/.aims/profiles/{claude,codex}/<profile>` | Only the same known AI sublocations; shared aliases retain provenance | The underlying harness and project/global scope |
+| Explicit `CLAUDE_CONFIG_DIR` or `CODEX_HOME` | The corresponding known harness sublocations | The underlying harness and project/global scope |
+
+Instruction names include `AGENTS.md`, `AGENTS.override.md`, `CLAUDE.md`, `CLAUDE.local.md`, `GEMINI.md`, `MEMORY.md`, `MEMORY.local.md` and supported legacy rule files. Dedicated rule directories include Claude/Codex/Agents rules, Kiro steering, Cursor rules, GitHub instructions and other enumerated harness locations. This is an allowlisted inventory, not a recursive import of every hidden file.
+
+Project memory uses full-path keys rather than basename or prefix matching. Canonical path aliases and repository subdirectories are considered. A Git worktree is associated with its main repository only after a matching bounded Git metadata back-reference; discovery never runs Git hooks. `CLAUDE_CODE_PROJECT_DIR_NAME`, paired with the explicit Claude config root, accepts only a single bounded directory name. The vendor's [memory storage documentation](https://code.claude.com/docs/en/memory#storage-location) describes the native layout; indexing a file does not establish whether a running harness has loaded it.
+
+Known Claude settings may declare `autoMemoryDirectory`. A user-level setting can identify an additional explicit memory root. A project setting is followed within the project or inspected AI config roots; an unrelated external path is reported without following it. Arbitrary external storage and undocumented profile layouts require a future explicit root-selection flow rather than a broad home-directory search.
+
+## Exclusions and bounds
+
+Source traversal reads directory names to locate AI contexts; it does not read ordinary source-file bodies. Dependency, build, cache, VCS and runtime directories are skipped, including `node_modules`, `Pods`, `.git`, `vendor`, `dist`, `.next`, `.expo`, sessions and transcripts. Aims sessions, meter, backups and runs, Codex rollout summaries, account token stores and conversation records are outside discovery. Links cannot make excluded dependency, account or runtime targets eligible.
+
+Each project is bounded to 4,096 visited source directories, depth 12 and 256 AI contexts. Guidance collection is bounded to 2,048 files, 16,384 candidate paths, depth 5 within a known AI document directory, and 512 KiB per opened document. Aims profile enumeration is bounded to 128 entries per supported harness. MCP-referenced nested projects are only traversed within selected project roots and under the referenced-project bound. Partial, unavailable and excluded locations produce diagnostics; an empty inspected result is not proof that no AI file exists elsewhere.
+
+Canonical file identity deduplicates guidance aliases while retaining their source paths. Skill snapshots deduplicate independently from installation locations, so distinct harness installations remain visible. A project-only scan retains previously inspected global and external guidance; a subsequent global scan refreshes those locations.
+
+An invalid MCP definition is reported individually without suppressing later valid servers in that file. Configuration parse failures retain generic diagnostics rather than copying raw configuration or credential values into errors.
+
+## Reading and editing
+
+Discovery stores document metadata and provenance, not memory or instruction bodies. Projects groups local files, external project memory and collapsed global guidance, with filename/path/provider search. Files load only after selecting one. Opening verifies the inventoried root identity and source target, uses bounded regular-file reads and masks detected credentials. Replaced roots require a rescan.
+
+External and shared guidance is read-only in the project editor. Local authored guidance retains digest-bound review plans, apply and rollback. Promoting selected guidance to a reusable directive is explicit and defaults to project scope. Catalog indexing never adds these files to an agent's context or enables automatic promotion.
+
+Read-only MCP tools `kitfold_projects` and `kitfold_project_files` expose paginated metadata. `kitfold_project_document` explicitly reads one inventoried file through the same domain operation as HTTP. Arbitrary absolute-path reads are not accepted. Private project paths and document indexes are excluded from portable library exports.

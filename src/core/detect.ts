@@ -1,30 +1,12 @@
 import { readdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
+import { instructionNames } from './inventory-paths';
 import type { Project } from './model';
 import { hash, now } from './safety';
 
-export const ignoredDirectories = new Set([
-  'node_modules',
-  '.git',
-  'Pods',
-  '.build',
-  'build',
-  'dist',
-  '.next',
-  '.expo',
-  'DerivedData',
-  'vendor',
-  '.venv',
-  'venv',
-  'target',
-  'coverage',
-  '.local',
-  '.sandbox',
-  '.demo',
-  'Carthage',
-  '.gradle',
-  '.bun',
-]);
+export { ignoredDirectories } from './inventory-paths';
+
+import { ignoredDirectories } from './inventory-paths';
 export async function exists(path: string): Promise<boolean> {
   return Bun.file(path).exists();
 }
@@ -212,14 +194,7 @@ export async function detectProject(path: string, requirements = ''): Promise<Pr
   await readNative(path, facts);
   readRequirements(requirements, facts);
   const documents: string[] = [];
-  for (const document of [
-    'AGENTS.md',
-    'CLAUDE.md',
-    'GEMINI.md',
-    'MEMORY.md',
-    '.claude/CLAUDE.md',
-    '.claude/MEMORY.md',
-  ])
+  for (const document of [...instructionNames, '.claude/CLAUDE.md', '.claude/MEMORY.md'])
     if (await exists(join(path, document))) documents.push(document);
   return {
     id: `project-${hash(path).slice(0, 20)}`,

@@ -28,3 +28,5 @@ Detection covers JavaScript/TypeScript, Expo/React Native, Swift/Objective-C App
 macOS is the primary development/test platform. The CI workflow targets Linux. Native Windows paths and every live vendor CLI/version have not been manually certified. Generated formats and conversions are tested with local fixtures, and compatibility notes remain visible in each plan.
 
 Directory fields offer typed paths and a local native chooser. See [directory selection](DIRECTORY-SELECTION.md) for adapters, platform validation limits and the distinction between choosing a folder and granting project authority.
+
+Read-only inventory extends beyond generated setup paths: nested and gitignored AI locations, user-scoped Claude project memory, known global harness directories, explicit Claude/Codex config roots and known Aims profile locations are supported. Shared aliases retain their origin and are deduplicated. Account/session stores and dependency directories are excluded. [AI discovery](AI-DISCOVERY.md) records exact scope and bounds; it does not imply automatic context loading or support for arbitrary undocumented storage formats.
