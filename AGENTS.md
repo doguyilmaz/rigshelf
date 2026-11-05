@@ -19,6 +19,8 @@ Use strict TypeScript and validate untrusted input at boundaries. Prefer descrip
 
 UI copy and public documentation are English. Use neutral white/gray surfaces, readable local fonts, accessible controls and responsive lists. Keep labels concrete; avoid decorative green/purple themes, marketing slogans and ambiguous mixed filter dimensions. Keep editors practical and light. Private filesystem paths, project inventories, imported content and screenshots never belong in public source.
 
+Localized interfaces preserve technical vocabulary such as Skills, MCP, Plugins, Agent, Harness, Preset, Snapshot and Provider. Translate the surrounding interface copy; follow the terminology policy in `docs/LOCALIZATION.md`.
+
 ## Verification
 
 - Run `bun run verify` and `bun run lint` for implementation changes.

@@ -6,6 +6,12 @@ The Turkish catalog loads only when requested; English messages remain their sou
 
 Project/source/skill names, imported descriptions, commands, file paths, document bodies and authored guidance retain their original language. Interface localization must never rewrite snapshots or generated project instructions. Dates and counts use the selected locale; Turkish count labels use an uninflected noun after a number.
 
+## Technical terminology
+
+Preserve established technical vocabulary across interface languages: Skill/Skills, Plugin/Plugins, MCP, Agent, Harness, Preset, Snapshot, Provider, Hook, CLI, API and transport names such as stdio. Product type labels retain their standard names, including **Skills**, **MCP servers** and **Plugins**. Translate surrounding actions, explanations and ordinary navigation; Settings and Library still have localized labels. Turkish sentences may use normal Turkish suffixes on a preserved technical noun, such as `snapshot’ı kaydet` or `skill’leri bul`, and counts use `2 skill`.
+
+Do not replace a Skill with a translated word meaning an ability, a Plugin with a generic extension, or a Snapshot with a word that could mean a screenshot. Keep capitalization of acronyms, product names, identifiers and commands. Terminology changes belong in reviewed catalog messages; never transform user-authored content or apply a runtime word-replacement pass.
+
 ## Catalog maintenance
 
 `web/locales/en.json` is the canonical message inventory. Its values equal the English source keys. `web/locales/tr.json` contains matching translations. New UI copy uses `t('English source', { name: value })` with named `{{name}}` interpolation. Keep a complete sentence together when word order matters. Render results as React text, never HTML.

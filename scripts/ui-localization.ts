@@ -52,6 +52,8 @@ try {
   checks.push('Open tabs observe the language preference without restarting the server.');
 
   await page.getByRole('button', { name: 'Kütüphane', exact: true }).click();
+  for (const term of ['Skills', 'MCP servers', 'Plugins'])
+    await expect(page.getByRole('tab', { name: term, exact: true })).toBeVisible();
   await page.locator('.entry-list-row').first().click();
   const dialog = page.getByRole('dialog', { name: 'Library', exact: true });
   await expect(dialog).toBeVisible();
@@ -72,7 +74,7 @@ try {
       'Proje kur',
       'Kütüphane',
       'Projeler',
-      'Ön ayarlar',
+      'Presets',
       'Yönergeler',
       'Etkinlik',
       'Ayarlar',

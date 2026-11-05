@@ -19,6 +19,40 @@ test('Turkish covers the English catalog with identical interpolation names', ()
   }
 });
 
+test('localization preserves technical vocabulary while translating surrounding interface copy', async () => {
+  const terms = [
+    /\bskills?\b/i,
+    /\bplugins?\b/i,
+    /\bagents?\b/i,
+    /\bpresets?\b/i,
+    /\bsnapshots?\b/i,
+    /\bharness\b/i,
+    /\bprovider\b/i,
+    /\bMCP\b/,
+    /\bCLI\b/,
+    /\bAPI\b/,
+    /\bstdio\b/,
+  ];
+  for (const [source, translated] of Object.entries(turkish))
+    for (const term of terms) if (term.test(source)) expect(translated).toMatch(term);
+  await setLocale('tr');
+  for (const label of [
+    'Skills',
+    'Skill',
+    'Plugins',
+    'Plugin',
+    'MCP servers',
+    'MCP server',
+    'Agent',
+    'Presets',
+    'Snapshot',
+  ])
+    expect(t(label)).toBe(label);
+  expect(t('Save new snapshot')).toBe('Yeni snapshot’ı kaydet');
+  expect(countText(2, 'skill')).toBe('2 skill');
+  expect(t('Settings')).toBe('Ayarlar');
+});
+
 test('a completed older language load cannot replace a newer selection', async () => {
   const previous = setLocale('tr');
   await setLocale('en');
