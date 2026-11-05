@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { chromium, expect } from '@playwright/test';
@@ -67,7 +67,9 @@ try {
   const browseProject = page.getByRole('button', { name: 'Browse project directory', exact: true });
   await browseProject.click();
   await expect(project).toHaveValue(data.project);
-  expect(data.store.projects()).toHaveLength(0);
+  await expect(page.locator('.detection-result strong')).toHaveText('project');
+  expect(await readdir(data.project)).toEqual([]);
+  expect(data.store.planSummaries()).toHaveLength(0);
   expect(data.store.list('approval')).toHaveLength(0);
   selection = null;
   await browseProject.click();
@@ -91,12 +93,19 @@ try {
       await page.screenshot({ path: join(directory, `setup-${width}.png`), fullPage: true });
   }
   checks.push(
-    'Project browsing fills the path without setup; cancel/error preserve manual input at six widths.',
+    'Project browsing inspects automatically without plans, approval or source writes; cancel/error preserve manual input at six widths.',
   );
   await page.setViewportSize({ width: 1440, height: 1050 });
   await project.fill('');
   await project.press('Escape');
+  waitForCancel = true;
+  await browseProject.click();
+  await expect(browseProject).toBeDisabled();
   await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await expect.poll(() => canceled).toBe(true);
+  waitForCancel = false;
+  canceled = false;
+  checks.push('Leaving the retained Setup page cancels its pending native folder chooser.');
   await page.getByRole('button', { name: 'Add to library', exact: true }).first().click();
   const dialog = page.getByRole('dialog', { name: 'Add something useful', exact: true });
   await dialog.getByRole('button', { name: 'Local folder', exact: true }).click();

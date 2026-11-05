@@ -99,6 +99,7 @@ function App(): ReactNode {
   const [palette, setPalette] = useState(false);
   const [query, setQuery] = useState('');
   const [projectPath, setProjectPath] = useState('');
+  const [projectRequest, setProjectRequest] = useState(0);
   const [discard, setDiscard] = useState<DiscardRequest>();
   const [learned, setLearned] = useState(onboardingSeen);
   const [onboarding, setOnboarding] = useState<'guide' | 'example'>();
@@ -169,7 +170,10 @@ function App(): ReactNode {
       return;
     }
     requestDiscard(() => {
-      if (path !== undefined) setProjectPath(path);
+      if (path !== undefined) {
+        setProjectPath(path);
+        setProjectRequest((value) => value + 1);
+      }
       history.pushState(null, '', `#${next}`);
       setPage(next);
       setPalette(false);
@@ -302,12 +306,17 @@ function App(): ReactNode {
             </button>
           </div>
         </div>
-        <main key={page} className="page-enter">
-          {page === 'setup' && !learned && (
-            <Welcome onStart={setOnboarding} onDismiss={dismissWelcome} />
-          )}
+        <main>
+          <div hidden={page !== 'setup'}>
+            <Setup
+              {...props}
+              initialPath={projectPath}
+              initialRequest={projectRequest}
+              active={page === 'setup'}
+            />
+            {!learned && <Welcome onStart={setOnboarding} onDismiss={dismissWelcome} />}
+          </div>
           <Suspense fallback={<Spinner text={t('Loading page…')} />}>
-            {page === 'setup' && <Setup {...props} initialPath={projectPath} />}{' '}
             {page === 'library' && <Library {...props} />}{' '}
             {page === 'projects' && <Projects {...props} />}{' '}
             {page === 'presets' && <Presets {...props} />}{' '}

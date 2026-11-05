@@ -43,7 +43,7 @@ try {
   await page.getByLabel('Project directory', { exact: true }).fill(data.project);
   await page.getByLabel('Project directory', { exact: true }).press('Escape');
   await page.getByRole('button', { name: 'Build my kit' }).click();
-  await page.getByRole('button', { name: 'Inspect again' }).waitFor();
+  await page.locator('.detection-result strong').waitFor();
   await assertNeutralTheme(page, 'detected setup');
   await page.getByRole('button', { name: 'Review setup' }).click();
   await page.getByRole('dialog', { name: 'Review your setup' }).waitFor();

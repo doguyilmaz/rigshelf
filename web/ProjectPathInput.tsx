@@ -1,6 +1,6 @@
 import { Autocomplete } from '@base-ui/react/autocomplete';
 import { ChevronDown, FolderOpen } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowseDirectoryButton } from './DirectoryPathInput';
 import { t } from './i18n';
 
@@ -12,12 +12,19 @@ export function ProjectPathInput({
   value,
   onValueChange,
   projects,
+  onCommit,
+  active = true,
 }: {
   value: string;
   onValueChange: (value: string) => void;
   projects: ProjectOption[];
+  onCommit?: (value: string) => void;
+  active?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!active) setOpen(false);
+  }, [active]);
   const { contains } = Autocomplete.useFilter();
   return (
     <div
@@ -32,7 +39,10 @@ export function ProjectPathInput({
       <Autocomplete.Root
         items={projects}
         value={value}
-        onValueChange={onValueChange}
+        onValueChange={(next, details) => {
+          onValueChange(next);
+          if (details.reason === 'item-press') onCommit?.(next);
+        }}
         itemToStringValue={(project) => project.path}
         filter={(project, query) => contains(project.name, query) || contains(project.path, query)}
         open={open}
@@ -72,9 +82,13 @@ export function ProjectPathInput({
         </Autocomplete.Portal>
       </Autocomplete.Root>
       <BrowseDirectoryButton
+        active={active}
         label={t('Browse project directory')}
         initialPath={value}
-        onSelect={onValueChange}
+        onSelect={(next) => {
+          onValueChange(next);
+          onCommit?.(next);
+        }}
       />
     </div>
   );

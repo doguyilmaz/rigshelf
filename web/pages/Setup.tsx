@@ -1,657 +1,362 @@
-import {
-  ArrowRight,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  FileCode2,
-  Layers2,
-  Plus,
-  ScanLine,
-} from 'lucide-react';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import type { Entry, Finding, Project, Provider } from '../../src/core/model';
-import { slug } from '../../src/core/names';
+import { ArrowRight, FileCode2, FolderOpen, Plus } from 'lucide-react';
+import { type ReactNode, useEffect, useState } from 'react';
 import type { FilePreview, PlanView } from '../../src/core/plan-view';
-import type { Recommendation } from '../../src/core/recommend';
 import { api, apiId, shortPath } from '../api';
-import { Badge, Button, Modal, Notice, SearchBox, Spinner } from '../components';
-import { useDraftGuard } from '../drafts';
+import { Badge, Button, Modal, Notice, Spinner } from '../components';
 import { t } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { ProjectPathInput } from '../ProjectPathInput';
-import { Select } from '../Select';
+import { type SetupProps, useProjectSetup } from '../useProjectSetup';
 import { EntryDetail } from './EntryDetail';
+import { KitRow } from './KitRows';
+import { SetupKitPicker } from './SetupKitPicker';
+import { SetupOptions } from './SetupOptions';
 
-interface Detection {
-  project: Project;
-  presetId: string;
-  recommendations: Recommendation[];
-  missing: string[];
-  warnings?: string[];
-  guidanceIssues?: { id: string; name: string; findings: Finding[] }[];
-}
-const presetGlyphs: Record<string, string> = {
-  expo: '◈',
-  'react-native': '✳',
-  ios: '⌘',
-  android: '◉',
-  macos: '▣',
-  web: '◎',
-  next: 'N',
-  'bun-hono': '↯',
-  go: 'Go',
-  backend: '{ }',
-  mobile: '▯',
-  base: '◇',
-};
-
-export function Setup({
-  state,
-  refresh,
-  notify,
-  navigate,
-  initialPath,
-}: PageProps & { initialPath: string }): ReactNode {
-  const [path, setPath] = useState(initialPath);
-  const [requirements, setRequirements] = useState('');
-  const [preset, setPreset] = useState('auto');
-  const [providers, setProviders] = useState<Provider[]>(state.settings.defaultProviders);
-  const [detected, setDetected] = useState<Detection>();
-  const [selected, setSelected] = useState<string[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [query, setQuery] = useState('');
-  const [browse, setBrowse] = useState(false);
-  const [reviewed, setReviewed] = useState(false);
+export function Setup(props: SetupProps): ReactNode {
+  const { state, navigate, active = true } = props;
+  const setup = useProjectSetup(props);
+  const [picker, setPicker] = useState(false);
   const [inspecting, setInspecting] = useState<string>();
-  const [replaceExisting, setReplaceExisting] = useState(false);
-  const [plan, setPlan] = useState<PlanView>();
-  const detectionRequest = useRef<{ generation: number; controller?: AbortController }>({
-    generation: 0,
-  });
-  const resetDetection = useCallback(() => {
-    detectionRequest.current.generation++;
-    detectionRequest.current.controller?.abort();
-    setDetected(undefined);
-    setSelected([]);
-    setReviewed(false);
-    setBusy(false);
-  }, []);
-  const signature = JSON.stringify({ path, requirements, preset, providers, selected });
-  const currentDraft = useRef(signature);
-  currentDraft.current = signature;
-  const [savedDraft, setSavedDraft] = useState(signature);
-  useDraftGuard(!plan && signature !== savedDraft, t('Project setup'));
   useEffect(() => {
-    if (initialPath) {
-      setPath(initialPath);
-      resetDetection();
+    if (!active) {
+      setPicker(false);
+      setInspecting(undefined);
     }
-  }, [initialPath, resetDetection]);
-  useEffect(
-    () => () => {
-      detectionRequest.current.generation++;
-      detectionRequest.current.controller?.abort();
-    },
-    [],
+  }, [active]);
+  const current = setup.path === setup.candidatePath.trim();
+  const selectedEntries = state.entries.filter((entry) => setup.selected.includes(entry.id));
+  const unavailable = setup.selected.filter(
+    (id) => !state.entries.some((entry) => entry.id === id),
   );
-  const toggle = (id: string) =>
-    setSelected((current) => {
-      if (current.includes(id)) return current.filter((value) => value !== id);
-      const entry = state.entries.find((value) => value.id === id)!;
-      return [
-        ...current.filter((value) => {
-          const other = state.entries.find((item) => item.id === value);
-          return other?.kind !== entry.kind || slug(other?.name || '') !== slug(entry.name);
-        }),
-        id,
-      ];
-    });
-  const selectedEntries = state.entries.filter((entry) => selected.includes(entry.id));
-  async function detect(): Promise<void> {
-    detectionRequest.current.controller?.abort();
-    const controller = new AbortController();
-    const generation = ++detectionRequest.current.generation;
-    detectionRequest.current.controller = controller;
-    setBusy(true);
-    try {
-      const result = await api<Detection>(
-        'detect',
-        'POST',
-        {
-          projectPath: path,
-          requirements,
-          ...(preset !== 'auto' ? { presetId: preset } : {}),
-        },
-        controller.signal,
-      );
-      if (generation !== detectionRequest.current.generation || controller.signal.aborted) return;
-      setDetected(result);
-      setSelected(
-        result.recommendations.filter((value) => value.selected).map((value) => value.entry.id),
-      );
-    } catch (error) {
-      if (generation !== detectionRequest.current.generation || controller.signal.aborted) return;
-      notify(error instanceof Error ? error.message : t('Could not inspect project'), true);
-    } finally {
-      if (generation === detectionRequest.current.generation) setBusy(false);
-    }
-  }
-  async function prepare(): Promise<void> {
-    const generation = detectionRequest.current.generation;
-    const requestedDraft = signature;
-    setBusy(true);
-    try {
-      const prepared = await api<PlanView>('plans', 'POST', {
-        projectPath: path,
-        requirements,
-        presetId: detected?.presetId || (preset !== 'auto' ? preset : undefined),
-        providers,
-        entryIds: selected,
-        includeRules: true,
-        allowReviewed: reviewed,
-        replaceExisting,
-      });
-      if (
-        generation === detectionRequest.current.generation &&
-        requestedDraft === currentDraft.current
-      )
-        setPlan(prepared);
-    } catch (error) {
-      if (generation !== detectionRequest.current.generation) return;
-      notify(error instanceof Error ? error.message : t('Could not prepare setup'), true);
-    } finally {
-      if (generation === detectionRequest.current.generation) setBusy(false);
-    }
-  }
+  const recommendations = setup.detected?.recommendations || [];
+  const extra = recommendations.filter((item) => !setup.selected.includes(item.entry.id));
+  const flagged = selectedEntries.find((entry) =>
+    entry.findings.some((finding) => finding.level !== 'info'),
+  );
+  const needsReview =
+    selectedEntries.some((entry) => entry.findings.some((finding) => finding.level === 'review')) ||
+    setup.detected?.guidanceIssues?.some((rule) =>
+      rule.findings.some((finding) => finding.level === 'review'),
+    );
+  const canReview =
+    current &&
+    !!setup.detected &&
+    !setup.needsInspection &&
+    !setup.busy &&
+    !!setup.providers.length &&
+    !unavailable.length;
+  const refreshKit = () => {
+    if (current) void setup.inspect();
+    else setup.chooseProject(setup.candidatePath);
+  };
   return (
     <>
       <div className="setup-heading">
         <div>
           <h1>{t('Set up a project')}</h1>
-          <p>{t('Choose a folder, a kit and your agents. Review the files before applying.')}</p>
+          <p>{t('Choose a folder. We’ll suggest a focused kit.')}</p>
         </div>
       </div>
-      <div className="setup-layout">
-        <div className="setup-form">
-          <section className="form-section">
-            <SectionTitle
-              number="01"
-              title={t('Project')}
-              detail={t('New or existing project directory.')}
-            />
-            <div className="setup-project-fields">
-              <div>
-                <label className="field-label" htmlFor="project-path">
-                  {t('Project directory')}
-                </label>
-                <ProjectPathInput
-                  value={path}
-                  projects={state.projects}
-                  onValueChange={(next) => {
-                    setPath(next);
-                    resetDetection();
-                  }}
-                />
-              </div>
-              <div>
-                <label className="field-label" htmlFor="preset-choice">
-                  {t('Starting preset')}
-                </label>
-                <Select
-                  id="preset-choice"
-                  label={t('Starting preset')}
-                  searchable
-                  value={preset}
-                  onValueChange={(next) => {
-                    setPreset(next);
-                    const chosen = state.presets.find((value) => value.id === next);
-                    if (chosen) setProviders(chosen.providers);
-                    resetDetection();
-                  }}
-                  options={[
-                    { value: 'auto', label: t('Detect from the project') },
-                    ...state.presets.map((value) => ({ value: value.id, label: value.name })),
-                  ]}
-                />
-              </div>
-            </div>
-            <label className="field-label" htmlFor="requirements">
-              {t('What are you making? ')}
-              <span>{t('Optional')}</span>
-            </label>
-            <textarea
-              id="requirements"
-              rows={2}
-              value={requirements}
-              onChange={(event) => {
-                setRequirements(event.target.value);
-                resetDetection();
-              }}
-              placeholder={t('An Expo app with Better Auth and a Hono API…')}
-            />
-            <Button
-              disabled={!path.trim() || busy}
-              onClick={() => void detect()}
-              variant={detected ? 'secondary' : 'primary'}
-            >
-              {busy && !detected ? (
-                <Spinner text={t('Reading the project')} />
-              ) : (
-                <>
-                  <ScanLine size={16} />
-                  {detected ? t('Inspect again') : t('Build my kit')}
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </Button>
-            {detected && (
-              <div className="detection-result">
-                <CheckCircle2 size={17} />
-                <div>
-                  <strong>{detected.project.name}</strong>
-                  <span>
-                    {detected.project.stacks.length
-                      ? detected.project.stacks.join(' · ')
-                      : t('No stack detected — your preset will guide setup')}
-                  </span>
-                </div>
-                <Badge tone="green">
-                  {state.presets.find((value) => value.id === detected.presetId)?.name}
-                </Badge>
-              </div>
+      <div className="setup-workspace">
+        <section className="setup-project-section" aria-label={t('Project')}>
+          <label className="field-label" htmlFor="project-path">
+            {t('Project directory')}
+          </label>
+          <ProjectPathInput
+            value={setup.candidatePath}
+            projects={state.projects}
+            onValueChange={setup.changeCandidate}
+            onCommit={setup.chooseProject}
+            active={active}
+          />
+          <p className="field-help">
+            {t('Choose a known project or browse to a folder. Inspection only reads files.')}
+          </p>
+          {!!setup.candidatePath.trim() &&
+            (!current || (setup.needsInspection && !setup.detected)) && (
+              <Button disabled={setup.busy} onClick={refreshKit}>
+                {setup.busy ? (
+                  <Spinner text={t('Reading the project')} />
+                ) : (
+                  <>
+                    {current && setup.detected ? t('Update kit') : t('Build my kit')}
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </Button>
             )}
-            {detected?.project.warnings?.map((warning) => (
-              <Notice key={warning} tone="warning">
-                {warning}
-              </Notice>
-            ))}
-            {detected?.warnings?.map((warning) => (
-              <Notice key={warning} tone="warning">
-                {warning}
-              </Notice>
-            ))}
-            {Boolean(detected?.project.workspaces?.length) && (
-              <p className="field-help">
-                {detected?.project.workspaces?.length}
-                {t(' workspaces included in this project’s recommendations.')}
-              </p>
-            )}
-          </section>
-          <section className="form-section">
-            <SectionTitle
-              number="02"
-              title={t('Choose your agents')}
-              detail="One kit. Written in each agent’s own format."
-            />
-            <div className="agent-grid">
-              {state.adapters.map((agent) => (
-                <button
-                  type="button"
-                  key={agent.id}
-                  className={`agent-choice ${providers.includes(agent.id) ? 'chosen' : ''}`}
-                  onClick={() =>
-                    setProviders((current) =>
-                      current.includes(agent.id)
-                        ? current.filter((value) => value !== agent.id)
-                        : [...current, agent.id],
-                    )
-                  }
-                  aria-pressed={providers.includes(agent.id)}
-                >
-                  <span className={`agent-symbol ${agent.id}`}>
-                    {agent.id === 'claude'
-                      ? '✳'
-                      : agent.id === 'codex'
-                        ? '◉'
-                        : agent.id === 'kiro'
-                          ? '◒'
-                          : agent.id === 'opencode'
-                            ? '◧'
-                            : agent.id === 'grok'
-                              ? '𝕏'
-                              : '△'}
-                  </span>
-                  <span>{agent.name}</span>
-                  <span className="checkbox">
-                    {providers.includes(agent.id) && <Check size={11} />}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <p className="field-help">
-              {t(
-                'Using T3? Select its underlying agent harness. Model choice and skill discovery are separate.',
-              )}
+          {setup.busy && !setup.detected && current && (
+            <p role="status">
+              <Spinner text={t('Inspecting the selected project…')} />
             </p>
-          </section>
-          <section className="form-section">
-            <SectionTitle
-              number="03"
-              title={t('Project kit')}
-              detail="A focused kit, with room for your own choices."
-            />
-            {!detected ? (
-              <div className="kit-placeholder">
-                <Layers2 size={20} strokeWidth={1.4} />
-                <p role="status">
-                  {busy
-                    ? t('Inspecting the selected project…')
-                    : path.trim()
-                      ? t(
-                          'Project selected. Use Build my kit to inspect its stack and see recommendations. Nothing will be written.',
-                        )
-                      : t('Choose a project to see recommendations from your library.')}
-                </p>
+          )}
+          {setup.inspectionError && <Notice tone="warning">{setup.inspectionError}</Notice>}
+          {!setup.path && !setup.candidatePath && (
+            <>
+              {state.projects.length > 0 && (
+                <div className="setup-known-projects">
+                  <h2>{t('Known projects')}</h2>
+                  {state.projects.slice(0, 6).map((project) => (
+                    <button
+                      type="button"
+                      key={project.id}
+                      onClick={() => setup.chooseProject(project.path)}
+                    >
+                      <FolderOpen size={17} />
+                      <span>
+                        <strong>{project.name}</strong>
+                        <small>{shortPath(project.path)}</small>
+                      </span>
+                      <ArrowRight size={15} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="field-help">
+                {t('Nothing is written until you review and apply the plan.')}
+              </p>
+            </>
+          )}
+          {setup.detected && current && (
+            <div className="detection-result">
+              <div>
+                <strong>{setup.detected.project.name}</strong>
+                <span>
+                  {setup.detected.project.stacks.length
+                    ? setup.detected.project.stacks.join(' · ')
+                    : t('No stack detected — your preset will guide setup')}
+                </span>
               </div>
-            ) : (
+              <Badge>
+                {state.presets.find((item) => item.id === setup.detected?.presetId)?.name}
+              </Badge>
+            </div>
+          )}
+        </section>
+        {setup.path && (
+          <>
+            {current && setup.detected && (
               <>
-                <div className="kit-results">
-                  {detected.recommendations.length ? (
-                    detected.recommendations.map((value) => (
-                      <CapabilityRow
-                        key={value.entry.id}
-                        entry={value.entry}
-                        selected={selected.includes(value.entry.id)}
-                        toggle={() => toggle(value.entry.id)}
-                        reason={value.reasons[0]}
+                {[
+                  ...new Set([
+                    ...(setup.detected.project.warnings || []),
+                    ...(setup.detected.warnings || []),
+                  ]),
+                ].map((warning) => (
+                  <Notice key={warning} tone="warning">
+                    {warning}
+                  </Notice>
+                ))}
+                <section className="setup-kit-section" aria-labelledby="project-kit-heading">
+                  <div className="setup-kit-heading">
+                    <div>
+                      <h2 id="project-kit-heading">{t('Project kit')}</h2>
+                      <p>{t('Only selected items go into the plan.')}</p>
+                    </div>
+                    <Button variant="secondary" onClick={() => setPicker(true)}>
+                      <Plus size={15} />
+                      {t('Add from library')}
+                    </Button>
+                  </div>
+                  {setup.needsInspection && (
+                    <Notice>
+                      {t('Setup details changed. Update the kit before reviewing setup.')}{' '}
+                      <button
+                        type="button"
+                        className="inline-button"
+                        disabled={setup.busy}
+                        onClick={() => void setup.inspect()}
+                      >
+                        {t('Update kit')}
+                      </button>
+                    </Notice>
+                  )}
+                  {unavailable.length > 0 && (
+                    <Notice tone="warning">
+                      {t(
+                        'A selected snapshot is no longer in Library. Review is paused until you remove the unavailable selection.',
+                      )}{' '}
+                      <button
+                        type="button"
+                        className="inline-button"
+                        onClick={() => {
+                          for (const id of unavailable) setup.toggleEntry(id);
+                        }}
+                      >
+                        {t('Remove unavailable selections')}
+                      </button>
+                    </Notice>
+                  )}
+                  <div className="kit-results">
+                    {selectedEntries.map((entry) => (
+                      <KitRow
+                        key={entry.id}
+                        entry={entry}
+                        selected
+                        toggle={() => setup.toggleEntry(entry.id)}
+                        inspect={() => setInspecting(entry.id)}
+                        reason={
+                          recommendations.find((item) => item.entry.id === entry.id)?.reasons[0]
+                        }
                       />
-                    ))
-                  ) : (
+                    ))}
+                  </div>
+                  {!selectedEntries.length && (
                     <Notice>
                       {t(
-                        'No matching skills yet. Browse the library or add a source. Your scoped directives can still be applied.',
+                        'No Skills or MCP servers selected. Add from Library, or continue with your scoped directives.',
                       )}
                     </Notice>
                   )}
-                </div>
-                {detected.missing.length > 0 && (
-                  <p className="field-help">
-                    {t('Not in your library: ')}
-                    {detected.missing.join(', ')}.{' '}
-                    <button
-                      type="button"
-                      className="inline-button"
-                      onClick={() => navigate('library')}
-                    >
-                      {t('Find or import skills ')}
-                      <ArrowRight size={12} />
-                    </button>
-                  </p>
-                )}
+                  {extra.length > 0 && (
+                    <details className="setup-other-suggestions">
+                      <summary>
+                        {t('More suggestions ({{count}})', { count: extra.length })}
+                      </summary>
+                      <div className="kit-results">
+                        {extra.map((item) => (
+                          <KitRow
+                            key={item.entry.id}
+                            entry={item.entry}
+                            selected={false}
+                            toggle={() => setup.toggleEntry(item.entry.id)}
+                            inspect={() => setInspecting(item.entry.id)}
+                            reason={item.reasons[0]}
+                          />
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                  {setup.detected.missing.length > 0 && (
+                    <details className="setup-other-suggestions">
+                      <summary>
+                        {t('Preset references outside Library ({{count}})', {
+                          count: setup.detected.missing.length,
+                        })}
+                      </summary>
+                      <p className="field-help">
+                        {t(
+                          'These references are not installed. Review your preset if a pinned snapshot is missing; you can import other suggestions later.',
+                        )}
+                      </p>
+                      <p className="field-help">
+                        {setup.detected.missing.join(', ')}.{' '}
+                        <button
+                          type="button"
+                          className="inline-button"
+                          onClick={() => navigate('library')}
+                        >
+                          {t('Find or import skills')}
+                        </button>
+                      </p>
+                    </details>
+                  )}
+                  {setup.detected.guidanceIssues?.map((rule) => (
+                    <details className="guidance-finding" key={rule.id}>
+                      <summary>
+                        {t('Directive: ')}
+                        {rule.name}
+                      </summary>
+                      {rule.findings.map((finding) => (
+                        <Notice tone="warning" key={finding.code}>
+                          {finding.message}
+                        </Notice>
+                      ))}
+                      <p className="field-help">
+                        {t(
+                          'Review this directive in Directives. Credential findings cannot be overridden.',
+                        )}
+                      </p>
+                    </details>
+                  ))}
+                  {needsReview && (
+                    <div className="review-check">
+                      <label className="check-label">
+                        <input
+                          type="checkbox"
+                          checked={setup.reviewed}
+                          onChange={(event) => setup.setReviewed(event.target.checked)}
+                        />
+                        {t('I reviewed the selected content’s flagged instructions.')}
+                      </label>
+                      {flagged && (
+                        <button
+                          type="button"
+                          className="inline-button"
+                          onClick={() => setInspecting(flagged.id)}
+                        >
+                          {t('Inspect findings')}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </section>
               </>
             )}
-            <button
-              type="button"
-              className="browse-toggle"
-              onClick={() => setBrowse((value) => !value)}
-              aria-expanded={browse}
-            >
-              <Plus size={15} />
-              {t(' Add from library')} <ChevronDown size={15} className={browse ? 'rotated' : ''} />
-            </button>
-            {browse && (
-              <div className="browse-library">
-                <SearchBox
-                  value={query}
-                  onChange={setQuery}
-                  placeholder={t('Search skills and MCP servers…')}
-                />
-                <div className="browse-results">
-                  {state.entries
-                    .filter(
-                      (entry) =>
-                        !entry.archived &&
-                        ['skill', 'mcp'].includes(entry.kind) &&
-                        `${entry.name} ${entry.tags.join(' ')}`
-                          .toLowerCase()
-                          .includes(query.toLowerCase()),
-                    )
-                    .slice(0, 40)
-                    .map((entry) => (
-                      <CapabilityRow
-                        key={entry.id}
-                        entry={entry}
-                        selected={selected.includes(entry.id)}
-                        toggle={() => toggle(entry.id)}
-                      />
-                    ))}
+            {current && active && <SetupOptions setup={setup} state={state} />}
+            {current && setup.detected && (
+              <div className="setup-submit">
+                <div>
+                  <strong>
+                    {t('{{skills}} Skills · {{mcp}} MCP', {
+                      skills: selectedEntries.filter((entry) => entry.kind === 'skill').length,
+                      mcp: selectedEntries.filter((entry) => entry.kind === 'mcp').length,
+                    })}
+                  </strong>
+                  <span>{t('+ scoped project guidance')}</span>
                 </div>
+                <Button disabled={!canReview} onClick={() => void setup.prepare()}>
+                  {setup.busy ? (
+                    <Spinner text={t('Working…')} />
+                  ) : (
+                    <>
+                      {t('Review setup')}
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </Button>
               </div>
             )}
-            {detected?.guidanceIssues?.map((rule) => (
-              <details className="guidance-finding" key={rule.id}>
-                <summary>
-                  {t('Directive: ')}
-                  {rule.name}
-                </summary>
-                {rule.findings.map((finding) => (
-                  <Notice tone="warning" key={finding.code}>
-                    {finding.message}
-                  </Notice>
-                ))}
-                <p className="field-help">
-                  {t(
-                    'Review this directive in Directives. Credential findings cannot be overridden.',
-                  )}
-                </p>
-              </details>
-            ))}
-            {(selectedEntries.some((entry) =>
-              entry.findings.some((finding) => finding.level === 'review'),
-            ) ||
-              detected?.guidanceIssues?.some((rule) =>
-                rule.findings.some((finding) => finding.level === 'review'),
-              )) && (
-              <label className="check-label review-check">
-                <input
-                  type="checkbox"
-                  checked={reviewed}
-                  onChange={(event) => setReviewed(event.target.checked)}
-                />{' '}
-                {t('I reviewed the selected content’s flagged instructions.')}{' '}
-                {selectedEntries.some((entry) =>
-                  entry.findings.some((finding) => finding.level !== 'info'),
-                ) && (
-                  <button
-                    type="button"
-                    className="inline-button"
-                    onClick={() =>
-                      setInspecting(
-                        selectedEntries.find((entry) =>
-                          entry.findings.some((finding) => finding.level !== 'info'),
-                        )?.id,
-                      )
-                    }
-                  >
-                    {t('Inspect findings')}
-                  </button>
-                )}
-              </label>
+            {current && setup.detected && (
+              <p className="field-help">
+                {t('Next: inspect the exact file changes, then choose Apply.')}
+              </p>
             )}
-          </section>
-          <details className="advanced-setup">
-            <summary>{t('Existing installations')}</summary>
-            <label className="check-label">
-              <input
-                type="checkbox"
-                checked={replaceExisting}
-                onChange={(event) => setReplaceExisting(event.target.checked)}
-              />
-              {t('Replace differing skill files in this reviewed plan')}
-            </label>
-            <p className="field-help">
-              {t(
-                'Original bytes are retained for rollback. Symbolic links outside this project are protected. Keep this off for automatic additions.',
-              )}
-            </p>
-          </details>
-          <div className="setup-submit">
-            <div>
-              <strong>
-                {selected.length}
-                {t(' capabilities')}
-              </strong>
-              <span>{t('+ scoped project guidance')}</span>
-            </div>
-            <Button
-              disabled={!path.trim() || !detected || !providers.length || busy}
-              onClick={() => void prepare()}
-            >
-              {busy && detected ? (
-                <Spinner text={t('Preparing changes')} />
-              ) : (
-                <>
-                  {t('Review setup ')}
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-        <aside className="setup-aside">
-          <div className="kit-note">
-            <h2>{t('What gets added')}</h2>
-            <ul>
-              <li>
-                <Check size={14} />
-                {t('Selected skills')}
-              </li>
-              <li>
-                <Check size={14} />
-                {t('MCP configuration')}
-              </li>
-              <li>
-                <Check size={14} />
-                {t('Project guidance')}
-              </li>
-            </ul>
-            <p>{t('Nothing is written until you review and apply the plan.')}</p>
-          </div>
-          <div className="preset-shortcuts">
-            <div className="section-caption">
-              <span>{t('Presets')}</span>
-              <button
-                type="button"
-                onClick={() => navigate('presets')}
-                aria-label={t('View all presets')}
-              >
-                <ArrowRight size={16} />
-              </button>
-            </div>
-            {state.presets
-              .filter((value) => ['expo', 'ios', 'web', 'bun-hono'].includes(value.id))
-              .map((value) => (
-                <button
-                  type="button"
-                  key={value.id}
-                  onClick={() => {
-                    setPreset(value.id);
-                    setProviders(value.providers);
-                    resetDetection();
-                  }}
-                  className={preset === value.id ? 'selected' : ''}
-                >
-                  <span className="preset-glyph">{presetGlyphs[value.id] || '◇'}</span>
-                  <span>
-                    {value.name}
-                    <small>{value.stacks.slice(-2).join(' · ')}</small>
-                  </span>
-                  <ArrowRight size={14} />
-                </button>
-              ))}
-          </div>
-          {!state.entries.length && (
-            <div className="library-nudge">
-              <p>{t('Your library is waiting.')}</p>
-              <span>{t('Find skills already on this machine, or add your first source.')}</span>
-              <Button variant="secondary" onClick={() => navigate('library')}>
-                {t('Build your library ')}
-                <ArrowRight size={14} />
-              </Button>
-            </div>
-          )}
-        </aside>
+          </>
+        )}
       </div>
       <ModalPresence>
-        {inspecting && (
-          <EntryDetail
+        {active && picker && (
+          <SetupKitPicker
             state={state}
-            refresh={refresh}
-            notify={notify}
-            navigate={navigate}
-            id={inspecting}
-            onClose={() => setInspecting(undefined)}
+            selected={setup.selected}
+            toggle={setup.toggleEntry}
+            inspect={setInspecting}
+            onClose={() => setPicker(false)}
+            openLibrary={() => {
+              setPicker(false);
+              navigate('library');
+            }}
           />
         )}
       </ModalPresence>
       <ModalPresence>
-        {plan && (
+        {active && inspecting && (
+          <EntryDetail {...props} id={inspecting} onClose={() => setInspecting(undefined)} />
+        )}
+      </ModalPresence>
+      <ModalPresence>
+        {active && setup.plan && (
           <PlanReview
-            plan={plan}
-            onClose={() => setPlan(undefined)}
-            onApplied={() => {
-              setSavedDraft(signature);
-              void refresh();
-            }}
-            notify={notify}
+            plan={setup.plan}
+            onClose={() => setup.setPlan(undefined)}
+            onApplied={setup.applied}
+            notify={props.notify}
           />
         )}
       </ModalPresence>
     </>
-  );
-}
-
-function SectionTitle({
-  number,
-  title,
-  detail,
-}: {
-  number: string;
-  title: string;
-  detail: string;
-}): ReactNode {
-  return (
-    <div className="section-title">
-      <span>{number}</span>
-      <div>
-        <h2>{title}</h2>
-        <p>{detail}</p>
-      </div>
-    </div>
-  );
-}
-function CapabilityRow({
-  entry,
-  selected,
-  toggle,
-  reason,
-}: {
-  entry: Omit<Entry, 'body'>;
-  selected: boolean;
-  toggle: () => void;
-  reason?: string;
-}): ReactNode {
-  const flagged = entry.findings.some((finding) => finding.level !== 'info');
-  return (
-    <button
-      type="button"
-      className={`capability-row ${selected ? 'selected' : ''}`}
-      onClick={toggle}
-      aria-pressed={selected}
-    >
-      <span className="checkbox">{selected && <Check size={12} />}</span>
-      <div>
-        <strong>{entry.name}</strong>
-        <span>{reason || entry.description.slice(0, 105)}</span>
-      </div>
-      {flagged && (
-        <Badge tone={entry.findings.some((finding) => finding.level === 'block') ? 'red' : 'amber'}>
-          {t('Review')}
-        </Badge>
-      )}
-      <Badge>{entry.kind}</Badge>
-    </button>
   );
 }
 

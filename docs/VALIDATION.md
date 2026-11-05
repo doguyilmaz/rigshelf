@@ -1,5 +1,11 @@
 # Validation record
 
+## Daily setup usability
+
+The folder-first setup follow-up passes 127 unit/integration tests across 19 files, TypeScript checking, 825 matching English/Turkish messages, formatting, lint and production build. Nine browser suites cover the revised flow alongside existing management, inventory, localization, filtering and recovery UI. New fixture flows verify one-choice read-only inspection, current-tab draft retention across Library/Settings, independent Agent/preset choices, deliberate recommendation exclusions and exact snapshot pins across refreshes. They also exercise paginated filtered kit selection, nested inspection, late plan suppression, shared-directive changes, unavailable selected content and discard cancellation. Source directory entries and authored guidance remain unchanged through inspection and planning.
+
+Setup and its filtered picker receive automated WCAG A/AA checks and desktop/mobile overflow checks; existing six-width control and seven-dataset stress checks remain in the full run. A pending native chooser is canceled when the retained Setup page becomes inactive. These are normal development regressions with isolated fictional data, not qualified security reproductions or a guarantee of universal usability. Screenshots and reports stay in ignored `.local/qa/setup-usability`; [design review](DESIGN-REVIEW.md) records the interaction decisions. Drafts are intentionally in current-tab memory, not a persistent session store. Six complete release languages and final naming remain separate release work.
+
 ## Inventory preservation and first-use follow-up
 
 The follow-up passes 124 unit/integration tests across 18 files, TypeScript checking, 792 matching English/Turkish messages, formatting, lint and production build. Eight browser suites pass, including guide/example use, selected-project state, delayed-response cancellation, native-file filtering, private checkpoint downloads and 600-file paging/search. New guide/example views have no automated accessibility violations at the tested desktop/mobile sizes. Narrow-screen overflow introduced by the guide trigger was observed and corrected.

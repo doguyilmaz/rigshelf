@@ -2,7 +2,7 @@
 
 Start with `bun run dev` from this checkout, or `kitfold ui` when the CLI is linked. Open the private access URL printed by that process. If the default port is already occupied, use the running workbench's current URL or stop that process before restarting. Keep the access URL private.
 
-The first setup screen offers **Take a tour** and **Try an example**. **Getting started** in the top bar reopens them. The example is an explicit simulation: choosing agents, reviewing file paths, Apply and rollback make no API requests and change no real project, catalog or approval.
+The first setup screen starts with a folder choice. **Try an example** below it offers practice; **Getting started** in the top bar opens the workflow guide and example. The example is an explicit simulation: choosing agents, reviewing file paths, Apply and rollback make no API requests and change no real project, catalog or approval.
 
 ## Import your existing tools
 
@@ -13,10 +13,12 @@ The first setup screen offers **Take a tour** and **Try an example**. **Getting 
 ## Set up a project
 
 1. Choose **Set up a project** and select a folder using known projects, Browse or a typed path. The folder must already exist; an empty new-project folder is supported. Kitfold does not scaffold application code.
-2. Use **Build my kit**. Choosing and inspecting a folder are separate steps. Before inspection, the screen acknowledges the selected project and explains this next action. Changed path, requirements or preset invalidates earlier recommendations.
-3. Review the detected stack, preset and recommendations. Choose the actual harnesses running your sessions. For T3, the model name is separate from its underlying harness. Add or remove Skills and MCP servers from the small proposed kit.
+2. A known-project choice or **Browse** inspects the folder automatically, without writing project files. For a manually typed path, use **Build my kit**. The suggested kit appears after inspection.
+3. Review the selected Skills and MCP servers. **Add from library** opens search with separate type, platform and technology filters; **More suggestions** holds unselected recommendations. Open **Agents** to change the harnesses running your sessions. For T3, the model name is separate from its underlying harness. **Requirements & preset** is optional; after changes, use **Update kit**. Deliberate removals, manual snapshot pins and Agent choices survive that refresh.
 4. Use **Review setup**. Read file changes, content findings and compatibility notes. Planning does not write project files. Resolve conflicts and review requested replacements.
 5. Use **Apply** after reviewing that plan. Open or reload the relevant agent session and verify discovery. Vendor trust prompts and reload behavior remain under that harness's control.
+
+You can visit Library, Settings or another page and return to the same setup draft. The draft stays in the current tab's memory, not browser storage; reloading or closing the tab can discard it and triggers the browser's unsaved-change protection when applicable. Replacing an edited project requires a discard decision. Changed shared directives or presets require renewed inspection. If selected content has been removed from Library, review pauses with a visible explanation.
 
 ## Continue and recover
 

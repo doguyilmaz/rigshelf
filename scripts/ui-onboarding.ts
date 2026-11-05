@@ -71,18 +71,11 @@ async function audit(name: string) {
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
-  await expect(
-    page.getByText('Choose a project to see recommendations from your library.'),
-  ).toBeVisible();
+  await expect(page.getByText('Choose a folder. We’ll suggest a focused kit.')).toBeVisible();
   await page.getByLabel('Project directory', { exact: true }).fill(data.project);
   await page.getByLabel('Project directory', { exact: true }).press('Escape');
-  await expect(
-    page.getByText('Project selected. Use Build my kit', { exact: false }),
-  ).toBeVisible();
-  await expect(
-    page.getByText('Choose a project to see recommendations from your library.'),
-  ).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Build my kit', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toHaveCount(0);
   checks.push(
     'Selecting a project has its own honest inspection state; setup review requires current detection.',
   );
@@ -163,8 +156,11 @@ try {
   await expect(page.locator('.detection-result strong')).toHaveText('project-two');
   release();
   await expect(page.locator('.detection-result strong')).toHaveText('project-two');
+  await page.getByText('Requirements & preset', { exact: true }).click();
   await page.getByLabel('What are you making?', { exact: false }).fill('Updated requirements');
-  await expect(page.locator('.detection-result')).toHaveCount(0);
+  await expect(
+    page.getByText('Setup details changed. Update the kit before reviewing setup.'),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeDisabled();
   checks.push(
     'A delayed previous-project response cannot overwrite a newly selected project; changed requirements invalidate review.',

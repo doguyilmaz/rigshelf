@@ -2,7 +2,7 @@
 
 Folder fields accept typed paths and offer a **Browse…** button. This applies to the setup project directory, local Skill import directory, Settings project roots, and the allowed project root in the MCP connection editor. Relative paths for newly authored supporting files remain text fields: they name files within a snapshot, not host directories. Archive import already uses the browser's file picker.
 
-A selection only fills the current draft. It never scans, imports, saves preferences, grants project approval, enables automation, or applies a setup plan. Those actions retain their separate controls. Canceling preserves the previous value. Unsupported desktop environments show a useful error and keep manual input available. Adding a root already present as the same path does not duplicate its line.
+A selection fills the current draft. In project setup, a committed known-project or Browse choice also starts read-only project inspection and recommendations. It never runs the full library scan, imports a source, saves preferences, grants project approval, enables automation, or applies a setup plan. Those actions retain their separate controls. Canceling preserves the previous value. Unsupported desktop environments show a useful error and keep manual input available. Adding a root already present as the same path does not duplicate its line.
 
 ## Native desktop boundary
 
@@ -10,7 +10,7 @@ The authenticated local HTTP endpoint `POST /api/pick-directory` opens a chooser
 
 The request accepts only an optional starting path. The chooser starts from its nearest existing directory and returns one existing absolute directory or `null`. It does not enumerate directory contents. Paths are bounded and reject NUL/newline characters. Fixed native programs receive the path through an argument or environment value, never through interpolated script source or a shell command. The child receives a small environment allowlist; process output is bounded to 16 KiB, and selection has a three-minute limit. Raw process diagnostics are not returned to the browser or stored in events.
 
-One chooser may be active per server. Duplicate requests are refused. Leaving the field's page aborts the browser request and its owned native process; server shutdown aborts and drains pending selection. The normal HTTP idle timeout is disabled for this bounded interactive request. Choosing a directory does not establish that it is an approved project or that its contents are safe.
+One chooser may be active per server. Duplicate requests are refused. Leaving the field's page aborts the browser request and its owned native process, including when Setup retains its draft offscreen; server shutdown aborts and drains pending selection. The normal HTTP idle timeout is disabled for this bounded interactive request. Choosing a directory does not establish that it is an approved project or that its contents are safe. The chooser endpoint itself still only returns a path: read-only inspection is a separate authenticated browser request.
 
 ## Platform adapters and validation
 

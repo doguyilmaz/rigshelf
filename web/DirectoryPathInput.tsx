@@ -8,15 +8,28 @@ interface BrowseProps {
   initialPath?: string;
   onSelect: (path: string) => void;
   text?: string;
+  active?: boolean;
 }
 
-function useDirectoryPicker(initialPath: string, onSelect: (path: string) => void) {
+function useDirectoryPicker(
+  initialPath: string,
+  onSelect: (path: string) => void,
+  active: boolean,
+) {
   const pending = useRef<AbortController | undefined>(undefined);
+  const available = useRef(active);
+  available.current = active;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => () => pending.current?.abort(), []);
+  useEffect(() => {
+    if (!active) {
+      pending.current?.abort();
+      setBusy(false);
+    }
+  }, [active]);
   async function choose(): Promise<void> {
-    if (pending.current) return;
+    if (!active || pending.current) return;
     const controller = new AbortController();
     pending.current = controller;
     setBusy(true);
@@ -28,7 +41,8 @@ function useDirectoryPicker(initialPath: string, onSelect: (path: string) => voi
         { initialPath },
         controller.signal,
       );
-      if (!controller.signal.aborted && selection.path !== null) onSelect(selection.path);
+      if (available.current && !controller.signal.aborted && selection.path !== null)
+        onSelect(selection.path);
     } catch (error) {
       if (!controller.signal.aborted)
         setError(
@@ -37,15 +51,21 @@ function useDirectoryPicker(initialPath: string, onSelect: (path: string) => voi
             : 'Could not open the folder picker. Enter the path manually.',
         );
     } finally {
-      pending.current = undefined;
+      if (pending.current === controller) pending.current = undefined;
       if (!controller.signal.aborted) setBusy(false);
     }
   }
   return { busy, error, choose };
 }
 
-export function BrowseDirectoryButton({ label, initialPath = '', onSelect, text }: BrowseProps) {
-  const { busy, error, choose } = useDirectoryPicker(initialPath, onSelect);
+export function BrowseDirectoryButton({
+  label,
+  initialPath = '',
+  onSelect,
+  text,
+  active = true,
+}: BrowseProps) {
+  const { busy, error, choose } = useDirectoryPicker(initialPath, onSelect, active);
   return (
     <>
       <button
@@ -53,7 +73,7 @@ export function BrowseDirectoryButton({ label, initialPath = '', onSelect, text 
         className="browse-directory"
         aria-label={label}
         title={label}
-        disabled={busy}
+        disabled={busy || !active}
         aria-busy={busy}
         onClick={() => void choose()}
       >

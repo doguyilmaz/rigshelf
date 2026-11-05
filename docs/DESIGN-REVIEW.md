@@ -118,3 +118,22 @@ The [directory-selection contract](DIRECTORY-SELECTION.md) records cancellation,
 | Missing or bounded locations could resemble genuine absence | Explicit partial-inventory diagnostics and an inspected-locations empty state | Make discovery limits visible. |
 
 Browser flows exercise external memory search, global guidance, read-only controls and the existing local edit/promotion path. The [discovery contract](AI-DISCOVERY.md) describes exclusions and content-loading boundaries.
+
+## Daily project setup
+
+The usability review found that Setup asked for optional requirements, a preset and six Agent choices before showing a useful kit. Its inline Library list stopped at 40 raw snapshots, and leaving the page discarded the draft. The primary flow now starts with the project and keeps optional decisions close to the suggested selection.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Project, preset, requirements, all Agent cards and an empty kit appeared together | A folder field, Browse and known projects start the page | Make the first action clear. |
+| Every committed folder choice needed a separate inspection action | Known-project and Browse choices inspect read-only automatically; typed paths keep an explicit button | Remove a redundant action while keeping unfinished typing separate. |
+| All recommendations appeared as peers | The selected kit leads; other suggestions and outside-library preset references are disclosed separately | Make the planned selection clear without implying every suggestion is required. |
+| Preset selection silently replaced Agents | Agents, requirements and presets have independent optional controls | Preserve deliberate choices. |
+| Raw inline snapshots stopped at 40 and supported only text search | A focused picker groups revisions, separates Skills/MCP, filters platform/technology and pages the full matching set | Find content without remembering a name or scrolling an unlimited list. |
+| Navigating to Library discarded setup work | Setup remains in current-tab memory across pages; changing an edited project requires a discard decision | Let importing or checking a source be part of setup. |
+| Rebuilding the kit replaced manual selections | Exact manual pins and family exclusions survive refreshed suggestions | Refining requirements must not undo the user's review. |
+| Retaining a draft could leave native UI or stale review state alive | Inactive setup closes overlays/cancels its chooser; changed shared guidance requires inspection; removed selected snapshots block review visibly | Retain work without retaining stale authority. |
+
+No new persistent session/context store is introduced. Draft retention ends at a reload or closed tab; browser unsaved-change protection remains. Existing reviewed plans, source preconditions, Apply and rollback still own all project writes. Neutral surfaces and restrained dialog motion remain; this is a focused interaction correction, not final naming or visual approval.
+
+Private browser evidence covers the first screen, nested filtered picker, navigation and responsive drafts. The example remains a separate zero-request simulation. See [quickstart](QUICKSTART.md) for the revised daily flow.

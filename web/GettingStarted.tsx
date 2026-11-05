@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, FlaskConical } from 'lucide-react';
+import { ArrowRight, FlaskConical } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Modal, Notice } from './components';
 import { t } from './i18n';
@@ -30,18 +30,10 @@ export function Welcome({
   return (
     <aside className="onboarding-welcome" aria-label={t('First steps')}>
       <div>
-        <strong>{t('New here? Start with a safe walkthrough.')}</strong>
-        <p>
-          {t(
-            'See how Library, project kits and review plans fit together, or try an example without touching your files.',
-          )}
-        </p>
+        <strong>{t('Want to try it first?')}</strong>
+        <p>{t('Practice with an example without touching your files.')}</p>
       </div>
       <div className="button-row">
-        <Button variant="secondary" onClick={() => onStart('guide')}>
-          <BookOpen size={15} />
-          {t('Take a tour')}
-        </Button>
         <Button variant="secondary" onClick={() => onStart('example')}>
           <FlaskConical size={15} />
           {t('Try an example')}
@@ -63,7 +55,7 @@ const steps = [
   },
   {
     title: 'Choose a focused project kit',
-    text: 'Choose a project directory and use Build my kit. Review the detected stack, preset and recommendations. Select only the Skills and MCP servers this project needs, then choose the actual agent harnesses that run your sessions.',
+    text: 'Choose a known project or use Browse to inspect its folder automatically. For a typed path, choose Build my kit. Review the suggested kit, add what you need from Library and check the selected Agents. Requirements and presets are optional; no project files are written during inspection.',
     action: 'Set up my project',
     page: 'setup',
   },
