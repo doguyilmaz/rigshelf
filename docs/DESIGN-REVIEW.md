@@ -29,7 +29,7 @@ The standalone [project setup prototype](../design/prototypes/project-setup.html
 | Direction | Main axis | Strength | Cost |
 | --- | --- | --- | --- |
 | Workbench / All together | Compact workspace with sidebar and adjacent kit summary | Familiar daily workflow; selections stay visible together | More controls share the screen. |
-| Canvas / Step by step | Guided steps with warm surfaces and a clear current task | Calm, approachable setup flow | Repeated setup takes more navigation. |
+| Canvas / Step by step | Guided steps with neutral surfaces and a clear current task | Calm, approachable setup flow | Repeated setup takes more navigation. |
 | Console / Files visible | Dense dark workspace with context and file-preview columns | Fast inspection for frequent multi-agent use | Higher information density. |
 
 No direction is approved yet. The user requested alternatives before a visual redesign. The working name also remains provisional; see [naming](NAMING.md). Keep functional fixes independent of the eventual visual choice.
@@ -50,3 +50,18 @@ The user's review rejected decorative green and purple visual treatments and ask
 | Forest surfaces, serif slogans and decorative setup artwork | White/gray chrome, local sans typography and direct labels | Keep attention on the task and data. |
 
 The [library browsing contract](LIBRARY.md) describes classification limits and filter semantics. The new `/prototypes/library.html` preview uses the production component with isolated fictional state. It is a working design direction for feedback, not a claim of final visual approval.
+
+## Completing the neutral theme migration
+
+The first neutral pass only overrode part of the legacy theme. The live server was serving current assets, but many component rules and the shared modal overlay still used green literals. The earlier guided prototype retained its own green palette too.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Green base tokens hidden beneath neutral overrides | One neutral palette in `web/tokens.css` with descriptive accent/surface names | The base theme and later component styles share the same intent. |
+| Green literals in setup cards, settings, editors, text and the shared modal backdrop | Neutral component colors and shadows throughout the source styles | Opening an editor or visiting another page must not restore the old tint. |
+| Older layout comparison URLs retained green/purple/blue palettes | All three layout alternatives use grayscale palettes | Compare information layout without reintroducing a rejected visual treatment. |
+| Layout and accessibility checks did not detect colored chrome | Computed-color checks across page, dialog, popup and prototype flows, including pseudo-elements | Detect inherited colors and overlays that source-token checks miss. |
+
+Red and amber remain reserved for destructive actions, warnings and errors. These checks establish palette consistency, not user approval of the overall design.
+
+Verification: `bun run verify` passed with 93 tests and matching 700-message English/Turkish catalogs; `bun run lint` and all six `bun run test:ui` suites passed. Rendered-color checks cover the setup/detection/review flow, all six other primary pages, management editors, source popups at six widths and the three earlier layout prototypes. Private screenshots and reports stay under ignored `.local/qa`.

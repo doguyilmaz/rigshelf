@@ -5,6 +5,7 @@ import { chromium } from '@playwright/test';
 import { scan } from '../src/core/scanner';
 import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
+import { assertNeutralTheme } from './theme-check';
 
 const data = await fixture();
 await mkdir(join(data.project, '.git'));
@@ -37,13 +38,16 @@ await mkdir(directory, { recursive: true });
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
+  await assertNeutralTheme(page, 'initial setup');
   await page.screenshot({ path: join(directory, 'setup-desktop.png'), fullPage: true });
   await page.getByLabel('Project directory', { exact: true }).fill(data.project);
   await page.getByLabel('Project directory', { exact: true }).press('Escape');
   await page.getByRole('button', { name: 'Build my kit' }).click();
   await page.getByRole('button', { name: 'Inspect again' }).waitFor();
+  await assertNeutralTheme(page, 'detected setup');
   await page.getByRole('button', { name: 'Review setup' }).click();
   await page.getByRole('dialog', { name: 'Review your setup' }).waitFor();
+  await assertNeutralTheme(page, 'setup plan and backdrop');
   await page.screenshot({ path: join(directory, 'setup-plan.png') });
   await page.getByRole('button', { name: /Apply \d+ changes/ }).click();
   await page.getByRole('heading', { name: 'Your project is ready.' }).waitFor();
@@ -62,6 +66,7 @@ try {
   ] as const) {
     await page.getByRole('button', { name: nav, exact: true }).first().click();
     await page.waitForURL(`**/#${hash}`);
+    await assertNeutralTheme(page, hash);
     await page.screenshot({ path: join(directory, `${hash}-desktop.png`), fullPage: true });
     const result = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])

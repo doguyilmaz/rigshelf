@@ -1,18 +1,4 @@
 /* The workbench uses neutral surfaces. Color is reserved for actual warnings. */
-:root {
-  --paper: #ffffff;
-  --white: #ffffff;
-  --ink: #262626;
-  --forest: #303030;
-  --forest-dark: #202020;
-  --sage: #686868;
-  --copper: #555555;
-  --muted: #686868;
-  --line: #e7e7e7;
-  --line-strong: #cecece;
-  --wash: #f5f5f5;
-  --serif: var(--sans);
-}
 button:focus-visible,
 a:focus-visible {
   outline-color: #555;

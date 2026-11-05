@@ -6,6 +6,7 @@ import { importSkillDirectory } from '../src/core/ingest';
 import { scan } from '../src/core/scanner';
 import { startServer } from '../src/server';
 import { fixture } from '../tests/helpers';
+import { assertNeutralTheme } from './theme-check';
 
 const fixtureData = await fixture();
 await mkdir(join(fixtureData.project, '.git'));
@@ -53,6 +54,7 @@ page.on('pageerror', (error) => errors.push(error.message));
 const directory = resolve('.local/qa/flows');
 await mkdir(directory, { recursive: true });
 async function audit(name: string): Promise<void> {
+  await assertNeutralTheme(page, name);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .analyze();

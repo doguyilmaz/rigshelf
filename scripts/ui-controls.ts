@@ -5,6 +5,7 @@ import { chromium, expect } from '@playwright/test';
 import { route } from '../src/core/service';
 import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
+import { assertNeutralTheme } from './theme-check';
 
 const data = await fixture();
 const skill = sampleSkill(data.store, 'focused-mobile-guide');
@@ -82,6 +83,7 @@ try {
     await page.getByLabel('Search source', { exact: true }).fill('Mobile Engineering');
     const option = page.getByRole('option', { name: source.name, exact: true });
     await expect(option).toBeVisible();
+    await assertNeutralTheme(page, `source popup at ${width}px`);
     const popup = page.locator('.select-popup');
     const bounds = await popup.boundingBox();
     if (
@@ -133,6 +135,7 @@ try {
   release();
   await editor.getByRole('button', { name: /^Files/ }).click();
   await expect(editor.locator('.file-list')).toBeVisible();
+  await assertNeutralTheme(page, 'loaded editor and shared backdrop');
   const afterLoad = await editor.boundingBox();
   if (
     !beforeLoad ||
@@ -166,10 +169,16 @@ try {
   await page.goto(`${new URL(server.accessUrl).origin}/prototypes/project-setup.html?v=1`);
   await page.getByRole('button', { name: 'Step by step', exact: true }).click();
   await expect(page.locator('.prototype-app')).toHaveClass(/canvas/);
+  await assertNeutralTheme(page, 'guided prototype');
   await page.getByRole('button', { name: 'Files visible', exact: true }).click();
   await expect(page.locator('.prototype-app')).toHaveClass(/console/);
+  await assertNeutralTheme(page, 'files prototype');
   await page.getByRole('button', { name: 'All together', exact: true }).click();
   await expect(page.locator('.prototype-app')).toHaveClass(/workbench/);
+  await assertNeutralTheme(page, 'workbench prototype');
+  checks.push(
+    'Rendered chrome, popups, editors, backdrops and all layout previews use neutral colors.',
+  );
   checks.push('The served design preview switches layouts under the unchanged application CSP.');
   if (errors.length) throw new Error(errors.join('\n'));
   const report = { checks, errors, widths: [1440, 1280, 1024, 768, 390, 320] };
