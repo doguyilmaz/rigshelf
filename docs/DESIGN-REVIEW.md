@@ -1,5 +1,18 @@
 # Interface review and open design choices
 
+## First use and accurate project state
+
+| Before | After | Why |
+| --- | --- | --- |
+| A selected but uninspected folder displayed “Choose a project” | A selected-project message points to Build my kit; inspection and current recommendations have their own states | Acknowledge the selection and explain the next action. |
+| A slow response could populate a different project's kit | Cancellation/generation checks discard stale responses and changed drafts invalidate review | Tie the proposed kit to the current draft. |
+| First use depended on knowing page names and action order | A dismissible welcome, persistent guide and labeled example simulation | Explain discovery, small kits, review, Apply and recovery before real changes. |
+| Large native-file inventories rendered every row | Type filters, path/provider search and bounded rows with total counts and Show more | Keep large lists responsive and make undisplayed records discoverable. |
+| Config and executable files looked like editable guidance | Read-only inspection; no wholesale Config/Hook/Plugin promotion | Preserve each file type's purpose and authority. |
+| Prior index relationships were hard to inspect | Downloadable private inventory checkpoints in Settings | Keep prior scan data reviewable without granting restore/setup authority. |
+
+The example performs no API requests. Its paths are illustrative; actual setup uses the reviewed planner. The guide trigger becomes an accessible icon on narrow screens. English/Turkish browser flows cover the guide and example.
+
 The initial automated checks did not establish that the interface met the desired visual quality. The user's review identified layout shifts, poor native select behavior and insufficient collaboration on the visual direction and name. A passing test suite is not visual approval.
 
 ## Functional interface corrections

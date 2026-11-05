@@ -23,7 +23,8 @@ Localized interfaces preserve technical vocabulary such as Skills, MCP, Plugins,
 
 ## Verification
 
-- Run `bun run verify` and `bun run lint` for implementation changes.
+- Use `bun run check` for TypeScript checks and `bun run format` for formatting; use these package scripts instead of ad-hoc compiler/formatter invocations.
+- Run `bun run verify` and `bun run lint` for implementation changes after formatting.
 - Run `bun run test:ui` for visible web changes. Chromium must already be installed, or install it explicitly as documented.
 - Add tests for meaningful authority, lifecycle, data-integrity or user-flow changes. Avoid tests that merely repeat implementation details.
 - Use isolated fixtures under ignored `.local/tests`. Existing development repositories and global agent configuration are read-only inventory sources.

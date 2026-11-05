@@ -1,5 +1,13 @@
 # Validation record
 
+## Inventory preservation and first-use follow-up
+
+The follow-up passes 124 unit/integration tests across 18 files, TypeScript checking, 792 matching English/Turkish messages, formatting, lint and production build. Eight browser suites pass, including guide/example use, selected-project state, delayed-response cancellation, native-file filtering, private checkpoint downloads and 600-file paging/search. New guide/example views have no automated accessibility violations at the tested desktop/mobile sizes. Narrow-screen overflow introduced by the guide trigger was observed and corrected.
+
+A dependency-check regression was first observed replacing enriched file metadata with `undefined`; the fix preserves that inventory through checks and setup Apply/rollback. Other fixtures cover native Agent memory, ignored configs/Plugins/Hooks without execution, bare custom Skills, prior project retention, partial-scan preservation and checkpoint-write failure before index changes. External memory remains readable by its inventoried ID after the original repository moves, while remaining read-only and subject to source/root checks.
+
+A real inventory refresh was exercised against a consistent private catalog copy, then performed after an integrity-checked backup. Existing project records remained present, old Skill bodies/resources retained identical streamed hashes, and observed source-file identity/mode/size/modification metadata remained unchanged. Detailed counts, paths and reports remain under ignored `.local/qa`; partial/excluded-location diagnostics remain visible. These are normal development/inventory checks, not qualified security reproductions.
+
 Tests use fictional data and isolated projects under ignored `.local/tests`. Existing development repositories and global agent configuration are read-only inventory sources. Private benchmark artifacts and screenshots stay under `.local/qa`, outside published source.
 
 The current suite exercises planning without writes, exact rollback including empty files and modes, conflict preconditions, compensation after I/O failures, stale/live locks, interrupted apply/rollback recovery, managed removal, alias containment, source canonicalization, metadata recovery, directive precedence and preset cycles.

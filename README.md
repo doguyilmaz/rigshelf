@@ -91,6 +91,8 @@ Versioned JSON and compressed JSON archives contain library content, sources, pr
 ## Verification
 
 ```sh
+bun run check
+bun run format
 bun run verify
 bun run lint
 bunx playwright install chromium
@@ -101,6 +103,7 @@ Tests use isolated disposable projects. They do not write into existing developm
 
 ## More detail
 
+- [First project walkthrough](docs/QUICKSTART.md) and the in-app **Getting started** guide
 - [Product requirements](docs/PRODUCT.md) and [acceptance record](docs/ACCEPTANCE.md)
 - [Architecture and decisions](docs/DECISIONS.md)
 - [Provider formats and limitations](docs/COMPATIBILITY.md)

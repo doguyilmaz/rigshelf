@@ -1,5 +1,6 @@
 import {
   ArrowUpRight,
+  BookOpen,
   Check,
   FolderOpen,
   HardDrive,
@@ -19,6 +20,7 @@ import { createRoot } from 'react-dom/client';
 import { type AppState, api } from './api';
 import { Button, Modal, SearchBox, Spinner } from './components';
 import { type DiscardRequest, requestDiscard } from './drafts';
+import { GettingStarted, onboardingSeen, rememberOnboarding, Welcome } from './GettingStarted';
 import { localeReady, t, useLocale } from './i18n';
 import { ModalPresence } from './ModalPresence';
 import { Activity } from './pages/Activity';
@@ -98,6 +100,16 @@ function App(): ReactNode {
   const [query, setQuery] = useState('');
   const [projectPath, setProjectPath] = useState('');
   const [discard, setDiscard] = useState<DiscardRequest>();
+  const [learned, setLearned] = useState(onboardingSeen);
+  const [onboarding, setOnboarding] = useState<'guide' | 'example'>();
+  const dismissWelcome = () => {
+    rememberOnboarding();
+    setLearned(true);
+  };
+  const closeOnboarding = () => {
+    dismissWelcome();
+    setOnboarding(undefined);
+  };
   useEffect(() => {
     const handle = (event: Event) => setDiscard((event as CustomEvent<DiscardRequest>).detail);
     window.addEventListener('kitfold-discard', handle);
@@ -259,6 +271,15 @@ function App(): ReactNode {
             </span>
           </div>
           <div className="topbar-actions">
+            <button
+              type="button"
+              className="icon-button getting-started-trigger"
+              aria-label={t('Getting started')}
+              onClick={() => setOnboarding('guide')}
+            >
+              <BookOpen size={16} />
+              <span>{t('Getting started')}</span>
+            </button>
             {state.scan.state === 'running' ? (
               <Spinner text={state.scan.message} />
             ) : (
@@ -282,6 +303,9 @@ function App(): ReactNode {
           </div>
         </div>
         <main key={page} className="page-enter">
+          {page === 'setup' && !learned && (
+            <Welcome onStart={setOnboarding} onDismiss={dismissWelcome} />
+          )}
           <Suspense fallback={<Spinner text={t('Loading page…')} />}>
             {page === 'setup' && <Setup {...props} initialPath={projectPath} />}{' '}
             {page === 'library' && <Library {...props} />}{' '}
@@ -297,6 +321,18 @@ function App(): ReactNode {
           <span>{t('Skills · MCP · Directives')}</span>
         </footer>
       </div>
+      <ModalPresence>
+        {onboarding && (
+          <GettingStarted
+            initialMode={onboarding}
+            onClose={closeOnboarding}
+            onNavigate={(next) => {
+              closeOnboarding();
+              navigate(next);
+            }}
+          />
+        )}
+      </ModalPresence>
       {toast && (
         <div
           className={`toast ${toast.error ? 'error' : ''}`}

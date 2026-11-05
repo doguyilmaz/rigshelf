@@ -52,6 +52,10 @@ Each requirement retains an identifier so implementation and deferred work can b
 | R36 | Preserve technical terms | Keep Skills, MCP, Plugins and related technical vocabulary recognizable across localized interfaces; translate surrounding copy and ordinary navigation. |
 | R37 | Browse for directory paths | Offer a folder-picker button beside typed directory paths throughout setup, local import, project roots and connection scope. A choice fills a draft and never starts setup or grants permission. |
 | R38 | Complete scoped AI inventory | Inspect known nested and gitignored AI locations, external project memory, global harness guidance and known Aims profiles. Keep project/global provenance, deduplicate aliases, skip dependencies and account/session stores, and report partial discovery. |
+| R39 | Preserve inventory data | Save a private checkpoint before scanning, retain prior data on partial discovery, preserve enriched indexes through fast project updates and never edit original AI files during discovery. |
+| R40 | Accurate setup states | Distinguish no folder, selected/uninspected folder, active inspection and current recommendations. Old requests must not overwrite a changed project or produce a stale review plan. |
+| R41 | Guided first use | Provide an English/Turkish workflow guide, persistent access to help and a clearly labeled example that makes no API requests or real file/catalog changes. |
+| R42 | Project check/format scripts | Use existing `bun run check` and `bun run format` scripts in development instructions and verification workflows. |
 
 ## Interaction design
 

@@ -1,6 +1,6 @@
 # Contributing
 
-Use Bun 1.4.4 or newer and the checked-in lockfile. Run `bun run verify`, `bun run lint`, and the browser flows before proposing behavior changes. Fixtures belong under ignored `.local/tests`; never use a real development repository, global agent configuration, account token or running external MCP server as test state.
+Use Bun 1.4.4 or newer and the checked-in lockfile. Use `bun run check` for TypeScript and `bun run format` for formatting. Run `bun run verify`, `bun run lint`, and the browser flows before proposing behavior changes. Fixtures belong under ignored `.local/tests`; never use a real development repository, global agent configuration, account token or running external MCP server as test state.
 
 Keep business logic in `src/core`. CLI, web and MCP should call that engine rather than implement alternate setup paths. Prefer small typed functions, explicit error states and meaningful boundary tests. A source URL or install recipe is untrusted data, never permission to execute code.
 

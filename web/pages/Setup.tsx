@@ -8,7 +8,7 @@ import {
   Plus,
   ScanLine,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import type { Entry, Finding, Project, Provider } from '../../src/core/model';
 import { slug } from '../../src/core/names';
 import type { FilePreview, PlanView } from '../../src/core/plan-view';
@@ -66,15 +66,35 @@ export function Setup({
   const [inspecting, setInspecting] = useState<string>();
   const [replaceExisting, setReplaceExisting] = useState(false);
   const [plan, setPlan] = useState<PlanView>();
+  const detectionRequest = useRef<{ generation: number; controller?: AbortController }>({
+    generation: 0,
+  });
+  const resetDetection = useCallback(() => {
+    detectionRequest.current.generation++;
+    detectionRequest.current.controller?.abort();
+    setDetected(undefined);
+    setSelected([]);
+    setReviewed(false);
+    setBusy(false);
+  }, []);
   const signature = JSON.stringify({ path, requirements, preset, providers, selected });
+  const currentDraft = useRef(signature);
+  currentDraft.current = signature;
   const [savedDraft, setSavedDraft] = useState(signature);
   useDraftGuard(!plan && signature !== savedDraft, t('Project setup'));
   useEffect(() => {
     if (initialPath) {
       setPath(initialPath);
-      setDetected(undefined);
+      resetDetection();
     }
-  }, [initialPath]);
+  }, [initialPath, resetDetection]);
+  useEffect(
+    () => () => {
+      detectionRequest.current.generation++;
+      detectionRequest.current.controller?.abort();
+    },
+    [],
+  );
   const toggle = (id: string) =>
     setSelected((current) => {
       if (current.includes(id)) return current.filter((value) => value !== id);
@@ -89,42 +109,59 @@ export function Setup({
     });
   const selectedEntries = state.entries.filter((entry) => selected.includes(entry.id));
   async function detect(): Promise<void> {
+    detectionRequest.current.controller?.abort();
+    const controller = new AbortController();
+    const generation = ++detectionRequest.current.generation;
+    detectionRequest.current.controller = controller;
     setBusy(true);
     try {
-      const result = await api<Detection>('detect', 'POST', {
-        projectPath: path,
-        requirements,
-        ...(preset !== 'auto' ? { presetId: preset } : {}),
-      });
+      const result = await api<Detection>(
+        'detect',
+        'POST',
+        {
+          projectPath: path,
+          requirements,
+          ...(preset !== 'auto' ? { presetId: preset } : {}),
+        },
+        controller.signal,
+      );
+      if (generation !== detectionRequest.current.generation || controller.signal.aborted) return;
       setDetected(result);
       setSelected(
         result.recommendations.filter((value) => value.selected).map((value) => value.entry.id),
       );
     } catch (error) {
+      if (generation !== detectionRequest.current.generation || controller.signal.aborted) return;
       notify(error instanceof Error ? error.message : t('Could not inspect project'), true);
     } finally {
-      setBusy(false);
+      if (generation === detectionRequest.current.generation) setBusy(false);
     }
   }
   async function prepare(): Promise<void> {
+    const generation = detectionRequest.current.generation;
+    const requestedDraft = signature;
     setBusy(true);
     try {
-      setPlan(
-        await api<PlanView>('plans', 'POST', {
-          projectPath: path,
-          requirements,
-          presetId: detected?.presetId || (preset !== 'auto' ? preset : undefined),
-          providers,
-          entryIds: selected,
-          includeRules: true,
-          allowReviewed: reviewed,
-          replaceExisting,
-        }),
-      );
+      const prepared = await api<PlanView>('plans', 'POST', {
+        projectPath: path,
+        requirements,
+        presetId: detected?.presetId || (preset !== 'auto' ? preset : undefined),
+        providers,
+        entryIds: selected,
+        includeRules: true,
+        allowReviewed: reviewed,
+        replaceExisting,
+      });
+      if (
+        generation === detectionRequest.current.generation &&
+        requestedDraft === currentDraft.current
+      )
+        setPlan(prepared);
     } catch (error) {
+      if (generation !== detectionRequest.current.generation) return;
       notify(error instanceof Error ? error.message : t('Could not prepare setup'), true);
     } finally {
-      setBusy(false);
+      if (generation === detectionRequest.current.generation) setBusy(false);
     }
   }
   return (
@@ -153,7 +190,7 @@ export function Setup({
                   projects={state.projects}
                   onValueChange={(next) => {
                     setPath(next);
-                    setDetected(undefined);
+                    resetDetection();
                   }}
                 />
               </div>
@@ -170,7 +207,7 @@ export function Setup({
                     setPreset(next);
                     const chosen = state.presets.find((value) => value.id === next);
                     if (chosen) setProviders(chosen.providers);
-                    setDetected(undefined);
+                    resetDetection();
                   }}
                   options={[
                     { value: 'auto', label: t('Detect from the project') },
@@ -189,7 +226,7 @@ export function Setup({
               value={requirements}
               onChange={(event) => {
                 setRequirements(event.target.value);
-                setDetected(undefined);
+                resetDetection();
               }}
               placeholder={t('An Expo app with Better Auth and a Hono API…')}
             />
@@ -297,7 +334,15 @@ export function Setup({
             {!detected ? (
               <div className="kit-placeholder">
                 <Layers2 size={20} strokeWidth={1.4} />
-                <p>{t('Choose a project to see recommendations from your library.')}</p>
+                <p role="status">
+                  {busy
+                    ? t('Inspecting the selected project…')
+                    : path.trim()
+                      ? t(
+                          'Project selected. Use Build my kit to inspect its stack and see recommendations. Nothing will be written.',
+                        )
+                      : t('Choose a project to see recommendations from your library.')}
+                </p>
               </div>
             ) : (
               <>
@@ -450,7 +495,7 @@ export function Setup({
               <span>{t('+ scoped project guidance')}</span>
             </div>
             <Button
-              disabled={!path.trim() || !providers.length || busy}
+              disabled={!path.trim() || !detected || !providers.length || busy}
               onClick={() => void prepare()}
             >
               {busy && detected ? (
@@ -503,7 +548,7 @@ export function Setup({
                   onClick={() => {
                     setPreset(value.id);
                     setProviders(value.providers);
-                    setDetected(undefined);
+                    resetDetection();
                   }}
                   className={preset === value.id ? 'selected' : ''}
                 >
