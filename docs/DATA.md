@@ -1,0 +1,23 @@
+# Data ownership and format
+
+The OS data directory contains `catalog.sqlite` and SQLite's WAL companions. Directories are created with mode 0700 and the database with mode 0600. Use `KITFOLD_DATA_DIR` to choose a different private location. Do not point it at a public checkout or shared web directory.
+
+SQLite `user_version` and archive `schemaVersion` are 1. A newer database is refused. Future database changes require explicit migrations; future portable formats must retain an importer for schema 1 or provide an explicit migration. Record IDs are opaque and must not be inferred from display names.
+
+An entry is a content-addressed snapshot with metadata, provenance receipts and supporting files. SHA-256 covers sorted file paths, exact base64 bytes and executable intent. A custom edit creates a revision with lineage; it does not mutate the upstream snapshot or installed pins. Archiving hides a snapshot from ordinary suggestions. Permanent deletion requires an archived record without installations or active plan references.
+
+Sources hold URLs, preferred recipes, dated reachability, immutable upstream references, optional repository metadata and research notes. Changing a source relationship does not rewrite historical receipts. Presets use explicit IDs, single-parent inheritance, selectors, pins and exclusions. Directives have an explicit scope, priority, enable flag and provenance.
+
+Portable archives have `format: "kitfold-library"`, `schemaVersion: 1`, `exportedAt`, `entries`, `sources`, `presets`, `rules` and an `excluded` report. An entry includes its files as canonical base64, without interpreting or extracting them. JSON is UTF-8; `.json.gz` is ordinary gzip of the same JSON. These are open formats suitable for user-managed encrypted backups or a future Git/object-storage transport.
+
+Exports omit projects, installation paths, settings, access keys, local trust approvals, automation permissions, events, session data and plan preimages. Source notes, provenance and custom resources can still contain private information: exports are private user data, not a public registry. Credential heuristics exclude flagged snapshots or directives and identify their names/reasons. Preset references to excluded entries are removed in that export. Review the exclusion report; a backup with exclusions is intentionally incomplete.
+
+Imports validate schema, canonical base64, exact digests, relative paths, unique records, supporting files, source references and preset cycles before one database transaction. Existing conflicting snapshots, presets or directives require reconciliation. Existing sources retain local edits. Matching immutable snapshots retain local tags, relationships and archive state. Re-adding a moved source URL finds or creates its own source instead of overwriting the moved record. Content is rescanned, and trust permissions are never imported. Imported origins and scans are evidence, not publisher verification.
+
+Current bounds: 16 MiB and 2,000 files per skill; 128 MiB / 10,000 changed files per setup plan; 128 MiB compressed archive input; 512 MiB archive JSON; 256 MiB decoded imported resources. Source archives have separate 32 MiB compressed / 128 MiB decompressed / 20,000 repository-file bounds. Larger source collections can be imported as individual local skill folders. Ordinary JSON API requests are limited to 32 MiB. These limits are checked independently.
+
+`.kitfold/kit.json` in a project contains only the selected providers, entry pins, requirements, preset and managed hashes/MCP definitions. Private rollback preimages stay in the local catalog. Apply writes an exclusive lock and journal, verifies preconditions and atomically replaces each file. A failure compensates earlier writes. After an interrupted process, `kitfold recover <plan-id>` restores the state before that operation only when every file matches a known state. Do not manually delete an unfamiliar write lock.
+
+Global installations are observed, not removed. To reduce global context, first set up and verify project kits, then review global cleanup separately in the owning harness. Export/import does not automatically migrate credentials, global agent settings or conversations.
+
+Private ownership records bind reviewed manifests to project directory identity. The project kit is portable desired state, not an authorization token. It cannot prove prior file ownership or grant automation on another machine. CLI record inputs use bounded regular-file reads before JSON parsing.

@@ -1,0 +1,303 @@
+#!/usr/bin/env bun
+import { parseArgs } from 'node:util';
+import { readImport, setupProject, writeExport } from './cli-operations';
+import { readRecord } from './core/local-files';
+import { ProviderSchema } from './core/model';
+import { approveProject } from './core/ownership';
+import { filePreview, planView } from './core/plan-view';
+import { executePlan } from './core/planner';
+import { recoverPlan } from './core/recovery';
+import { checkedProject } from './core/safety';
+import { scan } from './core/scanner';
+import { seed } from './core/seeds';
+import { route } from './core/service';
+import { Store } from './core/store';
+import { checkProject, watchProject } from './core/watch';
+import { serveMcp } from './mcp';
+import { serveProxy } from './mcp-proxy';
+import { startServer } from './server';
+
+const help = `Kitfold · Project setup for coding agents
+
+  kitfold ui [--port 47471]                    Open the local web workbench
+  kitfold scan [--root /path] [--no-global]     Import actual local files; no project edits
+  kitfold catalog [query]                      Search installed library metadata
+  kitfold detect /project [--requirements text] Suggest a focused kit
+  kitfold setup /project --preset expo [--agents claude,codex] [--apply]
+  kitfold plan /project [--entries id,id] [--agents claude,codex] [--preset expo]
+    Omitted --entries uses recommendations; --entries "" selects guidance only.
+    --reviewed permits inspected review flags; --replace-existing preserves replacements for rollback.
+  kitfold apply <plan-id>                      Apply a reviewed plan
+  kitfold diff <plan-id> [--file relative/path] Bounded, masked file preview
+  kitfold recover <plan-id>                    Recover a verified interrupted write
+  kitfold rollback <plan-id>                   Restore the pre-setup files
+  kitfold sources                             List saved sources and evidence
+  kitfold check-source <source-id>             Check reachability / upstream commit
+  kitfold source-skills <source-id>            Discover upstream SKILL.md paths
+  kitfold import-skill <source-id> <path>      Snapshot one skill without running scripts
+  kitfold import-local /skill-folder          Snapshot SKILL.md and supporting files
+  kitfold trust <entry-id>                     Allow this exact clean snapshot in --auto mode
+  kitfold untrust <entry-id>                   Revoke automatic snapshot installation
+  kitfold automation /project on|off          Approve or revoke project automation
+  kitfold check-project /project [--auto]      Dependency-triggered recommendations
+  kitfold watch /project [--auto]              Debounced manifest watcher; Ctrl-C to stop
+  kitfold find "public technology terms"      Search skills.sh; suggestions only
+  kitfold add-source "URL / owner/repo / command" Research and register a source
+  kitfold presets / rules                     List editable presets or directives
+  kitfold save-preset / save-rule <file.json>  Save a versioned library record
+  kitfold archive / restore <entry-id>         Manage library visibility
+  kitfold export <file.json[.gz]>                   Portable library, presets and rules
+  kitfold import <file.json[.gz]> [--apply]         Preview import; --apply writes library only
+  kitfold mcp [--write] [--root /project]      Stdio MCP; read/plan tools by default
+  kitfold doctor                              Show local paths and provider capabilities
+  kitfold connection --agents codex [--write --root /project]  Render MCP connection settings
+
+KITFOLD_DATA_DIR overrides the private data directory. No external catalog imports or session collection.
+`;
+
+async function main(): Promise<void> {
+  const { values, positionals } = parseArgs({
+    args: process.argv.slice(2),
+    allowPositionals: true,
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      port: { type: 'string' },
+      root: { type: 'string', multiple: true },
+      'no-global': { type: 'boolean' },
+      agents: { type: 'string' },
+      entries: { type: 'string' },
+      preset: { type: 'string' },
+      requirements: { type: 'string' },
+      apply: { type: 'boolean' },
+      auto: { type: 'boolean' },
+      write: { type: 'boolean' },
+      reviewed: { type: 'boolean' },
+      file: { type: 'string' },
+      'replace-existing': { type: 'boolean' },
+      limit: { type: 'string' },
+    },
+  });
+  if (values.help) {
+    process.stdout.write(help);
+    return;
+  }
+  const [command = 'ui', subject, extra] = positionals;
+  if (command === 'mcp-proxy') {
+    if (!values.file) throw new Error('mcp-proxy requires --file');
+    await serveProxy(values.file);
+    return;
+  }
+  const store = new Store();
+  seed(store);
+  let persistent = false;
+  let result: unknown;
+  const required = () => {
+    if (!subject) throw new Error(`${command} requires an argument. Run kitfold --help.`);
+    return subject;
+  };
+  try {
+    switch (command) {
+      case 'connection':
+        result = await Promise.all(
+          (values.agents?.split(',') || store.settings().defaultProviders).map((provider) =>
+            route(store, 'POST', 'connection', {
+              provider,
+              writable: values.write || false,
+              projectPath: values.root?.[0] || subject || '',
+            }),
+          ),
+        );
+        break;
+      case 'ui': {
+        const port = Number(values.port || 47471);
+        if (!Number.isInteger(port) || port < 1024 || port > 65535)
+          throw new Error('Choose a port between 1024 and 65535.');
+        const server = startServer(store, port);
+        persistent = true;
+        let closing = false;
+        const close = () => {
+          if (closing) return;
+          closing = true;
+          void server
+            .stop(true)
+            .then(() => {
+              store.close();
+              process.exit(0);
+            })
+            .catch(() => process.exit(1));
+        };
+        process.once('SIGINT', close);
+        process.once('SIGTERM', close);
+        process.stdout.write(
+          `Kitfold is ready at ${server.accessUrl}\nPrivate data: ${store.directory}\nKeep this access URL private.\n`,
+        );
+        break;
+      }
+      case 'scan':
+        result = await scan(store, { roots: values.root, globals: !values['no-global'] });
+        break;
+      case 'catalog':
+        result = store
+          .entries()
+          .filter((entry) =>
+            `${entry.name} ${entry.description} ${entry.tags.join(' ')}`
+              .toLowerCase()
+              .includes((subject || '').toLowerCase()),
+          )
+          .slice(0, Math.min(200, Math.max(1, Number(values.limit || 30))));
+        break;
+      case 'detect':
+        result = await route(store, 'POST', 'detect', {
+          projectPath: required(),
+          requirements: values.requirements || '',
+          presetId: values.preset,
+        });
+        break;
+      case 'setup':
+      case 'plan':
+        result = await setupProject(store, required(), {
+          providers: (values.agents?.split(',') || store.settings().defaultProviders).map((value) =>
+            ProviderSchema.parse(value),
+          ),
+          entries: values.entries,
+          presetId: values.preset,
+          requirements: values.requirements,
+          reviewed: values.reviewed,
+          replaceExisting: values['replace-existing'],
+          apply: command === 'setup' && values.apply,
+        });
+        break;
+      case 'apply':
+        result = planView(await executePlan(store, required(), 'apply'));
+        break;
+      case 'rollback':
+        result = planView(await executePlan(store, required(), 'rollback'));
+        break;
+      case 'recover':
+        result = planView(await recoverPlan(store, required()));
+        break;
+      case 'diff': {
+        const plan = store.get<import('./core/model').Plan>('plan', required());
+        if (!plan) throw new Error('Plan not found');
+        const index = values.file
+          ? plan.changes.findIndex((change) => change.path === values.file)
+          : Number(extra || 0);
+        result = filePreview(plan, index);
+        break;
+      }
+      case 'sources':
+        result = store.sources();
+        break;
+      case 'check-source':
+        result = await route(store, 'POST', `sources/${required()}/check`, {});
+        break;
+      case 'source-skills':
+        result = await route(store, 'GET', `sources/${required()}/skills`, {});
+        break;
+      case 'import-skill':
+        if (!extra) throw new Error('Provide the source SKILL.md path.');
+        result = await route(store, 'POST', `sources/${required()}/import`, { path: extra });
+        break;
+      case 'import-local':
+        result = await route(store, 'POST', 'local-import', { path: required() });
+        break;
+      case 'trust': {
+        result = await route(store, 'POST', `trust/${required()}`, {});
+        break;
+      }
+      case 'untrust':
+        result = await route(store, 'DELETE', `trust/${required()}`, {});
+        break;
+      case 'automation':
+        if (!['on', 'off'].includes(extra || ''))
+          throw new Error('Use automation /project on|off.');
+        result = await approveProject(store, await checkedProject(required()), extra === 'on');
+        break;
+      case 'check-project':
+        result = await checkProject(store, required(), values.auto);
+        break;
+      case 'watch': {
+        const stop = await watchProject(store, required(), values.auto);
+        persistent = true;
+        process.stderr.write(
+          `Watching dependency manifests. ${values.auto ? 'Trusted additions enabled.' : 'Suggestions only.'}\n`,
+        );
+        let closing = false;
+        const cleanup = () => {
+          if (closing) return;
+          closing = true;
+          void stop()
+            .then(() => {
+              store.close();
+              process.exit(0);
+            })
+            .catch(() => process.exit(1));
+        };
+        process.once('SIGINT', cleanup);
+        process.once('SIGTERM', cleanup);
+        break;
+      }
+      case 'export':
+        result = await writeExport(store, required());
+        break;
+      case 'import':
+        result = await readImport(store, required(), Boolean(values.apply));
+        break;
+      case 'find':
+        result = await route(store, 'POST', 'discover', { query: required() });
+        break;
+      case 'add-source':
+        result = await route(store, 'POST', 'sources', { input: required() });
+        break;
+      case 'presets':
+        result = store.list('preset');
+        break;
+      case 'rules':
+        result = store.list('rule');
+        break;
+      case 'save-preset':
+        result = await route(store, 'PUT', 'presets', await readRecord(required()));
+        break;
+      case 'save-rule':
+        result = await route(store, 'PUT', 'rules', await readRecord(required()));
+        break;
+      case 'archive':
+        result = await route(store, 'DELETE', `entries/${required()}`, undefined);
+        break;
+      case 'restore': {
+        const entry = store.entry(required());
+        if (!entry) throw new Error('Entry not found');
+        result = await route(store, 'PATCH', `entries/${entry.id}`, {
+          tags: entry.tags,
+          archived: false,
+        });
+        break;
+      }
+      case 'mcp':
+        await serveMcp(store, Boolean(values.write), values.root);
+        persistent = true;
+        break;
+      case 'doctor':
+        result = {
+          dataDirectory: store.directory,
+          runtime: Bun.version,
+          entries: store.entries().length,
+          projects: store.projects().length,
+          roots: store.settings().roots,
+          persistence: 'SQLite / schema v1',
+          privacy: 'Local only; no sessions or token stores collected',
+          writeMode: 'Project plans with backups and conflict checks',
+        };
+        break;
+      default:
+        throw new Error(`Unknown command: ${command}. Run kitfold --help.`);
+    }
+    if (result !== undefined) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } finally {
+    if (!persistent) store.close();
+  }
+}
+main().catch((error) => {
+  process.stderr.write(`kitfold: ${error instanceof Error ? error.message : 'Command failed'}\n`);
+  process.exitCode = 1;
+});

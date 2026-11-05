@@ -1,0 +1,30 @@
+# Security review record
+
+Review date: 2026-11-05. This record distinguishes source review, development regression tests and qualified security reproduction. None establishes defect-free software.
+
+## Formal source review
+
+A standard audit covered 50 units across application source, web interfaces, filesystem handling, library lifecycle, automation, MCP, model proposals and build inputs. Each of four hunting waves had a coverage critic; a distinct final-clean critic proposed no additional units or reassignments. No compatible prior audit ledger existed.
+
+The formal review froze the initial dirty implementation before hardening, recording every source file's SHA-256. Twelve unique candidates received independent validation. Two were rejected as owner-authorized self-impacting robustness issues; ten retained source-grounded hypotheses and exact validation blockers. Every retained record received a separate fresh final verifier. The findings and coverage validators passed. Ledger counts were 36 covered units and 14 candidate units, with final dispositions linked separately; there were no deferred or in-progress units.
+
+No candidate became a confirmed vulnerability. A qualified OS sandbox with every required network, environment, filesystem and hard resource control was unavailable, so the audit did not execute target code or retain runtime reproductions. The ten unresolved records have no severity and concern the frozen pre-hardening source. They must not be read as either confirmed vulnerabilities or a certificate for the current checkout.
+
+Full reports, source hash manifests and structured records remain outside published source because run metadata contains private machine paths. Protocol corrections and discarded reviews are recorded there rather than hidden. Normal development tests and public-source research are separate evidence.
+
+## Remediation and regression evidence
+
+| Boundary | Current control |
+| --- | --- |
+| Project ownership | Private reviewed baseline bound to directory identity and manifest bytes; repository metadata cannot authorize destructive ownership or trusted installation attribution. |
+| Automatic additions | Current project approval plus exact clean snapshot approval, private kit selection, write-boundary rechecks, cancellation and draining; existing guidance is preserved. |
+| File plans | Shared per-file, aggregate and change-count bounds, including removals; preconditions, journal, compensation, recovery and exact rollback. |
+| Input identity | Descriptor-based bounded regular-file reads for local imports, linked instruction/resource exclusions and discovery confined to inventoried roots. |
+| Portable content | Route-safe identifiers, immutable body/digest checks, transactional import and local metadata preservation; unknown MCP JSON fields are rejected and invalid legacy exports are reported. |
+| MCP secrets and selection | Only interpolation-capable fields for the active transport can request environment values; opaque tool names cannot widen forwarding. Resolved endpoints are validated. Existing empty/invalid local bridge definitions stop parent discovery. |
+| Guidance | Applicable rules are rescanned; credential-looking text is blocked and review-level findings require deliberate review. Import preview exposes rule scope and enabled state. |
+| Resource bounds | Shared 512 KiB instruction limit, bounded archives and local model response bytes/types before editing. |
+
+The final normal development suite passed 83 tests across 13 files, type checking, lint and production build. Browser setup/management/stress flows passed with no reported uncaught errors or automated accessibility violations. The dependency advisory check returned an empty result. A real-library export/import check retained 1,051 records, reported two sensitive exclusions and produced no conflicts. See [validation](VALIDATION.md) for practical limits.
+
+Separate focused source reviews checked the remediation revision and its hashes. They found four additional import/bridge gaps; each was fixed, covered by a regression and independently rechecked. The final focused checks reported no remaining actionable source issue in their assigned scope. They do not convert development tests into qualified security reproductions. Native vendor CLI acceptance, Windows behavior, third-party server execution and adversarial same-user filesystem races remain outside this assurance claim. Continue dependency checks, source review and platform acceptance before public releases.

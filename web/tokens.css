@@ -1,0 +1,16 @@
+:root {
+  --paper: #f4f3eb;
+  --white: #fdfdf8;
+  --ink: #354231;
+  --forest: #2e4537;
+  --forest-dark: #22372d;
+  --sage: #8eaa76;
+  --copper: #ac8158;
+  --muted: #64705b;
+  --line: #dfe3d6;
+  --line-strong: #d1d8c6;
+  --wash: #e9eedf;
+  --sans: "Avenir Next", "Segoe UI", Helvetica, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
