@@ -5,15 +5,23 @@ import {
   FileText,
   FolderOpen,
   Link2,
-  Plug,
   Plus,
   RefreshCw,
   Search,
   ShieldAlert,
+  SlidersHorizontal,
   Trash2,
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  defaultLibraryFilters,
+  facetCounts,
+  filterLibrary,
+  type LibraryFilters,
+  libraryItems,
+} from '../../src/core/library';
 import type { Entry, Source } from '../../src/core/model';
+import { foldSearch } from '../../src/core/taxonomy';
 import { api, apiId, formatDate, shortPath } from '../api';
 import {
   Badge,
@@ -28,81 +36,81 @@ import {
   Spinner,
 } from '../components';
 import { useDraftGuard } from '../drafts';
-import { countText } from '../format';
+import { countText, PAGE_SIZE } from '../format';
 import { t } from '../i18n';
+import { useLibraryPreferences } from '../library-preferences';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 import { Discover } from './Discover';
 import { EntryDetail } from './EntryDetail';
+import {
+  ActiveLibraryFilters,
+  clearLibraryFilters,
+  LibraryFilterPanel,
+  LibraryStatusFilter,
+  libraryFilterChips,
+  SavedLibraryViews,
+} from './LibraryFilters';
+import { kindLabels, LibraryRows } from './LibraryRows';
 
-type LibraryView = 'skills' | 'mcp' | 'custom' | 'sources' | 'plugins' | 'archived';
 export function Library(props: PageProps): ReactNode {
   const { state, refresh, notify } = props;
-  const [view, setView] = useState<LibraryView>('skills');
-  const [query, setQuery] = useState('');
-  const [group, setGroup] = useState('all');
-  const [tag, setTag] = useState('all');
-  const [scope, setScope] = useState('all');
+  const preferences = useLibraryPreferences();
+  const { filters } = preferences;
+  const [view, setView] = useState<'items' | 'sources'>('items');
+  const [sourceQuery, setSourceQuery] = useState('');
+  const [sourceType, setSourceType] = useState('all');
+  const [sourceStatus, setSourceStatus] = useState('all');
+  const [sort, setSort] = useState('name');
   const [page, setPage] = useState(0);
+  const [mobileFilters, setMobileFilters] = useState(true);
   const [detail, setDetail] = useState<string>();
   const [adding, setAdding] = useState(false);
   const [discovering, setDiscovering] = useState(false);
   const [sourceDetail, setSourceDetail] = useState<Source>();
   const [busy, setBusy] = useState(false);
-  const tags = useMemo(
-    () => [...new Set(state.entries.flatMap((entry) => entry.tags))].sort(),
+  const changeFilters = (next: LibraryFilters) => {
+    preferences.setFilters(next);
+    setPage(0);
+  };
+  const items = useMemo(() => libraryItems(state, filters.status), [state, filters.status]);
+  const savedCount = useMemo(
+    () =>
+      new Set(
+        state.entries.map((entry) => JSON.stringify([entry.kind, entry.sourceId, entry.name])),
+      ).size,
     [state.entries],
   );
-  const entries = useMemo(
+  const results = useMemo(
     () =>
-      state.entries.filter(
-        (entry) =>
-          (view === 'archived' ? Boolean(entry.archived) : !entry.archived) &&
-          (view === 'archived'
-            ? true
-            : view === 'custom'
-              ? entry.custom
-              : view === 'mcp'
-                ? entry.kind === 'mcp'
-                : view === 'plugins'
-                  ? entry.kind === 'plugin'
-                  : entry.kind === 'skill') &&
-          (group === 'all' || group.startsWith('project:')
-            ? group === 'all' ||
-              state.installations.some(
-                (location) =>
-                  location.entryId === entry.id && location.projectId === group.slice(8),
-              )
-            : entry.sourceId === group) &&
-          (tag === 'all' || entry.tags.includes(tag)) &&
-          (scope === 'all' ||
-            (scope === 'unused'
-              ? !state.installations.some((location) => location.entryId === entry.id)
-              : state.installations.some(
-                  (location) => location.entryId === entry.id && location.scope === scope,
-                ))) &&
-          `${entry.name} ${entry.description} ${entry.tags.join(' ')}`
-            .toLowerCase()
-            .includes(query.toLowerCase()),
+      filterLibrary(items, filters).sort((left, right) =>
+        sort === 'updated'
+          ? (Date.parse(right.entry.updatedAt) || 0) - (Date.parse(left.entry.updatedAt) || 0)
+          : sort === 'usage'
+            ? new Set(right.locations.map((location) => location.projectId).filter(Boolean)).size -
+              new Set(left.locations.map((location) => location.projectId).filter(Boolean)).size
+            : left.entry.name.localeCompare(right.entry.name),
       ),
-    [state.entries, state.installations, view, group, tag, query, scope],
+    [items, filters, sort],
   );
-  const families = useMemo(() => {
-    const grouped = new Map<string, typeof entries>();
-    for (const entry of entries) {
-      const key = `${entry.kind}:${entry.sourceId}:${entry.name}`;
-      const family = grouped.get(key) || [];
-      family.push(entry);
-      grouped.set(key, family);
-    }
-    return [...grouped.values()].map((family) =>
-      family.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
-    );
-  }, [entries]);
-  const sources = state.sources.filter((source) =>
-    `${source.name} ${source.url} ${source.notes}`.toLowerCase().includes(query.toLowerCase()),
+  const kinds = useMemo(() => facetCounts(items, filters, 'kind'), [items, filters]);
+  const chips = libraryFilterChips(filters, changeFilters, state);
+  const sources = state.sources.filter(
+    (source) =>
+      (sourceType === 'all' || source.type === sourceType) &&
+      (sourceStatus === 'all' || source.status === sourceStatus) &&
+      foldSearch(sourceQuery)
+        .trim()
+        .split(/\s+/)
+        .every((word) => foldSearch(`${source.name} ${source.url} ${source.notes}`).includes(word)),
   );
+  const total = view === 'items' ? results.length : sources.length;
+  const visiblePage = Math.min(page, Math.max(0, Math.ceil(total / PAGE_SIZE) - 1));
+  const changeView = (next: 'items' | 'sources') => {
+    setView(next);
+    setPage(0);
+  };
   async function scan(): Promise<void> {
     setBusy(true);
     try {
@@ -115,258 +123,266 @@ export function Library(props: PageProps): ReactNode {
       setBusy(false);
     }
   }
-  const changeView = (next: LibraryView) => {
-    setView(next);
-    setPage(0);
-    setGroup('all');
-  };
   return (
-    <>
+    <div className="library-explorer">
       <PageHeader
-        eyebrow={t('YOUR CAPABILITIES, TOGETHER')}
-        title={t('The library')}
-        description={t('Keep everything you collect. Activate only what a project needs.')}
+        eyebrow=""
+        title={t('Library')}
+        description={t('Find saved items by type, platform, technology or task.')}
         action={
           <div className="button-row">
             <Button
-              variant="secondary"
+              variant="ghost"
               onClick={() => void scan()}
               disabled={busy || state.scan.state === 'running'}
             >
-              {state.scan.state === 'running' ? (
-                <Spinner text={t('Scanning')} />
-              ) : (
-                <>
-                  <RefreshCw size={15} />
-                  {t('Scan this machine')}
-                </>
-              )}
+              <RefreshCw size={15} />
+              {busy ? <Spinner text={t('Scanning')} /> : t('Scan this machine')}
             </Button>
             <Button variant="secondary" onClick={() => setDiscovering(true)}>
               <Search size={15} />
               {t('Discover')}
             </Button>
             <Button onClick={() => setAdding(true)}>
-              <Plus size={16} />
+              <Plus size={15} />
               {t('Add to library')}
             </Button>
           </div>
         }
       />
-      <div className="library-topline">
-        <div className="tabs" role="tablist" aria-label={t('Library type')}>
-          {(['skills', 'mcp', 'custom', 'sources', 'plugins', 'archived'] as const).map((value) => (
-            <button
-              type="button"
-              key={value}
-              role="tab"
-              aria-selected={view === value}
-              className={view === value ? 'active' : ''}
-              onClick={() => changeView(value)}
-            >
-              {value === 'mcp'
-                ? t('MCP servers')
-                : t(value.charAt(0).toUpperCase() + value.slice(1))}
-              <span>
-                {value === 'sources'
-                  ? state.sources.length
-                  : value === 'archived'
-                    ? state.entries.filter((entry) => entry.archived).length
-                    : value === 'custom'
-                      ? state.entries.filter((entry) => entry.custom && !entry.archived).length
-                      : state.entries.filter(
-                          (entry) =>
-                            !entry.archived &&
-                            entry.kind ===
-                              (value === 'skills'
-                                ? 'skill'
-                                : value === 'plugins'
-                                  ? 'plugin'
-                                  : 'mcp'),
-                        ).length}
-              </span>
-            </button>
-          ))}
-        </div>
+      <div className="library-view-switch" role="tablist" aria-label={t('Library view')}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'items'}
+          onClick={() => changeView('items')}
+        >
+          {t('Items')}
+          <small>{savedCount}</small>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'sources'}
+          onClick={() => changeView('sources')}
+        >
+          {t('Sources')}
+          <small>{state.sources.length}</small>
+        </button>
       </div>
-      <div className="library-toolbar filters-toolbar">
-        <SearchBox
-          value={query}
-          onChange={(value) => {
-            setQuery(value);
-            setPage(0);
-          }}
-        />
-        {view !== 'sources' && (
-          <>
-            <Select
-              label={t('Group library')}
-              searchable
-              value={group}
-              onValueChange={(value) => {
-                setGroup(value);
-                setPage(0);
-              }}
-              options={[
-                { value: 'all', label: t('All sources & projects') },
-                ...state.sources
-                  .filter((source) => state.entries.some((entry) => entry.sourceId === source.id))
-                  .map((source) => ({ value: source.id, label: source.name, group: 'Source' })),
-                ...state.projects.map((project) => ({
-                  value: `project:${project.id}`,
-                  label: project.name,
-                  group: 'Project',
-                })),
-              ]}
-            />
-            <Select
-              label={t('Filter by installation scope')}
-              value={scope}
-              onValueChange={(value) => {
-                setScope(value);
-                setPage(0);
-              }}
-              options={[
-                { value: 'all', label: t('All locations') },
-                { value: 'global', label: t('Global installations') },
-                { value: 'project', label: t('Project installations') },
-                { value: 'unused', label: t('Library only') },
-              ]}
-            />
-            <Select
-              label={t('Filter by tag')}
-              searchable
-              value={tag}
-              onValueChange={(value) => {
-                setTag(value);
-                setPage(0);
-              }}
-              options={[
-                { value: 'all', label: t('All tags') },
-                ...tags.map((value) => ({ value, label: value })),
-              ]}
-            />
-          </>
-        )}
-      </div>
-      {view === 'sources' ? (
-        <SourceList sources={sources.slice(page * 40, page * 40 + 40)} onSelect={setSourceDetail} />
-      ) : entries.length ? (
-        <div className="entry-list">
-          <div className="entry-list-head">
-            <span>{t('CAPABILITY')}</span>
-            <span>{t('SOURCE / TAGS')}</span>
-            <span>{t('INSTALLED IN')}</span>
-            <span>{t('REVIEW')}</span>
-          </div>
-          {families.slice(page * 40, page * 40 + 40).map((family) => {
-            const entry = family[0];
-            const locations = state.installations.filter((location) =>
-              family.some((version) => version.id === location.entryId),
-            );
-            const projects = new Set(
-              locations
-                .filter((location) => location.projectId)
-                .map((location) => location.projectId),
-            );
-            const findings = entry.findings.filter((finding) => finding.level !== 'info');
-            return (
+      {view === 'items' ? (
+        <>
+          <div className="library-type-tabs" role="tablist" aria-label={t('Item type')}>
+            {(['all', 'skill', 'mcp', 'plugin', 'resource'] as const).map((kind) => (
               <button
                 type="button"
-                className="entry-list-row"
-                key={entry.id}
-                onClick={() => setDetail(entry.id)}
+                key={kind}
+                role="tab"
+                aria-selected={filters.kind === kind}
+                aria-label={t(kindLabels[kind])}
+                onClick={() => changeFilters({ ...filters, kind })}
               >
-                <div className="entry-title">
-                  <span className={`entry-icon ${entry.kind}`}>
-                    {entry.kind === 'mcp' ? <Plug size={18} /> : <FileText size={18} />}
-                  </span>
-                  <div>
-                    <strong>{entry.name}</strong>{' '}
-                    {family.length > 1 && (
-                      <Badge>
-                        {family.length}
-                        {t(' versions')}
-                      </Badge>
-                    )}
-                    <p>{entry.description || t('No description yet')}</p>
-                  </div>
-                </div>
-                <div className="entry-source">
-                  <span>
-                    {state.sources.find((source) => source.id === entry.sourceId)?.name ||
-                      t('Unknown source')}
-                  </span>
-                  <div>
-                    {entry.tags.slice(0, 2).map((value) => (
-                      <Badge key={value}>{value}</Badge>
-                    ))}
-                    {entry.custom && <Badge tone="green">{t('Custom')}</Badge>}
-                  </div>
-                </div>
-                <div className="entry-locations">
-                  {projects.size ? countText(projects.size, 'project') : t('Library only')}
-                  {locations.some((location) => location.scope === 'global') && (
-                    <span>{t('Global copy exists')}</span>
-                  )}
-                </div>
-                <div>
-                  {findings.length ? (
-                    <Badge
-                      tone={findings.some((finding) => finding.level === 'block') ? 'red' : 'amber'}
-                    >
-                      {findings.length}
-                      {t(' finding')}
-                      {findings.length > 1 ? 's' : ''}
-                    </Badge>
-                  ) : (
-                    <span className="scan-label">
-                      <span className="live-dot" />
-                      {t(' No flags')}
-                    </span>
-                  )}
-                </div>
+                {t(kindLabels[kind])}
+                <small>
+                  {kind === 'all'
+                    ? [...kinds.values()].reduce((sum, count) => sum + count, 0)
+                    : kinds.get(kind) || 0}
+                </small>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+          <div className="library-search-row">
+            <SearchBox
+              value={filters.query}
+              label={t('Search library')}
+              placeholder={t('Search names, descriptions, tags or sources…')}
+              onChange={(query) => changeFilters({ ...filters, query })}
+            />
+            <SavedLibraryViews preferences={preferences} onChange={changeFilters} />
+          </div>
+          <ActiveLibraryFilters
+            chips={chips}
+            clear={() => changeFilters(clearLibraryFilters(filters))}
+          />
+          <div className="library-browser-layout" data-filters-open={mobileFilters || undefined}>
+            <button
+              type="button"
+              className="library-filter-toggle"
+              aria-expanded={mobileFilters}
+              onClick={() => setMobileFilters(!mobileFilters)}
+            >
+              <SlidersHorizontal size={15} />
+              {t('Filters')}
+              {chips.length > 0 && <span>{chips.length}</span>}
+            </button>
+            <LibraryFilterPanel
+              items={items}
+              state={state}
+              preferences={preferences}
+              onChange={changeFilters}
+            />
+            <section className="library-results" aria-label={t('Library results')}>
+              <div className="library-results-toolbar">
+                <p role="status" aria-live="polite">
+                  {countText(results.length, 'item')}
+                  <span>{t('of {{count}} saved items', { count: savedCount })}</span>
+                </p>
+                <div className="library-sort-controls">
+                  <LibraryStatusFilter filters={filters} onChange={changeFilters} />
+                  <Select
+                    label={t('Sort items')}
+                    value={sort}
+                    onValueChange={setSort}
+                    options={[
+                      { value: 'name', label: t('Name A–Z') },
+                      { value: 'updated', label: t('Recently updated') },
+                      { value: 'usage', label: t('Most used in projects') },
+                    ]}
+                  />
+                </div>
+              </div>
+              {results.length ? (
+                <LibraryRows
+                  items={results.slice(visiblePage * PAGE_SIZE, (visiblePage + 1) * PAGE_SIZE)}
+                  onSelect={setDetail}
+                  showKind={filters.kind === 'all'}
+                />
+              ) : (
+                <Empty
+                  title={savedCount ? t('No items match these filters') : t('No saved items yet')}
+                  text={
+                    savedCount
+                      ? t(
+                          'Remove a filter or search all item types. Your saved content is still in the library.',
+                        )
+                      : t('Scan this machine, add a source, or create a custom item.')
+                  }
+                >
+                  <Button
+                    variant="secondary"
+                    onClick={() => changeFilters({ ...defaultLibraryFilters(), kind: 'all' })}
+                  >
+                    {t('Show all items')}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setAdding(true)}>
+                    {t('Add to library')}
+                  </Button>
+                </Empty>
+              )}
+              <p className="library-classification-note">
+                {t(
+                  'Classification is detected from names and tags. You can edit it in item details.',
+                )}
+              </p>
+            </section>
+          </div>
+        </>
       ) : (
-        <Empty
-          title={
-            query || tag !== 'all' || group !== 'all'
-              ? t('No matching capabilities')
-              : t('A good kit starts here.')
-          }
-          text={t(
-            'Scan skills already on this machine, add a source, or write something of your own.',
+        <>
+          <p className="source-view-help">
+            {t(
+              'Sources are collections and references. Open a source to choose which items to import.',
+            )}
+          </p>
+          <div className="source-filter-row">
+            <SearchBox
+              value={sourceQuery}
+              label={t('Search sources')}
+              placeholder={t('Search source names, URLs or notes…')}
+              onChange={(query) => {
+                setSourceQuery(query);
+                setPage(0);
+              }}
+            />
+            <label htmlFor="library-source-type">
+              {t('Source type')}
+              <Select
+                label={t('Source type')}
+                id="library-source-type"
+                value={sourceType}
+                onValueChange={(value) => {
+                  setSourceType(value);
+                  setPage(0);
+                }}
+                options={[
+                  { value: 'all', label: t('All source types') },
+                  ...(['github', 'local', 'listing', 'plugin', 'resource'] as const).map(
+                    (type) => ({
+                      value: type,
+                      label: {
+                        github: 'GitHub',
+                        local: t('Local folder'),
+                        listing: t('Directory listing'),
+                        plugin: t('Plugin'),
+                        resource: t('Reference'),
+                      }[type],
+                    }),
+                  ),
+                ]}
+              />
+            </label>
+            <label htmlFor="library-source-status">
+              {t('Reachability')}
+              <Select
+                label={t('Reachability')}
+                id="library-source-status"
+                value={sourceStatus}
+                onValueChange={(value) => {
+                  setSourceStatus(value);
+                  setPage(0);
+                }}
+                options={[
+                  { value: 'all', label: t('Any reachability') },
+                  { value: 'unchecked', label: t('Not checked') },
+                  { value: 'reachable', label: t('Reachable') },
+                  { value: 'unavailable', label: t('Unavailable') },
+                ]}
+              />
+            </label>
+          </div>
+          {sources.length ? (
+            <SourceList
+              sources={sources.slice(visiblePage * PAGE_SIZE, (visiblePage + 1) * PAGE_SIZE)}
+              onSelect={setSourceDetail}
+            />
+          ) : (
+            <Empty
+              title={t('No matching sources')}
+              text={t('Change the search or source filters.')}
+            >
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSourceQuery('');
+                  setSourceType('all');
+                  setSourceStatus('all');
+                }}
+              >
+                {t('Clear filters')}
+              </Button>
+            </Empty>
           )}
-        >
-          <Button onClick={() => setAdding(true)}>
-            <Plus size={15} />
-            {t('Add to library')}
-          </Button>
-        </Empty>
+        </>
       )}
       <div className="list-footer">
         <span>
-          {view === 'sources'
-            ? countText(sources.length, 'source')
-            : countText(families.length, 'capability group', 'capability groups')}{' '}
-          {t('· Content opens on demand')}
+          {view === 'items'
+            ? countText(results.length, 'item')
+            : countText(sources.length, 'source')}
         </span>
         <div className="button-row">
           <Button
             variant="ghost"
-            disabled={page === 0}
-            onClick={() => setPage((value) => value - 1)}
+            disabled={visiblePage === 0}
+            onClick={() => setPage(visiblePage - 1)}
           >
             {t('Previous')}
           </Button>
-          <span>{page + 1}</span>
+          <span>{visiblePage + 1}</span>
           <Button
             variant="ghost"
-            disabled={(page + 1) * 40 >= (view === 'sources' ? sources.length : families.length)}
-            onClick={() => setPage((value) => value + 1)}
+            disabled={(visiblePage + 1) * PAGE_SIZE >= total}
+            onClick={() => setPage(visiblePage + 1)}
           >
             {t('Next')}
           </Button>
@@ -384,12 +400,8 @@ export function Library(props: PageProps): ReactNode {
         </details>
       ) : null}
       <div className="library-footnote">
-        <ShieldAlert size={15} />
-        <span>
-          {t(
-            '“No flags” means the built-in heuristics found nothing. Source reachability and publisher trust are separate.',
-          )}
-        </span>
+        <ShieldAlert size={14} />
+        <span>{t('No flags means no heuristic findings. It is not a security guarantee.')}</span>
       </div>
       <ModalPresence>
         {adding && (
@@ -399,7 +411,7 @@ export function Library(props: PageProps): ReactNode {
             onSourceAdded={(source) => {
               setAdding(false);
               changeView('sources');
-              setQuery('');
+              setSourceQuery('');
               setSourceDetail(source);
             }}
           />
@@ -416,7 +428,7 @@ export function Library(props: PageProps): ReactNode {
             onSource={(source) => {
               setDiscovering(false);
               changeView('sources');
-              setQuery('');
+              setSourceQuery('');
               setSourceDetail(source);
             }}
           />
@@ -431,7 +443,7 @@ export function Library(props: PageProps): ReactNode {
           />
         )}
       </ModalPresence>
-    </>
+    </div>
   );
 }
 

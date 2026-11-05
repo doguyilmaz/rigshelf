@@ -37,7 +37,7 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
     <>
       <PageHeader
         eyebrow={t('CHANGES YOU CAN TRACE')}
-        title={t('Nothing behind the curtain.')}
+        title={t('Activity')}
         description={t('Setup plans, library changes, and a way back when you need one.')}
       />
       {state.recoveries?.map((recovery) => (

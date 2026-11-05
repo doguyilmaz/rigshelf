@@ -14,9 +14,9 @@
     "check": "tsc --noEmit",
     "test": "bun test",
     "verify": "bun run check && bun run check:locales && bun test && bun run build",
-    "lint": "biome check src web tests scripts",
-    "format": "biome check --write src web tests scripts",
-    "test:ui": "bun scripts/ui-smoke.ts && bun scripts/ui-flows.ts && bun scripts/ui-stress.ts && bun scripts/ui-controls.ts && bun scripts/ui-localization.ts",
+    "lint": "biome check src web tests scripts design",
+    "format": "biome check --write src web tests scripts design",
+    "test:ui": "bun scripts/ui-smoke.ts && bun scripts/ui-flows.ts && bun scripts/ui-stress.ts && bun scripts/ui-controls.ts && bun scripts/ui-localization.ts && bun scripts/ui-library.ts",
     "check:locales": "bun scripts/check-locales.ts"
   },
   "dependencies": {

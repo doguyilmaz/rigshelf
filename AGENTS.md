@@ -17,7 +17,7 @@ Kitfold sets up coding agents per project. The private library is separate from 
 
 Use strict TypeScript and validate untrusted input at boundaries. Prefer descriptive names, focused functions, named limits and explicit async error handling. Extract meaningful logic and UI components instead of introducing generic frameworks for one-off operations. Avoid explicit `any`, leftover debug logging and unrelated dependencies.
 
-UI copy and public documentation are English. Use the existing warm paper/forest design, local fonts, accessible controls and responsive lists. Keep editors practical and light. Private filesystem paths, project inventories, imported content and screenshots never belong in public source.
+UI copy and public documentation are English. Use neutral white/gray surfaces, readable local fonts, accessible controls and responsive lists. Keep labels concrete; avoid decorative green/purple themes, marketing slogans and ambiguous mixed filter dimensions. Keep editors practical and light. Private filesystem paths, project inventories, imported content and screenshots never belong in public source.
 
 ## Verification
 

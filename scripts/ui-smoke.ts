@@ -36,7 +36,7 @@ const directory = resolve('.local/qa');
 await mkdir(directory, { recursive: true });
 try {
   await page.goto(server.accessUrl);
-  await page.getByRole('heading', { name: /Every project/ }).waitFor();
+  await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
   await page.screenshot({ path: join(directory, 'setup-desktop.png'), fullPage: true });
   await page.getByLabel('Project directory', { exact: true }).fill(data.project);
   await page.getByLabel('Project directory', { exact: true }).press('Escape');

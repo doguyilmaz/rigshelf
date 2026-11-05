@@ -33,7 +33,7 @@ try {
   await page.getByLabel('Interface language', { exact: true }).click();
   await page.getByRole('option', { name: 'Türkçe', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
-  await expect(page.getByRole('heading', { name: 'Tercihlerinize göre ayarlayın.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ayarlar' })).toBeVisible();
   await expect(roots).toHaveValue('/fictional/unsaved-root');
   await roots.fill(original);
   await page.reload();
@@ -95,7 +95,7 @@ try {
   await page.getByLabel('Arayüz dili', { exact: true }).click();
   await page.getByRole('option', { name: 'English', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page.getByRole('heading', { name: 'Make yourself at home.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   const blockedContext = await browser.newContext();
   const blockedPage = await blockedContext.newPage();
   await blockedPage.route('**/assets/tr-*.js', (request) => request.abort());

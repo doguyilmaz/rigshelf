@@ -37,6 +37,8 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R31 | Three interactive prototypes, an inline visual comparison and separately addressable built preview URLs. No final visual direction or replacement name has been selected. |
 | R32 | Stable editor frames, retained exit presence, a shared backdrop, inert exiting controls and native focus restoration. Browser tests exercise delayed content, tabs, close and editor replacement. |
 | R33 | Browser-persisted English/Turkish UI with lazy Turkish loading, matching catalogs, interpolation checks, localized dates/counts and cross-tab updates. Six-language release work is tracked in [localization](LOCALIZATION.md); the remaining four are not shipped yet. |
+| R34 | Family-based search/filter engine, separate item/source views, visible status, independent facets, manual classification and browser saved views. Seven core regressions and a 520-item browser flow cover behavior. |
+| R35 | Neutral application chrome, direct page titles, readable library rows and a component-based interactive preview. Visual direction remains open to user feedback. |
 
 ## Operating limits
 

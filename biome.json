@@ -6,24 +6,55 @@
       "web/**",
       "tests/**",
       "scripts/**",
+      "design/**/*.tsx",
       "*.json",
       "vite.config.ts",
       "!web/public"
     ]
   },
-  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
-  "javascript": {
-    "formatter": { "quoteStyle": "single", "semicolons": "always", "trailingCommas": "all" }
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
   },
-  "css": { "formatter": { "enabled": true } },
-  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "suspicious": { "noExplicitAny": "error", "noConsole": "error", "noTemplateCurlyInString": "off" },
-      "style": { "noDescendingSpecificity": "off", "noNonNullAssertion": "off", "useImportType": "error" },
-      "a11y": { "useButtonType": "error" }
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsole": "error",
+        "noTemplateCurlyInString": "off"
+      },
+      "style": {
+        "noDescendingSpecificity": "off",
+        "noNonNullAssertion": "off",
+        "useImportType": "error"
+      },
+      "a11y": {
+        "useButtonType": "error"
+      }
     }
   }
 }

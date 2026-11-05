@@ -197,7 +197,7 @@ try {
         await page.getByRole('button', { name: section, exact: true }).first().click();
         await expect(
           page.getByRole('heading', {
-            name: section === 'Library' ? 'The library' : 'Your projects',
+            name: section === 'Library' ? 'Library' : 'Your projects',
             exact: true,
           }),
         ).toBeVisible();

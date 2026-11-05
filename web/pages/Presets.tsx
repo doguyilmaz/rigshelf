@@ -34,7 +34,7 @@ export function Presets(props: PageProps): ReactNode {
     <>
       <PageHeader
         eyebrow={t('GOOD DEFAULTS, ON REPEAT')}
-        title={t('A head start, saved.')}
+        title={t('Presets')}
         description={t('Build a small foundation once. Adapt it for every kind of project.')}
         action={
           <Button onClick={() => setEditing(fresh())}>

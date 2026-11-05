@@ -43,7 +43,7 @@ export function Directives(props: PageProps): ReactNode {
     <>
       <PageHeader
         eyebrow={t('YOUR WAY OF WORKING')}
-        title={t('Guidance that travels.')}
+        title={t('Directives')}
         description={t('Small, scoped instructions. In your voice, in the right projects.')}
         action={
           <Button onClick={create}>

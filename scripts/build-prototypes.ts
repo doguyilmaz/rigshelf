@@ -10,3 +10,5 @@ await Bun.write(
   `${directory}/project-setup.html`,
   source.replace(scripts[0][0], '<script src="./project-setup.js"></script>'),
 );
+
+await import('./build-library-preview');

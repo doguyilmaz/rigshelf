@@ -32,7 +32,7 @@ await mkdir(directory, { recursive: true });
 const checks: string[] = [];
 try {
   await page.goto(server.accessUrl);
-  await page.getByRole('heading', { name: /Every project/ }).waitFor();
+  await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
   const path = page.getByLabel('Project directory', { exact: true });
   await path.fill('~/Projects/a-new-project');
   await path.press('Escape');
@@ -70,11 +70,16 @@ try {
     'Dialog popups are visible; Escape dismisses only the popup and restores focus; empty search has feedback.',
   );
 
+  await page.getByRole('button', { name: 'More filters', exact: true }).click();
   for (const width of [1440, 1280, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 800 });
-    const group = page.getByLabel('Group library', { exact: true });
+    if (width <= 1050) {
+      const toggle = page.getByRole('button', { name: /^Filters/ });
+      if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+    }
+    const group = page.getByLabel('Source', { exact: true });
     await group.click();
-    await page.getByLabel('Search group library', { exact: true }).fill('Mobile Engineering');
+    await page.getByLabel('Search source', { exact: true }).fill('Mobile Engineering');
     const option = page.getByRole('option', { name: source.name, exact: true });
     await expect(option).toBeVisible();
     const popup = page.locator('.select-popup');
@@ -98,8 +103,8 @@ try {
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
       throw new Error(`Selected long label causes horizontal overflow at ${width}px`);
     await group.click();
-    await page.getByLabel('Search group library', { exact: true }).fill('All sources');
-    await page.getByRole('option', { name: 'All sources & projects', exact: true }).click();
+    await page.getByLabel('Search source', { exact: true }).fill('Any source');
+    await page.getByRole('option', { name: 'Any source', exact: true }).click();
   }
   checks.push(
     'Long labels and open searchable popups fit six desktop/tablet/mobile widths with no Axe violations.',

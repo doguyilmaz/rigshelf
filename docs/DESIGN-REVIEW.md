@@ -35,3 +35,18 @@ The standalone [project setup prototype](../design/prototypes/project-setup.html
 No direction is approved yet. The user requested alternatives before a visual redesign. The working name also remains provisional; see [naming](NAMING.md). Keep functional fixes independent of the eventual visual choice.
 
 After `bun run build`, the running workbench also serves `/prototypes/project-setup.html?v=1` (single screen), `?v=2` (guided) and `?v=3` (file preview). The build extracts the prototype script into a local asset so these pages work with the application's existing Content Security Policy; no inline-script exception is added.
+
+## Library clarity and neutral direction
+
+The user's review rejected decorative green and purple visual treatments and asked for understandable navigation over a large inventory. This does not reject guided setup as a workflow; the earlier Canvas color treatment was the problem. The working application now uses neutral surfaces, concrete page titles and a functional library explorer. No replacement product name was selected.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Skills, MCP, Custom, Sources and Archived shared one tab row | Item types, source view, origin and status are separate dimensions | Each control answers one question. |
+| A combined source/project selector and flat tags | Platform, technology and task facets, then independent refinements | Find content without remembering names. |
+| Filters reset on navigation and were hard to inspect | Visible removable chips and named browser views | Keep and repeat a useful search. |
+| Filtering happened before revision grouping | Families are grouped first; historical installations remain associated | Counts and project-use filters reflect actual saved items. |
+| Archived-only empty results said the library was empty | Empty-filter results and a genuinely empty library have separate explanations | Content does not appear to disappear. |
+| Forest surfaces, serif slogans and decorative setup artwork | White/gray chrome, local sans typography and direct labels | Keep attention on the task and data. |
+
+The [library browsing contract](LIBRARY.md) describes classification limits and filter semantics. The new `/prototypes/library.html` preview uses the production component with isolated fictional state. It is a working design direction for feedback, not a claim of final visual approval.

@@ -113,7 +113,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
     <>
       <PageHeader
         eyebrow={t('ON YOUR TERMS')}
-        title={t('Make yourself at home.')}
+        title={t('Settings')}
         description={t('Local storage, deliberate automation, and no account to manage.')}
       />
       <div className="settings-layout">

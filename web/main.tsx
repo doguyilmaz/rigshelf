@@ -14,7 +14,7 @@ import {
   Shapes,
   X,
 } from 'lucide-react';
-import React, { type ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { lazy, type ReactNode, Suspense, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { type AppState, api } from './api';
 import { Button, Modal, SearchBox, Spinner } from './components';
@@ -23,12 +23,17 @@ import { localeReady, t, useLocale } from './i18n';
 import { ModalPresence } from './ModalPresence';
 import { Activity } from './pages/Activity';
 import { Directives } from './pages/Directives';
-import { Library } from './pages/Library';
+
+const Library = lazy(() =>
+  import('./pages/Library').then((module) => ({ default: module.Library })),
+);
+
 import { Presets } from './pages/Presets';
 import { Projects } from './pages/Projects';
 import { Settings } from './pages/Settings';
 import { Setup } from './pages/Setup';
 import './styles.css';
+import './neutral.css';
 
 export type Page =
   | 'setup'
@@ -212,29 +217,9 @@ function App(): ReactNode {
             >
               <item.icon size={18} strokeWidth={1.7} />
               <span>{t(item.name)}</span>
-              {item.id === 'library' && (
-                <small>{state.entries.length.toLocaleString(locale)}</small>
-              )}
             </button>
           ))}
         </nav>
-        <div className="sidebar-note">
-          <div className="mini-layers">
-            <span />
-            <span />
-            <span />
-          </div>
-          <p>
-            {t('Your tools.')}
-            <br />
-            {t('Your way of working.')}
-          </p>
-          <span>
-            {t('A library for every project.')}
-            <br />
-            {t('Only the right kit in context.')}
-          </span>
-        </div>
         <div className="sidebar-bottom">
           <button
             type="button"
@@ -297,16 +282,18 @@ function App(): ReactNode {
           </div>
         </div>
         <main key={page} className="page-enter">
-          {page === 'setup' && <Setup {...props} initialPath={projectPath} />}{' '}
-          {page === 'library' && <Library {...props} />}{' '}
-          {page === 'projects' && <Projects {...props} />}{' '}
-          {page === 'presets' && <Presets {...props} />}{' '}
-          {page === 'directives' && <Directives {...props} />}{' '}
-          {page === 'settings' && <Settings {...props} />}{' '}
-          {page === 'activity' && <Activity {...props} />}
+          <Suspense fallback={<Spinner text={t('Loading page…')} />}>
+            {page === 'setup' && <Setup {...props} initialPath={projectPath} />}{' '}
+            {page === 'library' && <Library {...props} />}{' '}
+            {page === 'projects' && <Projects {...props} />}{' '}
+            {page === 'presets' && <Presets {...props} />}{' '}
+            {page === 'directives' && <Directives {...props} />}{' '}
+            {page === 'settings' && <Settings {...props} />}{' '}
+            {page === 'activity' && <Activity {...props} />}
+          </Suspense>
         </main>
         <footer className="app-footer">
-          <span>{t('Good defaults. Deliberate choices.')}</span>
+          <span>{t('Local project setup')}</span>
           <span>{t('Skills · MCP · Directives')}</span>
         </footer>
       </div>

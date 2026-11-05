@@ -47,12 +47,14 @@ Each requirement retains an identifier so implementation and deferred work can b
 | R31 | Review visual alternatives | Show interactive layout alternatives and direct preview URLs before adopting a redesign. The product name remains provisional and requires a clear comparison of researched candidates. |
 | R32 | Stable dialogs | Smooth open/close and editor replacement; stable frame during asynchronous content and tabs, one backdrop, preserved keyboard/focus behavior, and reduced-motion support. |
 | R33 | Interface localization | English/Turkish now, with at least six complete languages required for the first public release. Persist the browser choice, preserve drafts, and never translate authored library or project content implicitly. |
+| R34 | Understandable library filtering | Separate item type from source/origin/status. Combine platform, technology, task, tags, source, project, agent and review filters; expose counts, selected filters, unknown classifications and repeatable saved views. |
+| R35 | Clear neutral design | Use plain labels, readable typography and neutral surfaces. Avoid decorative green/purple schemes, slogans and controls that mix unrelated concepts. |
 
 ## Interaction design
 
 Primary action: **Set up a project**. Navigation: Setup, Library, Projects, Presets, Directives, Activity, Settings. A source is a collection; a skill is a capability; a kit is the small selection activated for a project. Keep those concepts distinct in the interface. Details use focused dialogs; setup uses a reviewable sequence. Trust labels describe evidence, not decoration. Backup never leads the experience.
 
-Current implementation baseline, pending user review of the interactive alternatives: a quiet technical workbench with warm paper surfaces, deep ink, restrained copper accents, fine rules, generous space, readable typography, and small purposeful motion. Dense information belongs in searchable lists rather than an ocean of statistic cards.
+Current direction: neutral white/gray surfaces, readable local typography, concrete page titles and restrained motion. The library starts with clear item types and platform/technology/task facets. Item details and advanced filters carry secondary complexity. The guided workflow itself remains an option; decorative green and purple treatments are rejected.
 
 ## Architectural boundaries
 

@@ -1,7 +1,9 @@
 import { Check, Copy, FileText, FolderOpen, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import type { Entry } from '../../src/core/model';
+import { isClassificationTag } from '../../src/core/taxonomy';
 import { api, apiId, formatDate, shortPath } from '../api';
+import { ClassificationEditor } from '../ClassificationEditor';
 import {
   Badge,
   Button,
@@ -199,8 +201,27 @@ function EntryInspector({
           <div className="editor-form">
             <label>
               {t('Tags')}
-              <input value={tags} onChange={(event) => setTags(event.target.value)} />
+              <input
+                value={tags
+                  .split(',')
+                  .map((value) => value.trim())
+                  .filter((value) => !isClassificationTag(value))
+                  .join(', ')}
+                onChange={(event) =>
+                  setTags(
+                    [
+                      ...event.target.value.split(',').map((value) => value.trim()),
+                      ...tagValues.filter(isClassificationTag),
+                    ].join(', '),
+                  )
+                }
+              />
             </label>
+            <ClassificationEditor
+              entry={entry}
+              tags={tagValues}
+              onChange={(values) => setTags(values.join(', '))}
+            />
             <label htmlFor="entry-source">
               {t('Source relationship')}
               <Select

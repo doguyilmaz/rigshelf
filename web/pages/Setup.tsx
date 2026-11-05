@@ -132,30 +132,17 @@ export function Setup({
     <>
       <div className="setup-heading">
         <div>
-          <p className="eyebrow">
-            <span className="tiny-line" />
-            {t(' THE RIGHT START')}
-          </p>
-          <h1>
-            {t('Every project.')}
-            <br />
-            <em>{t('Ready for your agents.')}</em>
-          </h1>
-          <p>
-            {t('Bring the skills, tools, and guidance you need.')}
-            <br />
-            {t('Leave the rest in your library.')}
-          </p>
+          <h1>{t('Set up a project')}</h1>
+          <p>{t('Choose a folder, a kit and your agents. Review the files before applying.')}</p>
         </div>
-        <KitIllustration />
       </div>
       <div className="setup-layout">
         <div className="setup-form">
           <section className="form-section">
             <SectionTitle
               number="01"
-              title={t('Where are we building?')}
-              detail="New folder or existing project. Both feel at home."
+              title={t('Project')}
+              detail={t('New or existing project directory.')}
             />
             <label className="field-label" htmlFor="project-path">
               {t('Project directory')}
@@ -301,7 +288,7 @@ export function Setup({
           <section className="form-section">
             <SectionTitle
               number="03"
-              title={t('Make it yours')}
+              title={t('Project kit')}
               detail="A focused kit, with room for your own choices."
             />
             {!detected ? (
@@ -602,35 +589,6 @@ function SectionTitle({
         <h2>{title}</h2>
         <p>{detail}</p>
       </div>
-    </div>
-  );
-}
-function KitIllustration(): ReactNode {
-  return (
-    <div className="kit-illustration" aria-hidden="true">
-      <div className="orbit-ring" />
-      <div className="illustration-card back">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div className="illustration-card middle">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div className="illustration-card front">
-        <Layers2 size={27} strokeWidth={1.3} />
-        <div />
-        <div />
-        <small>{t('YOUR PROJECT KIT')}</small>
-        <span className="illustration-check">
-          <Check size={15} />
-        </span>
-      </div>
-      <span className="orbit-dot one" />
-      <span className="orbit-dot two" />
-      <span className="orbit-cross">+</span>
     </div>
   );
 }

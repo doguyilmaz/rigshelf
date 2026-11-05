@@ -80,7 +80,7 @@ async function nav(name: string): Promise<void> {
 }
 try {
   await page.goto(server.accessUrl);
-  await page.getByRole('heading', { name: /Every project/ }).waitFor();
+  await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
   await audit('setup');
   await page.getByLabel('Project directory', { exact: true }).fill(fixtureData.project);
   await page.getByLabel('Project directory', { exact: true }).press('Escape');
@@ -91,7 +91,7 @@ try {
   ).toBeVisible();
   await page.getByLabel('Project directory', { exact: true }).fill('');
   await nav('Library');
-  await page.getByRole('button', { name: /field-guide Use this guide/ }).click();
+  await page.getByRole('button', { name: 'Open field-guide', exact: true }).click();
   let detail = page.getByRole('dialog', { name: 'field-guide', exact: true });
   await detail.getByRole('button', { name: 'Content', exact: true }).click();
   await detail.getByRole('button', { name: 'Edit a custom fork', exact: true }).click();
@@ -135,13 +135,16 @@ try {
     'Supporting files can be added and removed as immutable revisions; snapshot approval can be revoked.',
   );
 
-  await page.getByRole('tab', { name: /^Custom/ }).click();
+  await page.getByRole('button', { name: 'More filters', exact: true }).click();
+  await page.getByLabel('Origin', { exact: true }).click();
+  await page.getByRole('option', { name: 'Custom content', exact: true }).click();
   await page.locator('.entry-list-row').first().click();
   detail = page.getByRole('dialog').first();
   await detail.getByRole('button', { name: 'Archive snapshot', exact: true }).click();
   await detail.getByRole('button', { name: 'Archive snapshot', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('tab', { name: /^Archived/ }).click();
+  await page.getByLabel('Status', { exact: true }).click();
+  await page.getByRole('option', { name: 'Archived only', exact: true }).click();
   await page.locator('.entry-list-row').first().click();
   detail = page.getByRole('dialog').first();
   await detail.getByRole('button', { name: 'Restore snapshot' }).click();
@@ -275,6 +278,7 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await nav('Library');
+  await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
   await page.locator('.entry-list-row').first().click();
   await audit('mobile-inspector');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);

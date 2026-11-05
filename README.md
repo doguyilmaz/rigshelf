@@ -31,6 +31,8 @@ For a global executable, run `bun link` in this checkout. This registers the `ki
 3. **Choose your agents.** Inspect findings, adjust the small kit, review file previews and apply.
 4. **Keep building.** Start or reload the agent session. Enable trusted additions per project if you want dependency changes to add already approved, pinned snapshots.
 
+The [library explorer](docs/LIBRARY.md) separates content type, platform, technology and task, with source/project/agent refinements, visible filter chips and saved browser views. Classification can be corrected without editing snapshot content.
+
 The library groups sources and content versions, with project/tag filters, custom forks, supporting-file editors, archives and provenance receipts. Presets inherit; directives follow global → domain → stack → project scope. Instruction and memory files load only when opened, and edits use the same plan/rollback engine.
 
 ## CLI
