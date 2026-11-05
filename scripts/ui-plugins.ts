@@ -34,7 +34,22 @@ await json(join(data.home, '.claude/plugins/installed_plugins.json'), {
 await json(join(data.project, '.claude/settings.local.json'), {
   enabledPlugins: { 'review@acme': false },
 });
-await scan(data.store, { roots: [data.project], globals: true, home: data.home, environment: {} });
+const scanned = await scan(data.store, {
+  roots: [data.project],
+  globals: true,
+  home: data.home,
+  environment: {},
+});
+data.store.put('scan', {
+  id: 'last',
+  ...scanned,
+  skipped: [
+    `${data.home}/.gemini/config/mcp_config.json: Empty MCP configuration; no definitions read and previous observations retained.`,
+    `${data.home}/.claude/hooks/token.ts: Non-guidance or private runtime target excluded.`,
+    `${data.project}: AI directory discovery limit reached (visited 4096/4096 directories, found 8/256 AI locations); inventory is partial.`,
+    `${data.project}/.mcp.json: MCP syntax error at line 3, column 2; previous observations retained.`,
+  ],
+});
 const before = data.store.installations();
 const server = startServer(data.store, 47996);
 const browser = await chromium.launch({ headless: true });
@@ -98,6 +113,23 @@ try {
   checks.push(
     'Native Plugin families combine Snapshot evidence, expose disabled declarations and distinguish install/config/cache/catalog without activating packages.',
   );
+  const notes = page.locator('.scan-diagnostics');
+  await expect(notes.locator(':scope > summary')).toHaveText('2 scan issues need attention');
+  await notes.locator(':scope > summary').click();
+  for (const name of [
+    'Incomplete discovery',
+    'Could not inspect',
+    'Empty MCP configurations',
+    'Intentional exclusions',
+  ])
+    await expect(notes.getByRole('region', { name, exact: true })).toBeVisible();
+  await expect(notes).toContainText('Line 3, column 2');
+  await notes.getByText('Technical details', { exact: true }).first().click();
+  await expect(notes).toContainText('visited 4096/4096');
+  await expect(notes).not.toContainText('files need attention from the last scan');
+  checks.push(
+    'Scan notes separate actionable coverage/parse problems from empty configs and intentional exclusions, with readable explanations and optional technical details.',
+  );
   for (const width of [1440, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 850 });
     await assertSurfaceFits(page, `Plugin library at ${width}`);
@@ -107,6 +139,31 @@ try {
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .analyze();
   expect(audit.violations.map((item) => item.id)).toEqual([]);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByLabel('Interface language', { exact: true }).click();
+  await page.getByRole('option', { name: 'Türkçe', exact: true }).click();
+  await page.getByRole('button', { name: 'Kütüphane', exact: true }).click();
+  await expect(notes.locator(':scope > summary')).toHaveText(
+    '2 tarama sorunu kontrol gerektiriyor',
+  );
+  if ((await notes.getAttribute('open')) === null) await notes.locator(':scope > summary').click();
+  await expect(
+    notes.getByRole('region', { name: 'Boş MCP yapılandırmaları', exact: true }),
+  ).toBeVisible();
+  await expect(
+    notes.getByRole('region', { name: 'Bilinçli dışlamalar', exact: true }),
+  ).toBeVisible();
+  await assertSurfaceFits(page, 'Turkish scan diagnostics');
+  data.store.put('scan', {
+    id: 'last',
+    ...scanned,
+    skipped: [
+      `${data.home}/.gemini/config/mcp_config.json: Empty MCP configuration; no definitions read and previous observations retained.`,
+    ],
+  });
+  await page.reload();
+  await expect(notes.locator(':scope > summary')).toHaveText('Tarama notları (1)');
+  await expect(notes.locator(':scope > summary')).not.toContainText('sorunu');
   expect(data.store.installations()).toEqual(before);
   expect(data.store.planSummaries()).toEqual([]);
   expect(errors).toEqual([]);

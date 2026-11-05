@@ -55,6 +55,7 @@ const MAX_NATIVE_PLUGIN_LOCATIONS = 10000;
 async function marketplaceCandidates(input: NativePluginInput): Promise<PackageCandidate[]> {
   const candidates: PackageCandidate[] = [];
   const indexes = new Set<string>();
+  const scanned = new Set<string>();
   for (const root of input.roots.filter((root) => ['claude', 'codex'].includes(root.provider))) {
     const locations: { path: string; name: string }[] = [];
     const known = await readPluginFile(
@@ -93,6 +94,8 @@ async function marketplaceCandidates(input: NativePluginInput): Promise<PackageC
         );
         continue;
       }
+      if (scanned.has(`${root.provider}:${canonical}`)) continue;
+      scanned.add(`${root.provider}:${canonical}`);
       for (const path of await pluginRoots(canonical, input.boundaries, input.warnings))
         candidates.push({ path, provider: root.provider, evidence: 'catalog' });
       for (const manifest of [
@@ -118,10 +121,15 @@ async function marketplaceCandidates(input: NativePluginInput): Promise<PackageC
           for (const value of raw.plugins.slice(0, 2048)) {
             const plugin = object(value);
             const pluginName = nativePluginId(plugin.name);
-            if (!pluginName || typeof plugin.source !== 'string' || !plugin.source.startsWith('./'))
+            if (
+              !pluginName ||
+              typeof plugin.source !== 'string' ||
+              !(plugin.source === '.' || plugin.source.startsWith('./'))
+            )
               continue;
             const path = resolve(canonical, plugin.source);
-            if (!inside(canonical, path)) {
+            const target = await realpath(path).catch(() => undefined);
+            if (!inside(canonical, path) || (target && !inside(canonical, target))) {
               input.warnings.push(`${file.path}: External marketplace package source excluded.`);
               continue;
             }
@@ -229,7 +237,7 @@ async function collectPackages(
       seen.has(`${provider}:${root}:${identity.nativeId}`)
     )
       continue;
-    if (!manifest && !candidate.nativeId) continue;
+    if (!manifest && !candidate.nativeId && identity.evidence !== 'cached') continue;
     seen.add(`${provider}:${root}:${identity.nativeId}`);
     const entry = savePluginReference(
       store,

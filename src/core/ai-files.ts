@@ -1,5 +1,5 @@
 import { lstat, readdir, realpath } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { mergedGuidance, nativeAiFiles } from './guidance-inventory';
 import {
   type AiConfigRoot,
@@ -10,31 +10,85 @@ import {
 import type { DocumentLocation } from './model';
 import { readPluginFile } from './plugin-files';
 import { portablePlugin } from './plugin-manifests';
+import { object } from './providers';
 import { inside } from './safety';
 
 const MAX_PLUGIN_DIRECTORIES = 4096;
 const MAX_PLUGIN_DEPTH = 6;
 const MAX_PLUGINS = 256;
 const MAX_FILES = 4096;
+const MAX_CATALOG_ENTRIES = 2048;
 export interface AiFileInventory {
   files: DocumentLocation[];
   warnings: string[];
   plugins: { path: string; provider: string }[];
 }
 
+/** A marketplace index identifies package directories; unrelated source trees are not packages. */
+async function catalogPackages(
+  root: string,
+  boundaries: string[],
+  warnings: string[],
+): Promise<string[] | undefined> {
+  for (const name of [
+    '.claude-plugin/marketplace.json',
+    '.codex-plugin/marketplace.json',
+    'marketplace.json',
+  ]) {
+    const file = await readPluginFile(join(root, name), boundaries, warnings);
+    if (!file) continue;
+    let raw: Record<string, unknown>;
+    try {
+      raw = object(JSON.parse(file.text));
+    } catch {
+      warnings.push(`${file.path}: Invalid marketplace catalog; inventory is partial.`);
+      continue;
+    }
+    if (!Array.isArray(raw.plugins)) continue;
+    if (raw.plugins.length > MAX_CATALOG_ENTRIES)
+      warnings.push(
+        `${file.path}: Marketplace entry limit reached (${MAX_CATALOG_ENTRIES}); inventory is partial.`,
+      );
+    const paths = new Set<string>();
+    for (const item of raw.plugins.slice(0, MAX_CATALOG_ENTRIES)) {
+      const source = object(item).source;
+      if (typeof source !== 'string' || !(source === '.' || source.startsWith('./'))) continue;
+      const target = resolve(root, source);
+      if (inside(root, target)) paths.add(target);
+      else warnings.push(`${file.path}: External marketplace package source excluded.`);
+    }
+    return [...paths];
+  }
+  return;
+}
+
 export async function pluginRoots(
   root: string,
   boundaries: string[],
   warnings: string[],
+  layout: 'generic' | 'cache' = 'generic',
 ): Promise<string[]> {
-  const pending = [{ path: root, depth: 0 }];
+  const pending: { path: string; depth: number; package: boolean; checkout?: string }[] = [
+    { path: root, depth: 0, package: false },
+  ];
   const visited = new Set<string>();
   const found: string[] = [];
   let limited = false;
   while (pending.length && visited.size < MAX_PLUGIN_DIRECTORIES && found.length < MAX_PLUGINS) {
     const current = pending.shift()!;
     const canonical = await realpath(current.path).catch(() => undefined);
-    if (!canonical || visited.has(canonical)) continue;
+    if (!canonical) {
+      if (current.package)
+        warnings.push(
+          `${current.path}: Declared Plugin package unavailable; inventory is partial.`,
+        );
+      continue;
+    }
+    if (visited.has(canonical)) continue;
+    if (current.checkout && !inside(current.checkout, canonical)) {
+      warnings.push(`${current.path}: External marketplace package link excluded.`);
+      continue;
+    }
     if (
       !boundaries.some(
         (base) =>
@@ -49,7 +103,10 @@ export async function pluginRoots(
       continue;
     }
     visited.add(canonical);
-    const entries = await readdir(current.path, { withFileTypes: true }).catch(() => []);
+    const entries = await readdir(current.path, { withFileTypes: true }).catch(() => {
+      warnings.push(`${current.path}: Plugin directory unavailable; inventory is partial.`);
+      return [];
+    });
     const markers = await Promise.all(
       ['.claude-plugin/plugin.json', '.codex-plugin/plugin.json'].map((name) =>
         lstat(join(current.path, name)).catch(() => undefined),
@@ -64,10 +121,30 @@ export async function pluginRoots(
         warnings.push(`${current.path}: Invalid portable Plugin manifest.`);
       }
     }
-    if (markers.some((marker) => marker?.isFile()) || portable) {
+    const cachedPackage = layout === 'cache' && current.depth === 3;
+    if (
+      markers.some((marker) => marker?.isFile()) ||
+      portable ||
+      current.package ||
+      cachedPackage
+    ) {
       found.push(current.path);
+      if (!cachedPackage || markers.some((marker) => marker?.isFile()) || portable) continue;
+    }
+    const packages = await catalogPackages(canonical, boundaries, warnings);
+    if (packages) {
+      for (const path of packages) {
+        if (pending.length + visited.size >= MAX_PLUGIN_DIRECTORIES) {
+          limited = true;
+          break;
+        }
+        if (path === canonical) {
+          if (!found.includes(current.path)) found.push(current.path);
+        } else pending.push({ path, depth: current.depth + 1, package: true, checkout: canonical });
+      }
       continue;
     }
+    if (cachedPackage) continue;
     if (current.depth >= MAX_PLUGIN_DEPTH) {
       limited ||= entries.some((entry) => entry.isDirectory() && !entry.name.startsWith('.'));
       continue;
@@ -83,11 +160,17 @@ export async function pluginRoots(
           limited = true;
           break;
         }
-        pending.push({ path: join(current.path, entry.name), depth: current.depth + 1 });
+        pending.push({
+          path: join(current.path, entry.name),
+          depth: current.depth + 1,
+          package: false,
+        });
       }
   }
   if (limited || pending.length)
-    warnings.push(`${root}: Plugin discovery limit reached; inventory is partial.`);
+    warnings.push(
+      `${root}: Plugin discovery limit reached (visited ${visited.size}/${MAX_PLUGIN_DIRECTORIES} directories, found ${found.length}/${MAX_PLUGINS} packages, maximum depth ${MAX_PLUGIN_DEPTH}); inventory is partial.`,
+    );
   return found;
 }
 
@@ -189,6 +272,7 @@ export async function globalAiFiles(configRoots: AiConfigRoot[]): Promise<AiFile
         join(root.path, 'plugins', name),
         canonical,
         result.warnings,
+        name === 'cache' ? 'cache' : 'generic',
       ))
         result.plugins.push({ path, provider: `${root.provider}-plugin` });
     }

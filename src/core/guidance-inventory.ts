@@ -103,6 +103,23 @@ export async function projectAiContexts(root: string): Promise<ProjectAiContexts
   const pending = [{ path: root, depth: 0 }];
   let visited = 0;
   let limited = false;
+  const unity =
+    (
+      await lstat(join(root, 'ProjectSettings/ProjectVersion.txt')).catch(() => undefined)
+    )?.isFile() && (await lstat(join(root, 'Assets')).catch(() => undefined))?.isDirectory();
+  const generated = unity
+    ? new Set([
+        'Library',
+        'Temp',
+        'Obj',
+        'obj',
+        'Logs',
+        'Build',
+        'Builds',
+        'MemoryCaptures',
+        'Recordings',
+      ])
+    : new Set<string>();
   while (pending.length && visited < MAX_DIRECTORIES && paths.size < MAX_CONTEXTS) {
     const current = pending.shift()!;
     visited++;
@@ -123,14 +140,20 @@ export async function projectAiContexts(root: string): Promise<ProjectAiContexts
           (entry) =>
             entry.isDirectory() &&
             !entry.name.startsWith('.') &&
-            !ignoredDirectories.has(entry.name),
+            !ignoredDirectories.has(entry.name) &&
+            (current.path !== root || !generated.has(entry.name)),
         )
       )
         warnings.push(`${current.path}: Nested AI discovery depth limit reached.`);
       continue;
     }
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith('.') || ignoredDirectories.has(entry.name))
+      if (
+        !entry.isDirectory() ||
+        entry.name.startsWith('.') ||
+        ignoredDirectories.has(entry.name) ||
+        (current.path === root && generated.has(entry.name))
+      )
         continue;
       if (pending.length + visited >= MAX_DIRECTORIES) {
         limited = true;
@@ -140,7 +163,9 @@ export async function projectAiContexts(root: string): Promise<ProjectAiContexts
     }
   }
   if (pending.length || limited)
-    warnings.push(`${root}: AI directory discovery limit reached; inventory is partial.`);
+    warnings.push(
+      `${root}: AI directory discovery limit reached (visited ${visited}/${MAX_DIRECTORIES} directories, found ${paths.size}/${MAX_CONTEXTS} AI locations); inventory is partial.`,
+    );
   return { paths: [...paths], warnings };
 }
 

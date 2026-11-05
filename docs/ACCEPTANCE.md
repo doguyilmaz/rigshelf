@@ -52,6 +52,8 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 
 | R46 | Library indexes native Claude/Codex/OpenCode Plugin evidence rather than only saved recipes. User/project/local scopes, disabled declarations, cache/catalog separation, canonical aliases, native manifests and nested ignored contexts are covered by read-only fixtures. Plugin evidence is filterable and grouped across Snapshot revisions. Partial scans retain prior observations; full catalog backups and unchanged Snapshot/source-file checks precede private refreshes. Native package activation/conversion and undocumented stores remain explicit compatibility limits. |
 
+| R47 | Scan diagnostics distinguish incomplete/unreadable coverage from empty MCP files and deliberate exclusions, with localized explanations and optional technical details. Known cache/catalog paths avoid arbitrary package internals; Unity generated directories do not consume the authored-source discovery budget. Empty/malformed MCP sources retain earlier observations without source edits or parser-content disclosure. |
+
 ## Operating limits
 
 Native discovery may require a new or reloaded agent session. Kitfold does not inject tools into a running harness without a supported reload mechanism. The bridge covers tools/resources/prompts and documented filtering/interpolation gaps; experimental extensions, sampling and elicitation need an appropriate native integration.

@@ -24,7 +24,7 @@ import { librarySourceGroups, SOURCE_GROUP_PAGE_SIZE } from '../../src/core/libr
 import type { Entry, Source } from '../../src/core/model';
 import { foldSearch } from '../../src/core/taxonomy';
 import { AiAssist } from '../AiAssist';
-import { api, apiId, formatDate, shortPath } from '../api';
+import { api, apiId, formatDate } from '../api';
 import {
   Badge,
   Button,
@@ -44,6 +44,7 @@ import { t } from '../i18n';
 import { useLibraryPreferences } from '../library-preferences';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
+import { ScanDiagnostics } from '../ScanDiagnostics';
 import { Select } from '../Select';
 import { LibraryGroupingControl, SourceGroups } from '../SourceGroups';
 import { Discover } from './Discover';
@@ -433,17 +434,7 @@ export function Library(props: PageProps): ReactNode {
           </Button>
         </div>
       </div>
-      {state.lastScan?.skipped.length ? (
-        <details className="warnings">
-          <summary>
-            {state.lastScan.skipped.length}
-            {t(' files need attention from the last scan')}
-          </summary>
-          {[...new Set(state.lastScan.skipped)].map((message) => (
-            <p key={message}>{shortPath(message)}</p>
-          ))}
-        </details>
-      ) : null}
+      <ScanDiagnostics messages={state.lastScan?.skipped || []} />
       <div className="library-footnote">
         <ShieldAlert size={14} />
         <span>{t('No flags means no heuristic findings. It is not a security guarantee.')}</span>

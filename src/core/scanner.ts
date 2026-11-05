@@ -22,6 +22,7 @@ import {
   projectSkillPaths,
 } from './inventory-paths';
 import type { Kit } from './kit';
+import { McpInventoryError, readInventoryMcpConfig } from './mcp-inventory-config';
 import { mcpLocationGroups } from './mcp-locations';
 import { type DocumentLocation, type Entry, McpSchema, type Project, type Source } from './model';
 import { ownedProject } from './ownership';
@@ -29,7 +30,7 @@ import { pluginRegistries } from './plugin-config';
 import { pluginBoundaries, pluginPathAllowed } from './plugin-files';
 import { inventoryNativePlugins } from './plugin-inventory';
 import { pluginProject } from './plugin-records';
-import { canonicalMcp, object, readConfig } from './providers';
+import { canonicalMcp, object } from './providers';
 import { hash, inside, now, redact, scanText } from './safety';
 import { pinnedMcp, pinnedSkill } from './scan-pinned';
 import type { Store } from './store';
@@ -306,7 +307,7 @@ async function importMcp(
         configurations.add(path);
         continue;
       }
-      const config = readConfig(text, format);
+      const config = readInventoryMcpConfig(text, format);
       seenFiles.add(keyForFile);
       configurations.add(path);
       for (const group of mcpLocationGroups(store, config, key, localPath, project))
@@ -382,9 +383,9 @@ async function importMcp(
           });
           count++;
         }
-    } catch {
+    } catch (error) {
       skipped.push(
-        `${path}: MCP configuration could not be indexed. Check its format, size and permissions.`,
+        `${path}: ${error instanceof McpInventoryError ? error.message : 'MCP configuration could not be read. Check its size and permissions; previous observations retained.'}`,
       );
     }
   }
