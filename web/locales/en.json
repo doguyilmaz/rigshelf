@@ -901,5 +901,17 @@
   "Directive content": "Directive content",
   "The workbench is shutting down. No AI generation was started.": "The workbench is shutting down. No AI generation was started.",
   "Check the request, Provider and model name. Model names cannot contain spaces or shell options.": "Check the request, Provider and model name. Model names cannot contain spaces or shell options.",
-  "AI suggested a source reference you did not provide. Paste the exact link or command and try again.": "AI suggested a source reference you did not provide. Paste the exact link or command and try again."
+  "AI suggested a source reference you did not provide. Paste the exact link or command and try again.": "AI suggested a source reference you did not provide. Paste the exact link or command and try again.",
+  "Item display": "Item display",
+  "By source": "By source",
+  "All items": "All items",
+  "Usage": "Usage",
+  "Items from {{name}}": "Items from {{name}}",
+  "Source details: {{name}}": "Source details: {{name}}",
+  "Source details": "Source details",
+  "{{count}} of {{total}} items": "{{count}} of {{total}} items",
+  "{{count}} selected": "{{count}} selected",
+  "{{start}}–{{end}} of {{count}}": "{{start}}–{{end}} of {{count}}",
+  "Previous items in {{name}}": "Previous items in {{name}}",
+  "Next items in {{name}}": "Next items in {{name}}"
 }

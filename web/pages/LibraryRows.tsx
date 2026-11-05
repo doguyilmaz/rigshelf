@@ -22,17 +22,19 @@ export function LibraryRows({
   items,
   onSelect,
   showKind,
+  showSource = true,
 }: {
   items: LibraryItem[];
   onSelect: (id: string) => void;
   showKind: boolean;
+  showSource?: boolean;
 }) {
   return (
     <div className="entry-list library-result-list">
       <div className="entry-list-head">
         <span>{t('Item')}</span>
         <span>{t('Platform / technology')}</span>
-        <span>{t('Source / use')}</span>
+        <span>{showSource ? t('Source / use') : t('Usage')}</span>
         <span>{t('Review')}</span>
       </div>
       {items.map((item) => {
@@ -96,7 +98,7 @@ export function LibraryRows({
                 ))}
             </div>
             <div className="entry-source">
-              <span>{source?.name || t('Unknown source')}</span>
+              {showSource && <span>{source?.name || t('Unknown source')}</span>}
               <small>
                 {usedProjects.size
                   ? countText(usedProjects.size, 'project')

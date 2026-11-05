@@ -5,6 +5,7 @@ import {
   filterLibrary,
   libraryItems,
 } from '../src/core/library';
+import { librarySourceGroups } from '../src/core/library-groups';
 import type { Entry, Installation, Source } from '../src/core/model';
 import { classifyEntry } from '../src/core/taxonomy';
 import { readLibraryFilters } from '../web/library-preferences';
@@ -184,4 +185,60 @@ test('browser filter preferences tolerate corrupt data, constrain values and pre
   expect(value.platforms).toEqual(['ios']);
   expect(value.query).toBe('hello');
   expect(Object.hasOwn({}, 'polluted')).toBe(false);
+});
+
+test('source groups preserve distinct relationships, custom content and orphaned source records', () => {
+  const another = { ...source, id: 'another-collection' };
+  const custom = { ...source, id: 'custom', name: 'Custom skills', type: 'local' as const };
+  const rows = libraryItems(
+    {
+      entries: [
+        ...sample,
+        entry('other', 'another-guide', [], { sourceId: another.id }),
+        entry('authored', 'custom-guide', [], { sourceId: custom.id, custom: true }),
+        entry('orphan-a', 'retained-a', [], { sourceId: 'missing-a' }),
+        entry('orphan-b', 'retained-b', [], { sourceId: 'missing-b' }),
+      ],
+      sources: [source, another, custom],
+      installations: [],
+    },
+    'active',
+  );
+  const groups = librarySourceGroups(rows, rows);
+  expect(groups).toHaveLength(5);
+  expect(groups.find((group) => group.sourceId === source.id)?.items).toHaveLength(4);
+  expect(groups.find((group) => group.sourceId === another.id)?.source?.name).toBe(source.name);
+  expect(groups.find((group) => group.sourceId === custom.id)?.items[0]?.entry.custom).toBe(true);
+  expect(groups.filter((group) => !group.source).map((group) => group.sourceId)).toEqual([
+    'missing-a',
+    'missing-b',
+  ]);
+  expect(groups.flatMap((group) => group.items)).toHaveLength(rows.length);
+});
+
+test('filtering searches the whole collection before grouping, keeps exact revisions and reports matching totals', () => {
+  const entries = Array.from({ length: 47 }, (_, index) =>
+    entry(`guide-${index}`, `guide-${index}`, []),
+  );
+  entries.push(entry('new-revision', 'guide-46', ['expo'], { updatedAt: '2026-11-01T00:00:00Z' }));
+  const rows = libraryItems(
+    {
+      entries,
+      sources: [source],
+      installations: [location('guide-46', 'one-project', 'codex', 'project')],
+    },
+    'active',
+  );
+  const matches = filterLibrary(rows, { ...defaultLibraryFilters(), query: 'guide-46' });
+  const groups = librarySourceGroups(matches, rows);
+  expect(groups).toHaveLength(1);
+  expect(groups[0]?.total).toBe(47);
+  expect(groups[0]?.items).toHaveLength(1);
+  expect(groups[0]?.items[0]?.entry.id).toBe('new-revision');
+  expect(groups[0]?.items[0]?.versions.map((version) => version.id)).toEqual([
+    'new-revision',
+    'guide-46',
+  ]);
+  expect(groups[0]?.items[0]?.locations[0]?.entryId).toBe('guide-46');
+  expect(librarySourceGroups([], rows)).toEqual([]);
 });

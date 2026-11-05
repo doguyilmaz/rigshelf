@@ -20,6 +20,7 @@ import {
   type LibraryFilters,
   libraryItems,
 } from '../../src/core/library';
+import { librarySourceGroups, SOURCE_GROUP_PAGE_SIZE } from '../../src/core/library-groups';
 import type { Entry, Source } from '../../src/core/model';
 import { foldSearch } from '../../src/core/taxonomy';
 import { AiAssist } from '../AiAssist';
@@ -44,6 +45,7 @@ import { useLibraryPreferences } from '../library-preferences';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
+import { LibraryGroupingControl, SourceGroups } from '../SourceGroups';
 import { Discover } from './Discover';
 import { EntryDetail } from './EntryDetail';
 import {
@@ -66,7 +68,7 @@ export function Library(props: PageProps): ReactNode {
   const [sourceStatus, setSourceStatus] = useState('all');
   const [sort, setSort] = useState('name');
   const [page, setPage] = useState(0);
-  const [mobileFilters, setMobileFilters] = useState(true);
+  const [mobileFilters, setMobileFilters] = useState(false);
   const [detail, setDetail] = useState<string>();
   const [adding, setAdding] = useState(false);
   const [discovering, setDiscovering] = useState(false);
@@ -97,6 +99,17 @@ export function Library(props: PageProps): ReactNode {
     [items, filters, sort],
   );
   const kinds = useMemo(() => facetCounts(items, filters, 'kind'), [items, filters]);
+  const groups = useMemo(() => {
+    const grouped = librarySourceGroups(
+      results,
+      filters.kind === 'all' ? items : items.filter((item) => item.entry.kind === filters.kind),
+    );
+    return sort === 'name'
+      ? grouped.sort((left, right) =>
+          (left.source?.name || left.sourceId).localeCompare(right.source?.name || right.sourceId),
+        )
+      : grouped;
+  }, [results, items, sort, filters.kind]);
   const chips = libraryFilterChips(filters, changeFilters, state);
   const sources = state.sources.filter(
     (source) =>
@@ -107,8 +120,10 @@ export function Library(props: PageProps): ReactNode {
         .split(/\s+/)
         .every((word) => foldSearch(`${source.name} ${source.url} ${source.notes}`).includes(word)),
   );
-  const total = view === 'items' ? results.length : sources.length;
-  const visiblePage = Math.min(page, Math.max(0, Math.ceil(total / PAGE_SIZE) - 1));
+  const grouped = view === 'items' && preferences.grouping === 'source';
+  const pageSize = grouped ? SOURCE_GROUP_PAGE_SIZE : PAGE_SIZE;
+  const total = view === 'items' ? (grouped ? groups.length : results.length) : sources.length;
+  const visiblePage = Math.min(page, Math.max(0, Math.ceil(total / pageSize) - 1));
   const changeView = (next: 'items' | 'sources') => {
     setView(next);
     setPage(0);
@@ -224,6 +239,16 @@ export function Library(props: PageProps): ReactNode {
               onChange={changeFilters}
             />
             <section className="library-results" aria-label={t('Library results')}>
+              <div className="library-display-row">
+                <LibraryGroupingControl
+                  value={preferences.grouping}
+                  onChange={(value) => {
+                    preferences.setGrouping(value);
+                    setPage(0);
+                  }}
+                />
+                {grouped && <span>{countText(groups.length, 'source')}</span>}
+              </div>
               <div className="library-results-toolbar">
                 <p role="status" aria-live="polite">
                   {countText(results.length, 'item')}
@@ -244,11 +269,28 @@ export function Library(props: PageProps): ReactNode {
                 </div>
               </div>
               {results.length ? (
-                <LibraryRows
-                  items={results.slice(visiblePage * PAGE_SIZE, (visiblePage + 1) * PAGE_SIZE)}
-                  onSelect={setDetail}
-                  showKind={filters.kind === 'all'}
-                />
+                grouped ? (
+                  <SourceGroups
+                    groups={groups.slice(visiblePage * pageSize, (visiblePage + 1) * pageSize)}
+                    filterKey={JSON.stringify(filters)}
+                    filtered={Boolean(filters.query.trim() || chips.length)}
+                    onSource={setSourceDetail}
+                    renderItems={(matches) => (
+                      <LibraryRows
+                        items={matches}
+                        onSelect={setDetail}
+                        showKind={filters.kind === 'all'}
+                        showSource={false}
+                      />
+                    )}
+                  />
+                ) : (
+                  <LibraryRows
+                    items={results.slice(visiblePage * PAGE_SIZE, (visiblePage + 1) * PAGE_SIZE)}
+                    onSelect={setDetail}
+                    showKind={filters.kind === 'all'}
+                  />
+                )
               ) : (
                 <Empty
                   title={savedCount ? t('No items match these filters') : t('No saved items yet')}
@@ -371,6 +413,7 @@ export function Library(props: PageProps): ReactNode {
           {view === 'items'
             ? countText(results.length, 'item')
             : countText(sources.length, 'source')}
+          {grouped && ` · ${countText(groups.length, 'source')}`}
         </span>
         <div className="button-row">
           <Button
@@ -383,7 +426,7 @@ export function Library(props: PageProps): ReactNode {
           <span>{visiblePage + 1}</span>
           <Button
             variant="ghost"
-            disabled={(visiblePage + 1) * PAGE_SIZE >= total}
+            disabled={(visiblePage + 1) * pageSize >= total}
             onClick={() => setPage(visiblePage + 1)}
           >
             {t('Next')}

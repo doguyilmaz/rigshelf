@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { defaultLibraryFilters, type LibraryFilters } from '../src/core/library';
+import type { LibraryGrouping } from '../src/core/library-groups';
 
 const key = 'agent-setup.library.v1';
 const MAX_SAVED_VIEWS = 12;
@@ -12,6 +13,7 @@ interface Preferences {
   version: 1;
   filters: LibraryFilters;
   saved: SavedLibraryView[];
+  grouping: LibraryGrouping;
 }
 const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -47,7 +49,12 @@ export function readLibraryFilters(value: unknown): LibraryFilters {
   return result;
 }
 function read(): Preferences {
-  const fallback: Preferences = { version: 1, filters: defaultLibraryFilters(), saved: [] };
+  const fallback: Preferences = {
+    version: 1,
+    filters: defaultLibraryFilters(),
+    saved: [],
+    grouping: 'source',
+  };
   try {
     const raw = localStorage.getItem(key);
     if (!raw || raw.length > 50_000) return fallback;
@@ -56,6 +63,7 @@ function read(): Preferences {
     return {
       version: 1,
       filters: readLibraryFilters(value.filters),
+      grouping: value.grouping === 'none' ? 'none' : 'source',
       saved: Array.isArray(value.saved)
         ? value.saved
             .filter(record)
@@ -92,6 +100,9 @@ export function useLibraryPreferences() {
   }, [preferences]);
   return {
     filters: preferences.filters,
+    grouping: preferences.grouping,
+    setGrouping: (grouping: LibraryGrouping) =>
+      setPreferences((current) => ({ ...current, grouping })),
     saved: preferences.saved,
     persistent,
     setFilters: (filters: LibraryFilters) =>

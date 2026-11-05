@@ -201,6 +201,8 @@ try {
             exact: true,
           }),
         ).toBeVisible();
+        if (section === 'Library')
+          await page.getByRole('button', { name: 'All items', exact: true }).click();
         const metrics = await page.evaluate(() => ({
           overflow: document.documentElement.scrollWidth > innerWidth,
           text: document.querySelector('main')?.textContent || '',

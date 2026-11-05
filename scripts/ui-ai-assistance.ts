@@ -232,6 +232,7 @@ try {
     'An installation command fills source fields as data and is never executed or researched during AI generation.',
   );
 
+  await page.getByRole('button', { name: 'All items', exact: true }).click();
   const originalMcp = data.store.entry(
     data.store.entries().find((entry) => entry.kind === 'mcp')!.id,
   )!;

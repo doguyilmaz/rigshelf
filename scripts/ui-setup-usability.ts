@@ -110,6 +110,7 @@ try {
 
   await page.getByRole('button', { name: 'Add from library', exact: true }).click();
   const picker = page.getByRole('dialog', { name: 'Add from library', exact: true });
+  await picker.getByRole('button', { name: 'All items', exact: true }).click();
   await expect(picker.locator('.kit-entry')).toHaveCount(40);
   await picker.getByRole('button', { name: 'Show more', exact: true }).click();
   await expect(picker.locator('.kit-entry')).toHaveCount(80);

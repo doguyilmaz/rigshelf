@@ -58,6 +58,7 @@ Each requirement retains an identifier so implementation and deferred work can b
 | R42 | Project check/format scripts | Use existing `bun run check` and `bun run format` scripts in development instructions and verification workflows. |
 | R43 | Low-friction daily setup | Start with a folder, inspect committed choices automatically, show the focused selection and disclose optional Agent/requirement/preset controls. Preserve drafts across page navigation, deliberate exclusions and exact manual pins across suggestion refreshes. A focused picker must search/filter the full library without a fixed first-page cutoff. |
 | R44 | AI-assisted everyday authoring | Accept links, commands, rough notes and intent before requiring forms. Prepare, improve, suggest and format structured drafts for sources, Skills, MCP, Presets, directives, project requirements and editable documents. Choose Provider/model; reuse native logins or an explicitly connected Agent. Preview readable fields, preserve newer edits and keep saving/activation explicit. |
+| R45 | Collections and reliable layouts | Group saved items under their source by default, with separate custom content, full-library search, matching/total counts and paginated children. Offer a remembered flat view and the same collection hierarchy in the project picker. Proactively check long accepted names, responsive pages, dialogs, nested controls and scroll/focus behavior. |
 
 ## Interaction design
 

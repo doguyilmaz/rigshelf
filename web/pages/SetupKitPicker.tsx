@@ -4,13 +4,20 @@ import {
   facetCounts,
   filterLibrary,
   type LibraryFilters,
+  type LibraryItem,
   libraryItems,
 } from '../../src/core/library';
+import {
+  type LibraryGrouping,
+  librarySourceGroups,
+  SOURCE_GROUP_PAGE_SIZE,
+} from '../../src/core/library-groups';
 import { platforms, technologies } from '../../src/core/taxonomy';
 import { Button, Modal, Notice, SearchBox } from '../components';
 import { t } from '../i18n';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
+import { LibraryGroupingControl, SourceGroups } from '../SourceGroups';
 import { KitRow } from './KitRows';
 
 const PAGE_SIZE = 40;
@@ -33,7 +40,8 @@ export function SetupKitPicker({
     ...defaultLibraryFilters(),
     kind: 'all',
   }));
-  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [grouping, setGrouping] = useState<LibraryGrouping>('source');
+  const [limit, setLimit] = useState(SOURCE_GROUP_PAGE_SIZE);
   const items = useMemo(
     () =>
       libraryItems(state, 'active').filter(
@@ -42,12 +50,28 @@ export function SetupKitPicker({
     [state],
   );
   const matches = filterLibrary(items, filters);
+  const groups = librarySourceGroups(matches, items);
+  const total = grouping === 'source' ? groups.length : matches.length;
   const platformCounts = facetCounts(items, filters, 'platforms');
   const technologyCounts = facetCounts(items, filters, 'technologies');
   const change = (values: Partial<typeof filters>) => {
     setFilters((current) => ({ ...current, ...values }));
-    setLimit(PAGE_SIZE);
+    setLimit(grouping === 'source' ? SOURCE_GROUP_PAGE_SIZE : PAGE_SIZE);
   };
+  const rows = (values: LibraryItem[]) =>
+    values.map((item) => {
+      const entry = item.versions.find((version) => selected.includes(version.id)) || item.entry;
+      return (
+        <KitRow
+          key={item.key}
+          entry={entry}
+          selected={selected.includes(entry.id)}
+          reason={[item.source?.name, entry.description].filter(Boolean).join(' · ')}
+          toggle={() => toggle(entry.id)}
+          inspect={() => inspect(entry.id)}
+        />
+      );
+    });
   return (
     <Modal
       title={t('Add from library')}
@@ -129,21 +153,30 @@ export function SetupKitPicker({
           selected: selected.length,
         })}
       </p>
+      <LibraryGroupingControl
+        value={grouping}
+        onChange={(value) => {
+          setGrouping(value);
+          setLimit(value === 'source' ? SOURCE_GROUP_PAGE_SIZE : PAGE_SIZE);
+        }}
+      />
       <div className="kit-results">
-        {matches.slice(0, limit).map((item) => {
-          const entry =
-            item.versions.find((version) => selected.includes(version.id)) || item.entry;
-          return (
-            <KitRow
-              key={item.key}
-              entry={entry}
-              selected={selected.includes(entry.id)}
-              reason={[item.source?.name, entry.description].filter(Boolean).join(' · ')}
-              toggle={() => toggle(entry.id)}
-              inspect={() => inspect(entry.id)}
-            />
-          );
-        })}
+        {grouping === 'source' ? (
+          <SourceGroups
+            groups={groups.slice(0, limit)}
+            filterKey={JSON.stringify(filters)}
+            filtered={Boolean(
+              filters.query.trim() ||
+                filters.kind !== 'all' ||
+                filters.platforms.length ||
+                filters.technologies.length,
+            )}
+            selected={selected}
+            renderItems={rows}
+          />
+        ) : (
+          rows(matches.slice(0, limit))
+        )}
       </div>
       {!matches.length && (
         <Notice>
@@ -157,8 +190,15 @@ export function SetupKitPicker({
           </button>
         </Notice>
       )}
-      {matches.length > limit && (
-        <Button variant="secondary" onClick={() => setLimit((current) => current + PAGE_SIZE)}>
+      {total > limit && (
+        <Button
+          variant="secondary"
+          onClick={() =>
+            setLimit(
+              (current) => current + (grouping === 'source' ? SOURCE_GROUP_PAGE_SIZE : PAGE_SIZE),
+            )
+          }
+        >
           {t('Show more')}
         </Button>
       )}

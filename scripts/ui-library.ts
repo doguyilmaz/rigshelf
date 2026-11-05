@@ -44,6 +44,8 @@ const errors: string[] = [];
 page.on('pageerror', (error) => errors.push(error.message));
 const checks: string[] = [];
 async function choose(label: string, option: string) {
+  if (!(await page.getByLabel(label, { exact: true }).isVisible()))
+    await page.getByRole('button', { name: /^Filters/ }).click();
   await page.getByLabel(label, { exact: true }).click();
   await page.getByRole('option', { name: option, exact: true }).click();
   await page.keyboard.press('Escape');
@@ -51,6 +53,7 @@ async function choose(label: string, option: string) {
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.getByRole('button', { name: 'All items', exact: true }).click();
   await expect(page.locator('.entry-list-row')).toHaveCount(40);
   await choose('Platform & area', 'Mobile');
   await expect(page.locator('.entry-list-row')).toHaveCount(2);

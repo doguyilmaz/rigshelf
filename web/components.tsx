@@ -114,7 +114,7 @@ export function Modal({
       <div className="modal-head">
         <div>
           <p className="eyebrow">{t('WORKBENCH')}</p>
-          <h2>{title}</h2>
+          <h2 title={title}>{title}</h2>
           {subtitle && <p className="muted">{subtitle}</p>}
         </div>
         <button

@@ -1,5 +1,13 @@
 # Validation record
 
+## Source groups and layout follow-up
+
+The follow-up passes 141 unit/integration tests across 20 files, strict TypeScript, 915 matching English/Turkish messages, formatting, lint and production build. Twelve browser suites include collection browsing and a broader layout audit. Collection fixtures cover 47 Skills with multiple revisions, outer/child page boundaries, matches beyond the first child page, source details, custom groups, persisted flat/grouped display and manual relationship changes without rewriting content. The same hierarchy is exercised in the project picker, including selected counts and nested inspection without activation.
+
+The layout audit records 126 page/viewport/locale combinations and eight dialog groups, with English/Turkish, nine viewport sizes, accepted long names, short desktop windows, AI/manual intake tabs, source/Preset/project editors, nested selects and plan previews. It verifies document/card overflow, horizontal clipping inside dialogs, header/close bounds, close-action hit testing, useful body space and page-scroll/focus recovery. Automated WCAG A/AA checks cover the seven populated pages at desktop/mobile sizes in both locales. A narrow CSS viewport models a zoomed desktop's reduced space; this is not certification of every browser zoom implementation. Dark mode and RTL interfaces are not offered. These are isolated development regressions, not a new formal security audit or proof of defect-free UI.
+
+The manual review reproduced a long Preset card escaping its width and an accepted modal title shifting outside its header. The broader fixture also reproduced a known-project grid expanding beyond the page. The fixes address their sizing/scroll causes rather than hiding document overflow. Grouping remains a view over existing metadata; source files, receipts, immutable snapshots and project-write authority stay unchanged. Reports and screenshots remain ignored under `.local/qa/source-groups` and `.local/qa/layout`.
+
 ## AI-assisted authoring
 
 The authoring update passes 139 unit/integration tests across 20 files, strict TypeScript, 903 matching English/Turkish messages, formatting, lint and production build. Ten browser suites cover the new note-to-Skill, canonical MCP conversion, source command intake, directive formatting, Preset creation, project suggestions and connected-Agent proposal flows alongside existing setup and inventory behavior. Draft generation is separated from saving/planning/activation; stale editor signatures, cancellation, malformed output and unknown catalog IDs leave existing content unchanged. Suggested additions preserve already selected snapshot revisions instead of replacing them with a newer version.

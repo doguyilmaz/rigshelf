@@ -901,5 +901,17 @@
   "Directive content": "Direktif içeriği",
   "The workbench is shutting down. No AI generation was started.": "Uygulama kapanıyor. AI üretimi başlatılmadı.",
   "Check the request, Provider and model name. Model names cannot contain spaces or shell options.": "İsteği, Provider’ı ve model adını kontrol et. Model adında boşluk veya komut seçeneği kullanma.",
-  "AI suggested a source reference you did not provide. Paste the exact link or command and try again.": "AI, vermediğin bir kaynak referansı önerdi. Tam bağlantıyı veya komutu yapıştırıp tekrar dene."
+  "AI suggested a source reference you did not provide. Paste the exact link or command and try again.": "AI, vermediğin bir kaynak referansı önerdi. Tam bağlantıyı veya komutu yapıştırıp tekrar dene.",
+  "Item display": "Öğe görünümü",
+  "By source": "Kaynağa göre",
+  "All items": "Tüm öğeler",
+  "Usage": "Kullanım",
+  "Items from {{name}}": "{{name}} kaynağındaki öğeler",
+  "Source details: {{name}}": "Kaynak ayrıntıları: {{name}}",
+  "Source details": "Kaynak ayrıntıları",
+  "{{count}} of {{total}} items": "{{total}} öğeden {{count}} tanesi",
+  "{{count}} selected": "{{count}} seçili",
+  "{{start}}–{{end}} of {{count}}": "{{count}} öğeden {{start}}–{{end}} arası",
+  "Previous items in {{name}}": "{{name}} kaynağındaki önceki öğeler",
+  "Next items in {{name}}": "{{name}} kaynağındaki sonraki öğeler"
 }

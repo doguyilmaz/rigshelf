@@ -6,6 +6,8 @@ The first setup screen starts with a folder choice. **Try an example** below it 
 
 ## Import your existing tools
 
+Library opens **By source**: expand a collection to browse its saved Skills and other items. Search and filters include closed groups and every child page. A filtered header shows matching items against the collection total. **All items** restores a flat list; the browser remembers that choice. Custom Skills keep their own source group. The project picker uses the same hierarchy and shows selected counts; expanding a group never selects or activates its contents.
+
 For new content, use **Library → Add to library → Start with AI**. Paste a link, command or rough notes, choose Provider/model and generate. Review the prepared fields, choose **Use draft**, then save. You can also create/improve/format Presets, directives, editable documents and Skill/MCP content with the same panel. **Describe the project to AI** prepares project requirements and library suggestions. [AI assistance](AI-ASSISTANCE.md) explains native CLI login and connected-Agent modes.
 
 1. In **Settings → Where to look**, review project roots and global discovery. Save changed preferences.

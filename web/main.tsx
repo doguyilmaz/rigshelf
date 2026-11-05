@@ -140,6 +140,7 @@ function App(): ReactNode {
       history.replaceState(null, '', `#${page}`);
       requestDiscard(() => {
         history.replaceState(null, '', `#${next}`);
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         setPage(next);
       });
     };
@@ -175,6 +176,7 @@ function App(): ReactNode {
         setProjectRequest((value) => value + 1);
       }
       history.pushState(null, '', `#${next}`);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       setPage(next);
       setPalette(false);
     });

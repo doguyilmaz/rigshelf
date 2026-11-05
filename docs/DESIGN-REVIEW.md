@@ -152,3 +152,18 @@ Simpler navigation still left the user responsible for classifying resources, na
 | Late output and navigation could lose work | Signature-bound adoption, AI draft guards and cancellation protect newer edits and pending work | Avoid invisible loss and abandoned runs. |
 
 The AI panel and focused kit picker load on demand. Browser preferences contain only Provider/model selection. Neutral surfaces and stable dialog frames remain; final naming and visual approval are still separate.
+
+## Collections and layout review
+
+The previous library grouped revisions but still presented every capability as a peer. A source containing 47 Skills therefore occupied more than one page without a visible parent. Source groups now expose that collection boundary in Library and the project picker. Collections start collapsed, except single-item groups; filtering expands matches and searches the entire collection. Source and child pages are independently bounded. A remembered flat view remains available.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Forty-plus Skills from one source dominated the flat result list | A source heading shows its item count and opens a paginated child list | Show the collection before its contents. |
+| Parent collections were only available in a separate source index | Saved items retain source context, with a source-details action | Keep browsing and provenance together. |
+| A long accepted Preset name expanded its card beyond the viewport | Card content can shrink and the name wraps inside the card | Constrain layout without removing authored text. |
+| A long modal title moved outside the visible header when the browser focused Close | A shrinkable title column, wrapped/clamped title with its full tooltip and a fixed close action | Prevent native horizontal scrolling and keep the action reachable. |
+| A long known-project name expanded an implicit grid track | The track uses `minmax(0, 1fr)` and the button can shrink | Keep project selection within its actual container. |
+| Mobile filters opened before results and new sections inherited unrelated scroll offsets | Filters open on demand; committed section navigation starts at its heading | Make the current content visible and its position predictable. |
+
+The original document-width check missed clipping inside an overflow-hidden dialog. The new audit also checks body scroll width, title/close containment, close-action hit testing, short-window body space, nested popup bounds and normal-motion scroll/focus restoration. Fixtures use accepted field limits: source names 500, upstream Skill/project names 200, Preset/directive names 100 and tags 64 characters. Existing stress fixtures cover empty, single, ordinary, international and large collections with a development-only data switch. Private evidence stays in ignored `.local/qa/layout` and `.local/qa/source-groups`.
