@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { lstat, realpath, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import type { AiFileInventory } from './ai-files';
 import { readLocalBytes } from './local-files';
 import { MAX_TEXT_BYTES, type Plan, type Project } from './model';
 import { rootIdentity } from './ownership';
@@ -19,14 +20,18 @@ async function document(store: Store, raw: unknown) {
   const project = store.get<Project>('project', input.projectId);
   if (!project || Boolean(input.path) === Boolean(input.documentId))
     throw new Error('Document is not part of this project inventory');
-  await checkedProject(project.path);
   const location = input.documentId
-    ? project.documentLocations?.find((file) => file.id === input.documentId)
+    ? [
+        ...(project.documentLocations || []),
+        ...(project.aiFileLocations || []),
+        ...(store.get<AiFileInventory>('global-ai-inventory', 'main')?.files || []),
+      ].find((file) => file.id === input.documentId)
     : undefined;
   if (input.documentId && !location)
     throw new Error('Document is not part of this project inventory');
   if (!location && !project.documents.includes(input.path!))
     throw new Error('Document is not part of this project inventory');
+  if (!location || location.scope === 'project') await checkedProject(project.path);
   let target: string;
   if (location) {
     const root = await realpath(location.root);
@@ -59,6 +64,7 @@ export async function projectDocument(store: Store, raw: unknown) {
     sourcePath: value.location?.sourcePath || value.target,
     scope: value.location?.scope || 'project',
     provider: value.location?.provider || 'project',
+    kind: value.location?.kind || (/MEMORY/i.test(value.path) ? 'memory' : 'instruction'),
     note: 'Loaded on request. No session history is collected.',
   };
 }

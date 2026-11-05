@@ -4,6 +4,7 @@ import { detectProject } from './detect';
 import { kitDrift, readKit } from './kit';
 import { assertAutomation, ownedProject } from './ownership';
 import { createPlan, executePlan } from './planner';
+import { preserveProjectInventory } from './project-inventory';
 import { recommend } from './recommend';
 import { checkedProject, hash, now, slug } from './safety';
 import type { Store } from './store';
@@ -34,7 +35,10 @@ export async function checkProject(
   }
   const kit = auto ? owned?.kit : await readKit(path);
   const detected = await detectProject(path, kit?.requirements || '');
-  const project = { ...detected, ...store.get<object>('project-override', detected.id) };
+  const project = {
+    ...preserveProjectInventory(store, detected),
+    ...store.get<object>('project-override', detected.id),
+  };
   const recommendations = recommend(store, project, kit?.presetId);
   const existingIds = new Set(kit?.entries.map((entry) => entry.id) || []);
   const existingNames = new Set(

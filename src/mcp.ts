@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import type { AiFileInventory } from './core/ai-files';
 import { documentChoices } from './core/document-index';
 import {
   type Plan,
@@ -53,7 +54,10 @@ export async function serveMcp(
           name: project.name,
           path: project.path,
           stacks: project.stacks,
-          documentCount: documentChoices(project).length,
+          documentCount: documentChoices(
+            project,
+            store.get<AiFileInventory>('global-ai-inventory', 'main')?.files,
+          ).length,
           inventoryWarnings: project.inventoryWarnings || [],
         })),
       });
@@ -66,19 +70,39 @@ export async function serveMcp(
       projectId: RecordIdSchema,
       query: z.string().default(''),
       scope: z.enum(['all', 'project', 'user-project', 'global']).default('all'),
+      kind: z
+        .enum([
+          'all',
+          'instruction',
+          'memory',
+          'rule',
+          'agent',
+          'command',
+          'config',
+          'plugin',
+          'hook',
+        ])
+        .default('all'),
       offset: z.number().int().min(0).default(0),
       limit: z.number().int().min(1).max(100).default(30),
     },
-    async ({ projectId, query, scope, offset, limit }) => {
+    async ({ projectId, query, scope, kind, offset, limit }) => {
       const project = store.get<Project>('project', projectId);
       if (!project) throw new Error('Project not found. Scan its development root first.');
-      const files = documentChoices(project).filter(
+      const files = documentChoices(
+        project,
+        store.get<AiFileInventory>('global-ai-inventory', 'main')?.files,
+      ).filter(
         (file) =>
           (scope === 'all' || file.scope === scope) &&
-          `${file.path} ${file.sourcePath}`.toLowerCase().includes(query.toLowerCase()),
+          (kind === 'all' || file.kind === kind) &&
+          `${file.path} ${file.sourcePath} ${file.provider} ${file.kind}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
       );
       return output({
         total: files.length,
+        nextOffset: offset + limit < files.length ? offset + limit : null,
         files: files.slice(offset, offset + limit).map((file) => ({
           documentId: file.id || undefined,
           path: file.path,
@@ -86,6 +110,7 @@ export async function serveMcp(
           scope: file.scope,
           provider: file.provider,
           readOnly: file.readOnly,
+          kind: file.kind,
         })),
       });
     },

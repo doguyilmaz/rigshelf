@@ -3,6 +3,7 @@ import { lstat, readdir, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join, relative, resolve, sep } from 'node:path';
 import { userAiRoots } from './ai-config-roots';
+import { type AiFileInventory, globalAiFiles, projectAiFiles } from './ai-files';
 import { detectProject, exists, ignoredDirectories, inferTags, readText } from './detect';
 import {
   globalGuidance,
@@ -12,11 +13,13 @@ import {
   userProjectMemory,
 } from './guidance-inventory';
 import { importSkillDirectory } from './ingest';
+import { captureInventoryBaseline } from './inventory-baselines';
 import {
   type AiConfigRoot,
   dependencyDirectories,
+  instructionNames,
   privateRuntimeDirectories,
-  skillPaths,
+  projectSkillPaths,
 } from './inventory-paths';
 import type { Kit } from './kit';
 import { mcpLocationGroups } from './mcp-locations';
@@ -105,7 +108,27 @@ async function discoverProjects(
           'Cargo.toml',
           'AGENTS.md',
           'CLAUDE.md',
-        ].includes(name) || name.endsWith('.xcodeproj'),
+        ].includes(name) ||
+        instructionNames.has(name) ||
+        [
+          '.claude',
+          '.codex',
+          '.agents',
+          '.kiro',
+          '.opencode',
+          '.agent',
+          '.gemini',
+          '.grok',
+          '.aims',
+          '.ai',
+          '.claude-plugin',
+          '.codex-plugin',
+          'opencode.json',
+          'opencode.jsonc',
+          '.mcp.json',
+          'SKILL.md',
+        ].includes(name) ||
+        name.endsWith('.xcodeproj'),
     )
   ) {
     output.add(root);
@@ -377,6 +400,12 @@ async function inventoryProject(
   const discovered = await projectAiContexts(path);
   const local = await localGuidance(path, discovered.paths, roots, home);
   const memory = await userProjectMemory(path, roots);
+  const native = await projectAiFiles(path, discovered.paths, roots);
+  const partial =
+    discovered.warnings.length > 0 ||
+    local.warnings.length > 0 ||
+    memory.warnings.length > 0 ||
+    native.warnings.length > 0;
   project.documentLocations = mergedGuidance(
     local.files,
     memory.files,
@@ -384,11 +413,20 @@ async function inventoryProject(
     refreshGlobals
       ? []
       : (previous?.documentLocations || []).filter((file) => file.scope !== 'project'),
+    partial ? previous?.documentLocations || [] : [],
   );
-  project.documents = local.files.filter((file) => !file.readOnly).map((file) => file.path);
-  project.inventoryWarnings = [...discovered.warnings, ...local.warnings, ...memory.warnings];
+  project.aiFileLocations = mergedGuidance(
+    native.files,
+    partial ? previous?.aiFileLocations || [] : [],
+  );
+  project.documents = project.documentLocations
+    .filter((file) => file.scope === 'project' && !file.readOnly)
+    .map((file) => file.path);
+  project.inventoryWarnings = [
+    ...new Set([...discovered.warnings, ...local.warnings, ...memory.warnings, ...native.warnings]),
+  ];
   store.put('project', project);
-  return { project, contexts: discovered.paths };
+  return { project, contexts: discovered.paths, plugins: native.plugins, partial };
 }
 
 export async function scan(
@@ -408,17 +446,50 @@ export async function scan(
   const imported = new Map<string, Entry>();
   const observed = new Set<string>(),
     configurations = new Set<string>(),
+    selectedRoots: string[] = [],
     completeRoots: string[] = [];
   try {
+    captureInventoryBaseline(store);
+    let globalPartial = false;
     const configRoots = includeGlobals
       ? await userAiRoots(home, result.skipped, options.environment)
       : [];
     const sharedGuidance = await globalGuidance(configRoots, home);
+    const nativeGlobal = includeGlobals ? await globalAiFiles(configRoots) : undefined;
+    if (nativeGlobal) {
+      const previous = store.get<AiFileInventory>('global-ai-inventory', 'main');
+      nativeGlobal.warnings = [
+        ...new Set([...nativeGlobal.warnings, ...sharedGuidance.warnings, ...result.skipped]),
+      ];
+      if (
+        previous?.files.some(
+          (file) =>
+            !configRoots.some(
+              (root) => inside(root.path, file.sourcePath) || inside(root.path, file.canonicalPath),
+            ),
+        )
+      )
+        nativeGlobal.warnings.push(
+          'Some global AI roots were not rediscovered; previous inventory retained.',
+        );
+      globalPartial = nativeGlobal.warnings.length > 0;
+      store.put('global-ai-inventory', {
+        ...nativeGlobal,
+        id: 'main',
+        files: mergedGuidance(
+          nativeGlobal.files,
+          nativeGlobal.warnings.length ? previous?.files || [] : [],
+        ),
+      });
+      result.skipped.push(...nativeGlobal.warnings);
+    }
     result.skipped.push(...sharedGuidance.warnings);
     const contexts = new Map<string, string[]>();
+    const partialProjects = new Set<string>();
     const projects = new Set<string>();
     for (const root of options.roots || store.settings().roots) {
       const expanded = resolve(root.startsWith('~/') ? join(home, root.slice(2)) : root);
+      selectedRoots.push(expanded);
       if (await discoverProjects(expanded, projects, result.skipped)) completeRoots.push(expanded);
     }
     const targets: {
@@ -435,13 +506,25 @@ export async function scan(
           configRoots,
           sharedGuidance.files,
           home,
-          includeGlobals,
+          includeGlobals && !globalPartial,
         );
         const { project } = detail;
         result.skipped.push(...(project.inventoryWarnings || []));
         contexts.set(path, detail.contexts);
         for (const context of detail.contexts)
-          targets.push({ root: context, project, paths: skillPaths });
+          targets.push({
+            root: context,
+            project,
+            paths: [
+              ...projectSkillPaths,
+              ...((await exists(join(context, 'SKILL.md')))
+                ? [['', 'custom'] as [string, string]]
+                : []),
+            ],
+          });
+        for (const plugin of detail.plugins)
+          targets.push({ root: plugin.path, project, paths: [['skills', plugin.provider]] });
+        if (detail.partial) partialProjects.add(project.id);
         result.projects++;
       } catch (error) {
         result.skipped.push(
@@ -592,12 +675,28 @@ export async function scan(
               configRoots,
               sharedGuidance.files,
               home,
-              includeGlobals,
+              includeGlobals && !globalPartial,
             );
             projects.add(referenced.path);
             contexts.set(referenced.path, detail.contexts);
             for (const context of detail.contexts)
-              targets.push({ root: context, project: detail.project, paths: skillPaths });
+              targets.push({
+                root: context,
+                project: detail.project,
+                paths: [
+                  ...projectSkillPaths,
+                  ...((await exists(join(context, 'SKILL.md')))
+                    ? [['', 'custom'] as [string, string]]
+                    : []),
+                ],
+              });
+            for (const plugin of detail.plugins)
+              targets.push({
+                root: plugin.path,
+                project: detail.project,
+                paths: [['skills', plugin.provider]],
+              });
+            if (detail.partial) partialProjects.add(detail.project.id);
             result.skipped.push(...(detail.project.inventoryWarnings || []));
             result.projects++;
           } catch (error) {
@@ -616,21 +715,34 @@ export async function scan(
         (project.documentLocations || []).filter((file) => file.scope === 'project'),
         memory.files,
         sharedGuidance.files,
+        globalPartial || memory.warnings.length ? project.documentLocations || [] : [],
       );
-      project.inventoryWarnings = memory.warnings;
+      project.inventoryWarnings = [
+        ...new Set([...(project.inventoryWarnings || []), ...memory.warnings]),
+      ];
       store.put('project', project);
     }
     result.skipped = [...new Set(result.skipped)];
     result.completedAt = now();
     for (const project of store.projects())
       if (
-        completeRoots.some((root) => inside(root, project.path)) &&
+        selectedRoots.some((root) => inside(root, project.path)) &&
         !projects.has(project.path) &&
         project.discovery !== 'configuration'
       )
-        store.remove('project', project.id);
+        store.put('project', {
+          ...project,
+          inventoryWarnings: [
+            ...new Set([
+              ...(project.inventoryWarnings || []),
+              'Project was not rediscovered. Previous inventory retained; review its path or scan scope.',
+            ]),
+          ],
+        });
     for (const location of store.installations()) {
       if (observed.has(location.path)) continue;
+      if (location.scope === 'global' && globalPartial) continue;
+      if (location.projectId && partialProjects.has(location.projectId)) continue;
       const [file, name] = location.path.split('#');
       if (name !== undefined && configurations.has(file)) {
         store.removeInstallation(location.path);

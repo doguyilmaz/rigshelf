@@ -2,6 +2,12 @@
 
 Discovery reads existing installations into the private catalog. It does not install, activate, move or delete anything in a source project or global harness configuration. Gitignore rules do not control discovery: known AI locations are inspected even when ignored or untracked. Repository configuration and discovered files do not grant setup or automation permission.
 
+The same physical-file discovery applies to every selected project. Directories with only local AI configuration can be inventoried before an application manifest exists. Standalone `SKILL.md` and ordinary `skills/` collections are recognized by the Skill file; dependency directories remain excluded.
+
+Native Agent definitions, Commands, Config, Hooks and Plugin manifests are indexed as metadata, with type filters in Projects and MCP. Contents load only on request and remain read-only in the project editor. Config, Hook and Plugin files cannot be promoted wholesale as directives. Global native-file metadata is stored once and shared across project views.
+
+Claude's project-local `.claude/agent-memory` and `.claude/agent-memory-local`, and user-level `agent-memory`, are included alongside auto-memory. Vendor-defined scopes are documented in [Claude subagent memory](https://code.claude.com/docs/en/sub-agents#enable-persistent-memory). Known Plugin cache and marketplace layouts are searched within bounds; indexing a native file does not establish that its Plugin is enabled. `OPENCODE_CONFIG_DIR` follows OpenCode's [custom-directory configuration](https://opencode.ai/docs/config/#custom-directory).
+
 ## Locations and scope
 
 | Location | Indexed data | Display scope |
@@ -35,3 +41,11 @@ Discovery stores document metadata and provenance, not memory or instruction bod
 External and shared guidance is read-only in the project editor. Local authored guidance retains digest-bound review plans, apply and rollback. Promoting selected guidance to a reusable directive is explicit and defaults to project scope. Catalog indexing never adds these files to an agent's context or enables automatic promotion.
 
 Read-only MCP tools `kitfold_projects` and `kitfold_project_files` expose paginated metadata. `kitfold_project_document` explicitly reads one inventoried file through the same domain operation as HTTP. Arbitrary absolute-path reads are not accepted. Private project paths and document indexes are excluded from portable library exports.
+
+## Preserve the previous index
+
+Before changing the catalog, each scan writes an immutable compressed checkpoint of the previous project/file index, installation relationships and shared native-file metadata. A checksum protects the recorded bytes. Failure to create the checkpoint stops discovery before inventory changes. Checkpoints are private receipts, not source-file backups or transferable ownership/automation records. Settings lists the latest 50 and downloads a selected checkpoint; listing does not prune older records.
+
+Partial project discovery retains earlier file metadata and does not prune installation relationships. A project no longer recognized in a selected root remains visible with a diagnostic. Complete scans can update current locations for genuinely missing installations; old relationships remain in the checkpoint and immutable library snapshots survive. Fast manifest detection during dependency checks, Apply and rollback preserves enriched AI indexes instead of replacing them with root-only results.
+
+Native-file inventories are bounded to 4,096 unique files per project/global collection. Plugin-root discovery is bounded to 4,096 visited directories, depth 6 and 256 roots per searched location. Limits and unavailable locations produce diagnostics. Arbitrary undocumented storage and conversation/memory databases are not parsed. Their original data remains untouched.

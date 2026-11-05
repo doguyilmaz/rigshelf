@@ -36,12 +36,50 @@ const ruleDirectories = [
   '.github/instructions',
   '.aims/rules',
 ];
-const memoryDirectories = ['.claude/memory', '.agents/memory', '.codex/memory', '.aims/memory'];
+const memoryDirectories = [
+  '.claude/memory',
+  '.claude/agent-memory',
+  '.claude/agent-memory-local',
+  '.agents/memory',
+  '.codex/memory',
+  '.aims/memory',
+  '.ai/memory',
+];
 type Context = Pick<DocumentLocation, 'scope' | 'provider' | 'kind'> & {
   base: string;
   project?: string;
 };
 type Boundary = { root: string; identity: string };
+async function aiCanonicalPath(path: string, warnings: string[]): Promise<string | undefined> {
+  try {
+    return await realpath(path);
+  } catch (error) {
+    if (
+      !(
+        error instanceof Error &&
+        'code' in error &&
+        ['ENOENT', 'ENOTDIR'].includes(String(error.code))
+      )
+    )
+      warnings.push(`${path}: AI location unavailable; inventory is partial.`);
+    return;
+  }
+}
+async function aiDirectoryEntries(path: string, warnings: string[]): Promise<Dirent[]> {
+  try {
+    return await readdir(path, { withFileTypes: true });
+  } catch (error) {
+    if (
+      !(
+        error instanceof Error &&
+        'code' in error &&
+        ['ENOENT', 'ENOTDIR'].includes(String(error.code))
+      )
+    )
+      warnings.push(`${path}: AI directory unavailable; inventory is partial.`);
+    return [];
+  }
+}
 function excludedLocation(root: string, canonical: string): boolean {
   return (
     canonical.split(sep).some((part) => ['.ssh', '.aws', '.gnupg', '.azure'].includes(part)) ||
@@ -122,7 +160,7 @@ async function describeFile(
   allowed: Boundary[],
   warnings: string[],
 ): Promise<DocumentLocation | undefined> {
-  const canonical = await realpath(path).catch(() => undefined);
+  const canonical = await aiCanonicalPath(path, warnings);
   if (!canonical) return;
   const boundary = allowed.find((item) => inside(item.root, canonical));
   if (!boundary) {
@@ -131,8 +169,14 @@ async function describeFile(
   }
   if (
     excludedLocation(boundary.root, canonical) ||
-    (!instructionNames.has(basename(canonical)) && !/\.(?:md|mdc|rules)$/i.test(canonical)) ||
-    /^(?:auth|credentials|tokens|secrets)(?:\.|$)/i.test(basename(canonical))
+    (!instructionNames.has(basename(canonical)) &&
+      !(
+        context.kind === 'config' || context.kind === 'plugin' || context.kind === 'hook'
+          ? /\.(?:md|mdc|rules|jsonc?|toml|ya?ml|[cm]?[jt]s|sh|py|ps1)$/i
+          : /\.(?:md|mdc|rules|toml|ya?ml)$/i
+      ).test(canonical)) ||
+    /^\.?(?:auth|credentials?|tokens?|secrets?)(?:[._-]|$)/i.test(basename(canonical)) ||
+    (['config', 'plugin', 'hook'].includes(context.kind) && basename(canonical) !== basename(path))
   ) {
     warnings.push(`${path}: Non-guidance or private runtime target excluded.`);
     return;
@@ -156,7 +200,10 @@ async function describeFile(
     scope,
     provider: context.provider,
     kind: context.kind,
-    readOnly: scope !== 'project' || canonical !== resolve(path),
+    readOnly:
+      scope !== 'project' ||
+      canonical !== resolve(path) ||
+      !['instruction', 'memory', 'rule'].includes(context.kind),
   };
 }
 
@@ -175,11 +222,12 @@ async function markdownFiles(
   root: string,
   allowed: Boundary[],
   warnings: string[],
+  pattern = /\.(?:md|mdc|rules)$/i,
 ): Promise<string[]> {
   const found: string[] = [];
   const visited = new Set<string>();
   async function visit(path: string, depth: number): Promise<void> {
-    const canonical = await realpath(path).catch(() => undefined);
+    const canonical = await aiCanonicalPath(path, warnings);
     if (!canonical || visited.has(canonical)) return;
     const boundary = allowed.find((item) => inside(item.root, canonical));
     if (!boundary || excludedLocation(boundary.root, canonical)) {
@@ -191,7 +239,7 @@ async function markdownFiles(
       return;
     }
     visited.add(canonical);
-    for (const entry of await readdir(path, { withFileTypes: true }).catch(() => [])) {
+    for (const entry of await aiDirectoryEntries(path, warnings)) {
       if (
         ignoredDirectories.has(entry.name) ||
         ['backups', 'runs', 'meter', 'rollout_summaries'].includes(entry.name)
@@ -199,9 +247,9 @@ async function markdownFiles(
         continue;
       const child = join(path, entry.name);
       if (entry.isDirectory() || entry.isSymbolicLink()) {
-        if (/\.(?:md|mdc|rules)$/i.test(entry.name)) found.push(child);
+        if (pattern.test(entry.name)) found.push(child);
         else await visit(child, depth + 1);
-      } else if (entry.isFile() && /\.(?:md|mdc|rules)$/i.test(entry.name)) found.push(child);
+      } else if (entry.isFile() && pattern.test(entry.name)) found.push(child);
       if (found.length >= MAX_DOCUMENTS) break;
     }
   }
@@ -252,7 +300,10 @@ export async function localGuidance(
     for (const name of instructionNames)
       candidates.push({
         path: join(directory, name),
-        context: { ...context, kind: /MEMORY/i.test(name) ? 'memory' : 'instruction' },
+        context: {
+          ...context,
+          kind: /MEMORY/i.test(name) ? 'memory' : /rules$/i.test(name) ? 'rule' : 'instruction',
+        },
       });
     for (const name of [
       '.claude/CLAUDE.md',
@@ -262,6 +313,13 @@ export async function localGuidance(
       '.github/copilot-instructions.md',
       '.aims/AGENTS.md',
       '.aims/MEMORY.md',
+      '.ai/AGENTS.md',
+      '.ai/MEMORY.md',
+      '.gemini/GEMINI.md',
+      '.agents/AGENTS.md',
+      '.agent/AGENTS.md',
+      '.opencode/AGENTS.md',
+      '.kiro/AGENTS.md',
     ])
       candidates.push({
         path: join(directory, name),
@@ -330,17 +388,17 @@ export async function globalGuidance(roots: AiConfigRoot[], home = homedir()) {
       provider: root.provider,
       kind: 'instruction',
     };
-    for (const entry of await readdir(root.path, { withFileTypes: true }).catch(() => []))
+    for (const entry of await aiDirectoryEntries(root.path, warnings))
       if ((entry.isFile() || entry.isSymbolicLink()) && /\.md$/i.test(entry.name))
         candidates.push({
           path: join(root.path, entry.name),
           context: { ...context, kind: /memory/i.test(entry.name) ? 'memory' : 'instruction' },
         });
-    for (const directory of ['rules', 'steering', 'memory'])
+    for (const directory of ['rules', 'steering', 'memory', 'agent-memory'])
       for (const file of await markdownFiles(join(root.path, directory), allowed, warnings))
         candidates.push({
           path: file,
-          context: { ...context, kind: directory === 'memory' ? 'memory' : 'rule' },
+          context: { ...context, kind: directory.includes('memory') ? 'memory' : 'rule' },
         });
     if (root.provider === 'codex')
       for (const name of ['MEMORY.md', 'memory_summary.md'])
@@ -388,4 +446,65 @@ export function mergedGuidance(...groups: DocumentLocation[][]): DocumentLocatio
   return mergeFiles(groups.flat()).sort(
     (left, right) => left.scope.localeCompare(right.scope) || left.path.localeCompare(right.path),
   );
+}
+
+/** Known native files are data for inspection, never executable installation instructions. */
+export async function nativeAiFiles(directory: string, context: Context, roots: string[]) {
+  const warnings: string[] = [];
+  const allowed = await boundaries(roots);
+  const candidates: { path: string; context: Context }[] = [];
+  const rootFiles =
+    context.provider === 'project'
+      ? ['.mcp.json', 'opencode.json', 'opencode.jsonc']
+      : [
+          'settings.json',
+          'settings.local.json',
+          'config.toml',
+          'config.json',
+          'opencode.json',
+          'opencode.jsonc',
+          'mcp.json',
+          'mcp_config.json',
+          'settings/mcp.json',
+          '.mcp.json',
+          '.lsp.json',
+          'hooks.json',
+          'plugins/installed_plugins.json',
+          'plugins/known_marketplaces.json',
+        ];
+  for (const name of rootFiles)
+    candidates.push({ path: join(directory, name), context: { ...context, kind: 'config' } });
+  for (const name of [
+    '.claude-plugin/plugin.json',
+    '.claude-plugin/marketplace.json',
+    '.codex-plugin/plugin.json',
+  ])
+    candidates.push({ path: join(directory, name), context: { ...context, kind: 'plugin' } });
+  if (context.provider !== 'project') {
+    const groups = [
+      ['agents', 'agent'],
+      ['agent', 'agent'],
+      ['commands', 'command'],
+      ['command', 'command'],
+      ['prompts', 'command'],
+      ['workflows', 'command'],
+      ['output-styles', 'instruction'],
+      ['hooks', 'hook'],
+    ] as const;
+    for (const [name, kind] of groups)
+      for (const path of await markdownFiles(
+        join(directory, name),
+        allowed,
+        warnings,
+        kind === 'hook' ? /\.(?:json|sh|py|[cm]?[jt]s|ps1)$/i : /\.(?:md|toml|ya?ml)$/i,
+      ))
+        candidates.push({ path, context: { ...context, kind } });
+    for (const entry of await aiDirectoryEntries(join(directory, 'plugins'), warnings))
+      if ((entry.isFile() || entry.isSymbolicLink()) && /\.[cm]?[jt]s$/i.test(entry.name))
+        candidates.push({
+          path: join(directory, 'plugins', entry.name),
+          context: { ...context, kind: 'plugin' },
+        });
+  }
+  return { files: await collect(candidates, allowed, warnings), warnings };
 }

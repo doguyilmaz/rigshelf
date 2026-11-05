@@ -30,6 +30,7 @@ export async function userAiRoots(
   for (const [name, provider] of [
     ['CLAUDE_CONFIG_DIR', 'claude'],
     ['CODEX_HOME', 'codex'],
+    ['OPENCODE_CONFIG_DIR', 'opencode'],
   ] as const)
     if (environment[name])
       roots.push({

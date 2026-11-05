@@ -2,11 +2,18 @@ import type { DocumentLocation, Project } from './model';
 
 export type DocumentChoice = Pick<
   DocumentLocation,
-  'id' | 'path' | 'scope' | 'provider' | 'sourcePath' | 'readOnly'
+  'id' | 'path' | 'scope' | 'provider' | 'sourcePath' | 'readOnly' | 'kind'
 >;
 /** Keep legacy project-relative records visible while a partial/global-only rescan adds richer locations. */
-export function documentChoices(project: Project): DocumentChoice[] {
-  const indexed = project.documentLocations || [];
+export function documentChoices(
+  project: Project,
+  shared: DocumentLocation[] = [],
+): DocumentChoice[] {
+  const indexed = [
+    ...(project.documentLocations || []),
+    ...(project.aiFileLocations || []),
+    ...shared,
+  ];
   const legacy: DocumentChoice[] = project.documents
     .filter((path) => !indexed.some((file) => file.scope === 'project' && file.path === path))
     .map((path) => ({
@@ -16,13 +23,18 @@ export function documentChoices(project: Project): DocumentChoice[] {
       provider: 'project',
       sourcePath: `${project.path}/${path}`,
       readOnly: false,
+      kind: /MEMORY/i.test(path) ? 'memory' : 'instruction',
     }));
-  return [...legacy, ...indexed].map(({ id, path, scope, provider, sourcePath, readOnly }) => ({
+  const unique = [
+    ...new Map([...legacy, ...indexed].map((file) => [file.id || file.path, file])).values(),
+  ];
+  return unique.map(({ id, path, scope, provider, sourcePath, readOnly, kind }) => ({
     id,
     path,
     scope,
     provider,
     sourcePath,
     readOnly,
+    kind,
   }));
 }

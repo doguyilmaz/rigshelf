@@ -7,6 +7,7 @@ import type { Change, Plan } from './model';
 import { rootIdentity, syncOwnership } from './ownership';
 import { planFile } from './plan-limits';
 import { projectMcpFile } from './project-config';
+import { preserveProjectInventory } from './project-inventory';
 import { adapter } from './providers';
 import { assertWritePath, checkedProject, hash, now, slug } from './safety';
 import type { Store } from './store';
@@ -191,7 +192,10 @@ export async function syncInstallations(store: Store, plan: Plan): Promise<void>
   const kit = await readKit(plan.projectPath);
   project.requirements = kit?.requirements || '';
   project.providers = kit?.providers || [];
-  store.put('project', { ...project, ...store.get<object>('project-override', project.id) });
+  store.put('project', {
+    ...preserveProjectInventory(store, project),
+    ...store.get<object>('project-override', project.id),
+  });
   for (const record of kit?.entries || [])
     for (const provider of kit?.providers || []) {
       const entry = store.entry(record.id);

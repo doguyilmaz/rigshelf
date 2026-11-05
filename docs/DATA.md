@@ -1,5 +1,9 @@
 # Data ownership and format
 
+The private inventory supports optional `aiFileLocations` on projects and one shared `global-ai-inventory` record. Agent, Command, Config, Hook and Plugin metadata carries canonical location/root identity; native file bodies load on request. These are optional schema-1 additions excluded from portable library exports.
+
+Immutable `scan-baseline` records contain a versioned gzip/base64 project/file index and installation relationships, with SHA-256 over decoded JSON. Capture reads and writes within one SQLite transaction before discovery mutations. Records omit original source-file contents and ownership/trust/automation grants. Input and decompressed content are bounded to 128 MiB. Settings lists the latest 50 summaries without pruning older records; selected downloads require private API access. These are inventory receipts, not full filesystem/catalog backups. Use a consistent SQLite backup for the complete private catalog.
+
 The OS data directory contains `catalog.sqlite` and SQLite's WAL companions. Directories are created with mode 0700 and the database with mode 0600. Use `KITFOLD_DATA_DIR` to choose a different private location. Do not point it at a public checkout or shared web directory.
 
 SQLite `user_version` and archive `schemaVersion` are 1. A newer database is refused. Future database changes require explicit migrations; future portable formats must retain an importer for schema 1 or provide an explicit migration. Record IDs are opaque and must not be inferred from display names.

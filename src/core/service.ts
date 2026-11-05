@@ -1,5 +1,6 @@
 import { homedir } from 'node:os';
 import { z } from 'zod';
+import type { AiFileInventory } from './ai-files';
 import { exportLibrary, importLibrary } from './backup';
 import { connection } from './connection';
 import { contentPreview } from './content-preview';
@@ -8,6 +9,7 @@ import { discoverSkills } from './discovery';
 import { documentPlan, projectDocument } from './documents';
 import { guidanceFindings } from './guidance';
 import { createCustomSkill, importSkillDirectory } from './ingest';
+import { inventoryHistory, readInventoryBaseline } from './inventory-baselines';
 import {
   type Entry,
   McpSchema,
@@ -22,6 +24,7 @@ import {
 import { approveProject } from './ownership';
 import { filePreview, planView } from './plan-view';
 import { createPlan, executePlan } from './planner';
+import { preserveProjectInventory } from './project-inventory';
 import { adapters } from './providers';
 import { effectiveRules, presetChain, recommend } from './recommend';
 import { recoverPlan } from './recovery';
@@ -48,6 +51,8 @@ export function state(store: Store): unknown {
     entries: store.entries(true),
     sources: store.sources(),
     projects: store.projects(),
+    globalAiFiles: store.get<AiFileInventory>('global-ai-inventory', 'main')?.files || [],
+    globalAiWarnings: store.get<AiFileInventory>('global-ai-inventory', 'main')?.warnings || [],
     installations: store.installations(),
     presets: store.list('preset'),
     rules,
@@ -98,6 +103,8 @@ export async function route(
   if (method === 'POST' && resource === 'connection') return connection(input);
   if (method === 'GET' && resource === 'state') return state(store);
   if (method === 'GET' && resource === 'scan') return scanProgress;
+  if (method === 'GET' && resource === 'scan-history')
+    return id ? readInventoryBaseline(store, id) : inventoryHistory(store);
   if (method === 'POST' && resource === 'scan') {
     if (scanProgress.state === 'running') throw new Error('A scan is already running');
     void scan(store).catch((error) => store.event('scan.failed', String(error)));
@@ -261,7 +268,10 @@ export async function route(
       await checkedProject(value.projectPath),
       value.requirements,
     );
-    const project = { ...detected, ...store.get<object>('project-override', detected.id) };
+    const project = {
+      ...preserveProjectInventory(store, detected),
+      ...store.get<object>('project-override', detected.id),
+    };
     const result = recommend(store, project, value.presetId);
     const stacks = presetChain(store, result.presetId).flatMap((preset) => preset.stacks);
     const guidanceIssues = effectiveRules(store, project, stacks)

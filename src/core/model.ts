@@ -145,7 +145,7 @@ export interface DocumentLocation {
   relativePath: string;
   provider: string;
   scope: 'project' | 'user-project' | 'global';
-  kind: 'instruction' | 'memory' | 'rule';
+  kind: 'instruction' | 'memory' | 'rule' | 'agent' | 'command' | 'config' | 'plugin' | 'hook';
   readOnly: boolean;
   aliases?: string[];
 }
@@ -158,6 +158,7 @@ export interface Project {
   providers: string[];
   documents: string[];
   documentLocations?: DocumentLocation[];
+  aiFileLocations?: DocumentLocation[];
   inventoryWarnings?: string[];
   detectedAt: string;
   requirements: string;

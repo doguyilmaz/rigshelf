@@ -1,5 +1,7 @@
 # Security review record
 
+The native-file/history/onboarding follow-up received focused static review of admitted file roots, lazy reads, immutable checkpoint capture, download authority and executable-file handling. Config, Hook and Plugin content remains read-only data; discovery never executes it or promotes it wholesale into directives. Checkpoint endpoints use the existing private API boundary, enforce compressed/decoded bounds and integrity checks, and restore no ownership or automation grants. The example runs entirely in local component state; browser tests observe zero API requests for its review/Apply/rollback flow. This focused review does not extend the earlier formal audit's coverage or turn normal development tests into qualified security reproductions.
+
 Review date: 2026-11-05. This record distinguishes source review, development regression tests and qualified security reproduction. None establishes defect-free software.
 
 ## Formal source review

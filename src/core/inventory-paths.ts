@@ -47,7 +47,9 @@ export const skillPaths: [string, string][] = [
   ['.crush/skills', 'crush'],
   ['.grok/skills', 'grok'],
   ['.aims/skills', 'aims'],
+  ['.ai/skills', 'custom'],
 ];
+export const projectSkillPaths: [string, string][] = [...skillPaths, ['skills', 'custom']];
 
 export const instructionNames = new Set([
   'AGENTS.md',
@@ -87,6 +89,11 @@ export const aiDirectoryNames = new Set([
   '.clinerules',
   '.vscode',
   '.mcp.json',
+  '.ai',
+  '.claude-plugin',
+  '.codex-plugin',
+  'skills',
+  'SKILL.md',
   'opencode.json',
   'opencode.jsonc',
 ]);
