@@ -1,20 +1,34 @@
 import { afterEach, expect, test } from 'bun:test';
 import { randomInt } from 'node:crypto';
+import type { Store } from '../src/core/store';
 import { startServer } from '../src/server';
 import { fixture } from './helpers';
 
 const cleanup: (() => Promise<void>)[] = [];
+const MAX_PORT_ATTEMPTS = 5;
 afterEach(async () => {
   for (const close of cleanup.splice(0)) await close();
 });
 
+function fixtureServer(store: Store) {
+  for (let attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++) {
+    const port = randomInt(48000, 59000);
+    try {
+      return { server: startServer(store, port), port };
+    } catch (error) {
+      if (!(error instanceof Error) || !('code' in error) || error.code !== 'EADDRINUSE')
+        throw error;
+    }
+  }
+  throw new Error('No available HTTP fixture port after bounded retries.');
+}
+
 async function serverFixture() {
   const value = await fixture();
-  const port = randomInt(48000, 59000);
-  const server = startServer(value.store, port);
-  cleanup.push(async () => {
+  cleanup.push(() => value.cleanup());
+  const { server, port } = fixtureServer(value.store);
+  cleanup.unshift(async () => {
     await server.stop(true);
-    await value.cleanup();
   });
   const base = `http://127.0.0.1:${port}`;
   const html = await (await fetch(base)).text();
