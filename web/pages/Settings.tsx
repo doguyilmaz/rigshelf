@@ -7,6 +7,7 @@ import { Button, CopyButton, Modal, Notice, PageHeader, Spinner } from '../compo
 import { BrowseDirectoryButton, DirectoryPathInput } from '../DirectoryPathInput';
 import { useDraftGuard } from '../drafts';
 import { countText } from '../format';
+import { InventoryHistory } from '../InventoryHistory';
 import { languages, setLocale, t, useLocaleState } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
@@ -352,6 +353,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
             </p>
             <ConnectionEditor {...{ state, notify }} />
           </section>
+          <InventoryHistory notify={notify} />
           <section className="privacy-card">
             <ShieldCheck size={18} />
             <div>

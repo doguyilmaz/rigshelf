@@ -190,6 +190,7 @@ function ProjectDetail({
     readOnly?: boolean;
     sourcePath?: string;
     scope?: string;
+    kind?: string;
   }>();
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState(false);
@@ -319,6 +320,8 @@ function ProjectDetail({
         <div>
           <ProjectDocuments
             project={project}
+            sharedFiles={state.globalAiFiles}
+            sharedWarnings={state.globalAiWarnings}
             onOpen={(file) => guard(() => void openDocument(file))}
           />
           {busy && <Spinner text={t('Reading document')} />}
@@ -385,23 +388,25 @@ function ProjectDetail({
                     {t('Review document changes')}
                   </Button>
                 )}
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    setRule({
-                      id: '',
-                      name: `Guidance from ${document.path}`,
-                      scope: project.id,
-                      content: draft,
-                      enabled: true,
-                      priority: 50,
-                      provenance: `Promoted from ${project.name}/${document.path}`,
-                    })
-                  }
-                >
-                  {t('Create a reusable directive ')}
-                  <ArrowRight size={14} />
-                </Button>
+                {!['config', 'plugin', 'hook'].includes(document.kind || '') && (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setRule({
+                        id: '',
+                        name: `Guidance from ${document.path}`,
+                        scope: project.id,
+                        content: draft,
+                        enabled: true,
+                        priority: 50,
+                        provenance: `Promoted from ${project.name}/${document.path}`,
+                      })
+                    }
+                  >
+                    {t('Create a reusable directive ')}
+                    <ArrowRight size={14} />
+                  </Button>
+                )}
               </div>
             </>
           )}

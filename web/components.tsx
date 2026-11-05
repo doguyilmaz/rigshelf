@@ -22,6 +22,7 @@ export function Button({
   disabled,
   title,
   className = '',
+  'aria-label': ariaLabel,
 }: {
   children: ReactNode;
   onClick?: () => void;
@@ -30,6 +31,7 @@ export function Button({
   disabled?: boolean;
   title?: string;
   className?: string;
+  'aria-label'?: string;
 }): ReactNode {
   return (
     <button
@@ -37,6 +39,7 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={ariaLabel}
       className={`button ${variant} ${className}`}
     >
       {children}

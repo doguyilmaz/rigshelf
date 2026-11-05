@@ -13,6 +13,8 @@ import type { ScanProgress, ScanResult } from '../src/core/scanner';
 import { getLocale, t } from './i18n';
 
 export interface AppState {
+  globalAiFiles?: import('../src/core/model').DocumentLocation[];
+  globalAiWarnings?: string[];
   entries: Omit<Entry, 'body'>[];
   sources: Source[];
   projects: Project[];

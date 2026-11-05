@@ -249,13 +249,13 @@ try {
   await nav('Projects');
   await page.getByRole('button', { name: /Inspect project/ }).click();
   dialog = page.getByRole('dialog').first();
-  const memorySearch = dialog.getByPlaceholder('Search instruction and memory files…');
+  const memorySearch = dialog.getByPlaceholder('Search AI files by name, path or provider…');
   await memorySearch.fill('feedback-evidence');
   await dialog.getByRole('button', { name: 'feedback-evidence.md', exact: true }).click();
   await expect(dialog.locator('.document-preview')).toContainText('External fixture memory');
   await expect(dialog.getByRole('button', { name: 'Edit document', exact: true })).toBeDisabled();
   await memorySearch.fill('');
-  await dialog.locator('summary').filter({ hasText: 'Global guidance' }).click();
+  await dialog.locator('summary').filter({ hasText: 'Global AI files' }).click();
   await dialog.getByRole('button', { name: 'AGENTS.md', exact: true }).click();
   await expect(dialog.locator('.document-preview')).toContainText('Global fixture guidance');
   await expect(dialog.getByRole('button', { name: 'Edit document', exact: true })).toBeDisabled();

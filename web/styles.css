@@ -357,6 +357,137 @@ select {
   border-radius: 6px;
   overflow: hidden;
 }
+.ai-file-filters {
+  display: grid;
+  gap: 8px;
+}
+.ai-file-filters .select-control {
+  min-width: 0;
+}
+.ai-files-more {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding: 6px 10px;
+}
+.ai-files-more small {
+  margin: 0;
+}
+.onboarding-welcome {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  margin-bottom: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafafa;
+}
+.onboarding-welcome > div:first-child {
+  flex: 1 1 280px;
+}
+.onboarding-welcome p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.onboarding-body {
+  min-height: 400px;
+}
+.learning-mode {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.learning-mode legend {
+  font-size: 11px;
+  color: var(--muted);
+}
+.inventory-checkpoints {
+  list-style: none;
+  margin-block: 16px;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.inventory-checkpoints li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.inventory-checkpoints small {
+  display: block;
+  margin-top: 4px;
+}
+.onboarding-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+.onboarding-steps li {
+  flex: 1 1 140px;
+}
+.onboarding-steps button {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.onboarding-steps button[aria-current] {
+  border-color: #555;
+  background: #f3f3f3;
+}
+.onboarding-steps span {
+  display: block;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.onboarding-panel p,
+.onboarding-practice > p {
+  font-size: 14px;
+  line-height: 1.75;
+}
+.onboarding-panel h2,
+.onboarding-practice h2 {
+  margin: 20px 0 12px;
+  font-size: 22px;
+}
+.onboarding-practice fieldset {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-block: 18px;
+  padding: 14px;
+}
+.onboarding-practice > .check-label {
+  margin-block: 14px;
+}
+.onboarding-files {
+  list-style: none;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.onboarding-files li {
+  padding: 6px 0;
+  overflow-wrap: anywhere;
+}
 .project-document-group > summary {
   padding: 11px 12px;
   font-size: 12px;
@@ -855,6 +986,23 @@ label {
 }
 .topbar-actions {
   gap: 16px;
+}
+.getting-started-trigger {
+  width: auto;
+  gap: 7px;
+  padding-inline: 8px;
+}
+.getting-started-trigger span {
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  .getting-started-trigger span {
+    display: none;
+  }
+  .getting-started-trigger {
+    width: 32px;
+    padding: 0;
+  }
 }
 .private-indicator {
   display: flex;
