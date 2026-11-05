@@ -3,6 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { aiDraft, startAiDraft } from '../src/core/ai-assistance';
 import { bridgeReason, resolveDefinition } from '../src/core/mcp-compat';
 import type { Entry, Mcp } from '../src/core/model';
 import { createPlan } from '../src/core/planner';
@@ -173,6 +174,32 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
   expect(names).toContain('kitfold_recommend');
   expect(names).toContain('kitfold_plan');
   expect(names).not.toContain('kitfold_apply');
+  expect(names).toContain('kitfold_pending_drafts');
+  expect(names).toContain('kitfold_propose_draft');
+  const draft = startAiDraft(data.store, {
+    task: 'text',
+    intent: 'format',
+    text: 'Format this fixture note.',
+    runner: 'session',
+  });
+  const offered = await client.callTool({
+    name: 'kitfold_draft_request',
+    arguments: { id: draft.id },
+  });
+  expect(JSON.stringify(offered)).toContain('Format this fixture note.');
+  const proposed = await client.callTool({
+    name: 'kitfold_propose_draft',
+    arguments: {
+      id: draft.id,
+      proposal: {
+        summary: 'A formatted fixture.',
+        questions: [],
+        draft: { kind: 'text', text: 'Formatted fixture note.' },
+      },
+    },
+  });
+  expect(proposed.isError).not.toBe(true);
+  expect(aiDraft(data.store, draft.id).state).toBe('ready');
   expect(names).toContain('kitfold_project_files');
   const listing = await client.callTool({
     name: 'kitfold_project_files',

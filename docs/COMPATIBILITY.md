@@ -1,5 +1,7 @@
 # Harness compatibility
 
+AI authoring is a separate runtime capability: Claude Code and Codex have bounded native generation runners, Ollama uses the fixed local service, and other Harnesses can answer explicitly created requests through a connected Kitfold MCP session. No unattended Kiro/OpenCode/Antigravity/Grok command format is claimed. See [AI assistance](AI-ASSISTANCE.md) for flags, native-login limits and source references. Project-file adapters below retain their existing behavior.
+
 Read-only inventory recognizes native Agent definitions, Commands, Hooks, known config files, Plugin manifests/cache components and Claude Agent memory scopes. Files remain data for explicit inspection; discovery never runs them or promises portable conversion of Plugin execution/approval semantics. OpenCode's explicit `OPENCODE_CONFIG_DIR` is supported. See [AI discovery](AI-DISCOVERY.md) for exclusions and bounds.
 
 Mappings are based on primary vendor documentation linked in [research](RESEARCH.md). They produce project files; the host agent controls when it discovers or approves those files.

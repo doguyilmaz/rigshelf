@@ -170,6 +170,7 @@ const state: AppState = {
     defaultProviders: ['codex'],
     aiRunner: 'none',
     ollamaModel: '',
+    aiModel: '',
     discoveryDays: 0,
     discoveryQueries: [],
   },

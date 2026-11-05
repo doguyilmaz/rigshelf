@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
 import { randomInt } from 'node:crypto';
 import type { Store } from '../src/core/store';
+import type { AiDriver } from '../src/platform/ai-runner';
 import type { DirectoryPickerDriver } from '../src/platform/folder-picker';
 import { startServer } from '../src/server';
 import { fixture } from './helpers';
@@ -11,11 +12,11 @@ afterEach(async () => {
   for (const close of cleanup.splice(0)) await close();
 });
 
-function fixtureServer(store: Store, chooseDirectory?: DirectoryPickerDriver) {
+function fixtureServer(store: Store, chooseDirectory?: DirectoryPickerDriver, aiDriver?: AiDriver) {
   for (let attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++) {
     const port = randomInt(48000, 59000);
     try {
-      return { server: startServer(store, port, { chooseDirectory }), port };
+      return { server: startServer(store, port, { chooseDirectory, aiDriver }), port };
     } catch (error) {
       if (!(error instanceof Error) || !('code' in error) || error.code !== 'EADDRINUSE')
         throw error;
@@ -24,10 +25,10 @@ function fixtureServer(store: Store, chooseDirectory?: DirectoryPickerDriver) {
   throw new Error('No available HTTP fixture port after bounded retries.');
 }
 
-async function serverFixture(chooseDirectory?: DirectoryPickerDriver) {
+async function serverFixture(chooseDirectory?: DirectoryPickerDriver, aiDriver?: AiDriver) {
   const value = await fixture();
   cleanup.push(() => value.cleanup());
-  const { server, port } = fixtureServer(value.store, chooseDirectory);
+  const { server, port } = fixtureServer(value.store, chooseDirectory, aiDriver);
   cleanup.unshift(async () => {
     await server.stop(true);
   });
@@ -38,6 +39,46 @@ async function serverFixture(chooseDirectory?: DirectoryPickerDriver) {
   expect(html).not.toContain(token);
   return { ...value, base, token };
 }
+
+test('AI draft requests use private JSON authorization, return metadata-only status and never grant project authority', async () => {
+  let calls = 0;
+  const data = await serverFixture(undefined, async () => {
+    calls++;
+    return {
+      summary: 'A fixture draft.',
+      questions: [],
+      draft: { kind: 'text', text: 'A formatted fixture note.' },
+    };
+  });
+  const body = JSON.stringify({
+    task: 'text',
+    runner: 'claude',
+    text: 'Format this fixture note.',
+  });
+  const url = `${data.base}/api/ai/drafts`;
+  expect((await fetch(url, { method: 'POST', body })).status).toBe(403);
+  const headers = { 'x-kitfold-token': data.token, 'content-type': 'application/json' };
+  expect(
+    (
+      await fetch(url, {
+        method: 'POST',
+        headers: { ...headers, origin: 'https://foreign.example' },
+        body,
+      })
+    ).status,
+  ).toBe(403);
+  expect(calls).toBe(0);
+  const response = await fetch(url, { method: 'POST', headers, body });
+  expect(response.status).toBe(200);
+  const job = (await response.json()) as { id: string };
+  expect(job).not.toHaveProperty('request');
+  expect(job).not.toHaveProperty('prompt');
+  const status = (await (await fetch(`${url}/${job.id}`, { headers })).json()) as { state: string };
+  expect(['running', 'ready']).toContain(status.state);
+  expect(calls).toBe(1);
+  expect(data.store.planSummaries()).toEqual([]);
+  expect(data.store.list('approval')).toEqual([]);
+});
 
 test('local HTTP rejects foreign origins and missing tokens, while the app session can read its catalog', async () => {
   const { base, token } = await serverFixture();

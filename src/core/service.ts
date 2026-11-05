@@ -1,5 +1,15 @@
 import { homedir } from 'node:os';
 import { z } from 'zod';
+import type { AiDriver } from '../platform/ai-runner';
+import {
+  aiDraft,
+  aiDraftView,
+  aiProviders,
+  cancelAiDraft,
+  completeAiDraft,
+  listAiDrafts,
+  startAiDraft,
+} from './ai-assistance';
 import type { AiFileInventory } from './ai-files';
 import { exportLibrary, importLibrary } from './backup';
 import { connection } from './connection';
@@ -81,6 +91,7 @@ export async function route(
   method: string,
   path: string,
   input: unknown,
+  options: { aiDriver?: AiDriver } = {},
 ): Promise<unknown> {
   const segments = path.split('/').map((segment) => decodeURIComponent(segment));
   if (
@@ -90,6 +101,23 @@ export async function route(
     throw new Error('Invalid API route.');
   const [resource, id, action] = segments;
   if (id) RecordIdSchema.parse(id);
+  if (resource === 'ai') {
+    if (method === 'GET' && id === 'providers' && segments.length === 2) return aiProviders();
+    if (id === 'drafts') {
+      if (method === 'GET' && segments.length <= 3)
+        return action
+          ? aiDraftView(aiDraft(store, RecordIdSchema.parse(action)))
+          : listAiDrafts(store).map(aiDraftView);
+      if (method === 'POST' && segments.length === 2)
+        return aiDraftView(startAiDraft(store, input, options.aiDriver));
+      if (method === 'POST' && action && segments.length === 4) {
+        RecordIdSchema.parse(action);
+        if (segments[3] === 'cancel') return aiDraftView(await cancelAiDraft(store, action));
+        if (segments[3] === 'complete') return aiDraftView(completeAiDraft(store, action, input));
+      }
+    }
+    throw new Error('Unknown AI operation.');
+  }
   if (
     segments[3] &&
     !(

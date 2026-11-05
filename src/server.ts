@@ -1,11 +1,13 @@
 import { randomBytes } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { closeAiDrafts } from './core/ai-assistance';
 import { exportArchive, importArchive } from './core/archive';
 import { Automation } from './core/automation';
 import { inside } from './core/safety';
 import { route } from './core/service';
 import type { Store } from './core/store';
+import type { AiDriver } from './platform/ai-runner';
 import { createDirectoryPicker, type DirectoryPickerDriver } from './platform/folder-picker';
 
 export type WorkbenchServer = Bun.Server<undefined> & { accessUrl: string };
@@ -29,7 +31,7 @@ async function readJson(request: Request): Promise<unknown> {
 export function startServer(
   store: Store,
   port = 47471,
-  options: { chooseDirectory?: DirectoryPickerDriver } = {},
+  options: { chooseDirectory?: DirectoryPickerDriver; aiDriver?: AiDriver } = {},
 ): WorkbenchServer {
   const token = randomBytes(32).toString('hex');
   const root = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
@@ -123,7 +125,9 @@ export function startServer(
           const result =
             url.pathname === '/api/pick-directory'
               ? await directoryPicker.pick(input, request.signal)
-              : await route(store, request.method, url.pathname.slice(5), input);
+              : await route(store, request.method, url.pathname.slice(5), input, {
+                  aiDriver: options.aiDriver,
+                });
           if (url.pathname.startsWith('/api/automation/')) await automation.sync();
           return Response.json(result ?? { error: 'Not found' }, {
             status: result === undefined ? 404 : 200,
@@ -162,6 +166,7 @@ export function startServer(
   });
   const stop = server.stop.bind(server);
   server.stop = async (closeActiveConnections?: boolean) => {
+    await closeAiDrafts(store);
     await directoryPicker.close();
     const stopped = stop(closeActiveConnections);
     await automation.stop();

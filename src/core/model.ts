@@ -236,9 +236,20 @@ export const SettingsSchema = z.object({
   scanGlobals: z.boolean(),
   defaultProviders: ProvidersSchema,
   aiRunner: z
-    .enum(['none', 'claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok', 'ollama'])
+    .enum([
+      'none',
+      'session',
+      'claude',
+      'codex',
+      'kiro',
+      'opencode',
+      'antigravity',
+      'grok',
+      'ollama',
+    ])
     .default('none'),
   ollamaModel: z.string().max(100).default(''),
+  aiModel: z.string().max(100).default(''),
   discoveryDays: z.number().int().min(0).max(365).default(0),
   discoveryQueries: z.array(z.string().min(2).max(100)).max(20).default([]),
 });
