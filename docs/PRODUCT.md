@@ -51,6 +51,7 @@ Each requirement retains an identifier so implementation and deferred work can b
 | R35 | Clear neutral design | Use plain labels, readable typography and neutral surfaces. Avoid decorative green/purple schemes, slogans and controls that mix unrelated concepts. |
 | R36 | Preserve technical terms | Keep Skills, MCP, Plugins and related technical vocabulary recognizable across localized interfaces; translate surrounding copy and ordinary navigation. |
 | R37 | Browse for directory paths | Offer a folder-picker button beside typed directory paths throughout setup, local import, project roots and connection scope. A choice fills a draft and never starts setup or grants permission. |
+| R38 | Complete scoped AI inventory | Inspect known nested and gitignored AI locations, external project memory, global harness guidance and known Aims profiles. Keep project/global provenance, deduplicate aliases, skip dependencies and account/session stores, and report partial discovery. |
 
 ## Interaction design
 

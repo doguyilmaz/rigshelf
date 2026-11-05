@@ -93,3 +93,15 @@ Verification: `bun run verify` passed (93 tests; 705 matching English/Turkish me
 | A chooser could imply immediate scanning or installation | Selection fills the draft; explicit save, import and setup actions remain separate | Choosing a location does not grant authority or perform work. |
 
 The [directory-selection contract](DIRECTORY-SELECTION.md) records cancellation, errors, lifecycle and platform validation limits.
+
+## Scoped project guidance and memory
+
+| Before | After | Why |
+| --- | --- | --- |
+| A root-only document check could say no memory while a harness stored it outside the repository | Bounded local discovery and project-associated user memory are indexed separately | Reflect the actual storage locations without claiming a complete home-directory search. |
+| One undifferentiated set of document buttons | Project files, external project memory and collapsed global guidance, each with counts and provenance | Show where a file belongs and keep shared guidance distinct. |
+| Large file sets had no focused search | Search filename, path and provider within the project's guidance list | Find a topic without remembering its exact filename. |
+| Every opened file appeared editable | Shared/external files have a read-only explanation; local edits retain reviewed plans | Avoid treating a project view as authority to change global or shared state. |
+| Missing or bounded locations could resemble genuine absence | Explicit partial-inventory diagnostics and an inspected-locations empty state | Make discovery limits visible. |
+
+Browser flows exercise external memory search, global guidance, read-only controls and the existing local edit/promotion path. The [discovery contract](AI-DISCOVERY.md) describes exclusions and content-loading boundaries.

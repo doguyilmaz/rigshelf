@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, FileText, FolderOpen, Plus, Zap } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, FolderOpen, Plus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import type { Project, Rule } from '../../src/core/model';
 import type { PlanView } from '../../src/core/plan-view';
@@ -21,6 +21,7 @@ import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 import { RuleEditor } from './Directives';
+import { type DocumentChoice, ProjectDocuments } from './ProjectDocuments';
 import { PlanReview } from './Setup';
 
 export function Projects(props: PageProps): ReactNode {
@@ -186,6 +187,9 @@ function ProjectDetail({
     content: string;
     digest: string;
     redacted: boolean;
+    readOnly?: boolean;
+    sourcePath?: string;
+    scope?: string;
   }>();
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState(false);
@@ -207,12 +211,16 @@ function ProjectDetail({
     t('Project details'),
   );
   const approved = state.approvals?.find((value) => value.id === project.id)?.enabled || false;
-  async function openDocument(path: string): Promise<void> {
+  async function openDocument(file: DocumentChoice | string): Promise<void> {
     setBusy(true);
     try {
       const value = await api<NonNullable<typeof document>>('document', 'POST', {
         projectId: project.id,
-        path,
+        ...(typeof file === 'string'
+          ? { path: file }
+          : file.id
+            ? { documentId: file.id }
+            : { path: file.path }),
       });
       setDocument(value);
       setDraft(value.content);
@@ -309,24 +317,24 @@ function ProjectDetail({
           </div>
         </div>
         <div>
-          <p className="eyebrow">{t('INSTRUCTIONS & MEMORY FILES')}</p>
-          <div className="document-buttons">
-            {project.documents.map((path) => (
-              <button type="button" key={path} onClick={() => guard(() => void openDocument(path))}>
-                <FileText size={15} />
-                {path}
-                <ArrowUpRight size={14} />
-              </button>
-            ))}
-          </div>
-          {!project.documents.length && (
-            <Notice>{t('No instruction or memory files found at this project root.')}</Notice>
-          )}
+          <ProjectDocuments
+            project={project}
+            onOpen={(file) => guard(() => void openDocument(file))}
+          />
           {busy && <Spinner text={t('Reading document')} />}
           {document && (
             <>
+              {document.readOnly && (
+                <Notice>
+                  {t(
+                    'This file is stored outside the editable project guidance. You can read it or create a reviewed project directive from selected guidance.',
+                  )}
+                </Notice>
+              )}
               <div className="code-toolbar">
-                <span>{document.path}</span>
+                <span title={document.sourcePath}>
+                  {document.sourcePath ? shortPath(document.sourcePath) : document.path}
+                </span>
                 <CopyButton text={document.content} />
               </div>
               {document.redacted && (
@@ -353,7 +361,7 @@ function ProjectDetail({
               <div className="button-row">
                 <Button
                   variant="secondary"
-                  disabled={document.redacted}
+                  disabled={document.redacted || document.readOnly}
                   onClick={() => setEditing(!editing)}
                 >
                   {editing ? t('Cancel editing') : t('Edit document')}

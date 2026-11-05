@@ -25,6 +25,20 @@ await Bun.write(
   '---\nname: field-guide\ndescription: Use this guide for focused project work.\nlicense: MIT\n---\n\nOriginal guidance.\n',
 );
 await Bun.write(join(skillPath, 'references/checklist.md'), 'Original reference content.\n');
+const memoryKey = fixtureData.project.replace(/[^a-zA-Z0-9]/g, '-');
+const memoryRoot = join(fixtureData.home, '.claude/projects', memoryKey, 'memory');
+await mkdir(memoryRoot, { recursive: true });
+await Bun.write(
+  join(memoryRoot, 'feedback-evidence.md'),
+  'External fixture memory. Keep the exact file evidence.\n',
+);
+for (let index = 0; index < 10; index++)
+  await Bun.write(join(memoryRoot, `note-${index}.md`), `Fixture memory ${index}.`);
+await mkdir(join(fixtureData.home, '.codex'), { recursive: true });
+await Bun.write(
+  join(fixtureData.home, '.codex/AGENTS.md'),
+  'Global fixture guidance remains read-only here.\n',
+);
 const original = await importSkillDirectory(fixtureData.store, skillPath, fixtureData.home);
 fixtureData.store.put('rule', {
   id: 'flagged-example',
@@ -37,7 +51,7 @@ fixtureData.store.put('rule', {
 });
 await scan(fixtureData.store, {
   roots: [fixtureData.project],
-  globals: false,
+  globals: true,
   home: fixtureData.home,
 });
 const server = startServer(fixtureData.store, 47972);
@@ -235,6 +249,20 @@ try {
   await nav('Projects');
   await page.getByRole('button', { name: /Inspect project/ }).click();
   dialog = page.getByRole('dialog').first();
+  const memorySearch = dialog.getByPlaceholder('Search instruction and memory files…');
+  await memorySearch.fill('feedback-evidence');
+  await dialog.getByRole('button', { name: 'feedback-evidence.md', exact: true }).click();
+  await expect(dialog.locator('.document-preview')).toContainText('External fixture memory');
+  await expect(dialog.getByRole('button', { name: 'Edit document', exact: true })).toBeDisabled();
+  await memorySearch.fill('');
+  await dialog.locator('summary').filter({ hasText: 'Global guidance' }).click();
+  await dialog.getByRole('button', { name: 'AGENTS.md', exact: true }).click();
+  await expect(dialog.locator('.document-preview')).toContainText('Global fixture guidance');
+  await expect(dialog.getByRole('button', { name: 'Edit document', exact: true })).toBeDisabled();
+  await audit('external-memory');
+  checks.push(
+    'External project memory and global guidance are searchable, separate from project files, and read-only.',
+  );
   await dialog.getByRole('button', { name: 'MEMORY.md' }).click();
   await expect(dialog.locator('.document-preview')).toContainText('Keep requests small');
   await dialog.getByRole('button', { name: 'Edit document', exact: true }).click();

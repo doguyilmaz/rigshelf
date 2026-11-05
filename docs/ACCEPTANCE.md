@@ -41,6 +41,7 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R35 | Neutral application chrome, direct page titles, readable library rows and a component-based interactive preview. Visual direction remains open to user feedback. |
 | R36 | English technical vocabulary is retained in the Turkish catalog and documented for future locales. Catalog and browser regressions cover primary type labels; authored content stays unchanged. |
 | R37 | Shared Browse controls cover all four host-directory fields, with manual input, cancellation/error fallback and no implicit import/save/approval. Native chooser command, lifecycle and HTTP boundaries are tested; platform-specific manual QA limits are recorded in [directory selection](DIRECTORY-SELECTION.md). |
+| R38 | Bounded nested/gitignored AI discovery, exact Claude memory keys with worktree/config-root support, known Aims profiles, canonical alias provenance and scoped metadata. Regression fixtures cover excluded dependency/account/session links, lazy redacted reads, replaced roots and partial scans. Projects and read-only MCP expose the same inventory. See [AI discovery](AI-DISCOVERY.md) for storage and discovery limits. |
 
 ## Operating limits
 
@@ -48,6 +49,6 @@ Native discovery may require a new or reloaded agent session. Kitfold does not i
 
 Automation runs while the workbench or `kitfold watch` is running. Project and snapshot permissions can be revoked independently. Portable archives grant neither permission on another machine. A copied kit must be reviewed and applied locally before automation can be enabled.
 
-Memory support covers inventoried project files, not conversation databases or restored model context. Local model review is proposal-only. Remote billing and credential management remain in the selected agent.
+Memory support covers inventoried local and user-scoped project files and global guidance, not conversation databases or restored model context. External/shared documents are read-only in a project's editor. Local model review is proposal-only. Remote billing and credential management remain in the selected agent.
 
 The primary development platform is macOS. Linux CI is configured; hosted CI execution and native Windows acceptance are separate release checks. Global uninstallation, external publication and domain/package registration were not performed.

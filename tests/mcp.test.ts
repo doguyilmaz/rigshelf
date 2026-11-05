@@ -6,6 +6,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { bridgeReason, resolveDefinition } from '../src/core/mcp-compat';
 import type { Entry, Mcp } from '../src/core/model';
 import { createPlan } from '../src/core/planner';
+import { scan } from '../src/core/scanner';
 import { route } from '../src/core/service';
 import { fixture } from './helpers';
 
@@ -149,6 +150,13 @@ test('setup plans use documented native formats and add a canonical bridge only 
 test('catalog MCP exposes read/plan tools by default and no hidden write tools', async () => {
   const data = await fixture();
   cleanup.push(data.cleanup);
+  await Bun.write(join(data.project, 'package.json'), '{}');
+  await Bun.write(
+    join(data.project, 'MEMORY.md'),
+    'A unique fixture memory body, not catalog metadata.',
+  );
+  await scan(data.store, { roots: [data.project], globals: false, home: data.home });
+  const project = data.store.projects()[0]!;
   const client = new Client({ name: 'kitfold-test', version: '1.0.0' });
   cleanup.unshift(async () => {
     await client.close();
@@ -165,4 +173,22 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
   expect(names).toContain('kitfold_recommend');
   expect(names).toContain('kitfold_plan');
   expect(names).not.toContain('kitfold_apply');
+  expect(names).toContain('kitfold_project_files');
+  const listing = await client.callTool({
+    name: 'kitfold_project_files',
+    arguments: { projectId: project.id, limit: 1 },
+  });
+  expect(JSON.stringify(listing)).not.toContain('unique fixture memory body');
+  const text = (listing.content as { type: string; text: string }[])[0]!.text;
+  const files = JSON.parse(text) as {
+    total: number;
+    files: { documentId: string; path: string }[];
+  };
+  expect(files.total).toBe(1);
+  expect(files.files[0]!.path).toBe('MEMORY.md');
+  const document = await client.callTool({
+    name: 'kitfold_project_document',
+    arguments: { projectId: project.id, documentId: files.files[0]!.documentId },
+  });
+  expect(JSON.stringify(document)).toContain('unique fixture memory body');
 });

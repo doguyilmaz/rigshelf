@@ -717,5 +717,13 @@
   "The selected folder is no longer available. Choose another folder.": "The selected folder is no longer available. Choose another folder.",
   "Enter a valid folder path before browsing.": "Enter a valid folder path before browsing.",
   "The folder picker has closed.": "The folder picker has closed.",
-  "A folder picker is already open. Finish that selection first.": "A folder picker is already open. Finish that selection first."
+  "A folder picker is already open. Finish that selection first.": "A folder picker is already open. Finish that selection first.",
+  "Project files": "Project files",
+  "Project memory outside the repository": "Project memory outside the repository",
+  "Global guidance": "Global guidance",
+  "Search instruction and memory files…": "Search instruction and memory files…",
+  "No instruction or memory files found in the inspected AI locations. Scan again after adding files or changing roots.": "No instruction or memory files found in the inspected AI locations. Scan again after adding files or changing roots.",
+  "No files match this search.": "No files match this search.",
+  "Some AI locations could not be fully inspected": "Some AI locations could not be fully inspected",
+  "This file is stored outside the editable project guidance. You can read it or create a reviewed project directive from selected guidance.": "This file is stored outside the editable project guidance. You can read it or create a reviewed project directive from selected guidance."
 }

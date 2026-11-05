@@ -1,7 +1,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { type Plan, PresetSchema, RecordIdSchema, RuleSchema, SetupSchema } from './core/model';
+import { documentChoices } from './core/document-index';
+import {
+  type Plan,
+  PresetSchema,
+  type Project,
+  RecordIdSchema,
+  RuleSchema,
+  SetupSchema,
+} from './core/model';
 import { approveProject } from './core/ownership';
 import { checkedProject, inside, redact } from './core/safety';
 import { route } from './core/service';
@@ -24,6 +32,74 @@ export async function serveMcp(
   const output = (result: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(result) }],
   });
+  server.tool(
+    'kitfold_projects',
+    'List inventoried projects and guidance counts. Never returns memory or instruction bodies.',
+    {
+      query: z.string().default(''),
+      offset: z.number().int().min(0).default(0),
+      limit: z.number().int().min(1).max(100).default(30),
+    },
+    async ({ query, offset, limit }) => {
+      const projects = store
+        .projects()
+        .filter((project) =>
+          `${project.name} ${project.path}`.toLowerCase().includes(query.toLowerCase()),
+        );
+      return output({
+        total: projects.length,
+        projects: projects.slice(offset, offset + limit).map((project) => ({
+          id: project.id,
+          name: project.name,
+          path: project.path,
+          stacks: project.stacks,
+          documentCount: documentChoices(project).length,
+          inventoryWarnings: project.inventoryWarnings || [],
+        })),
+      });
+    },
+  );
+  server.tool(
+    'kitfold_project_files',
+    'List one project’s inventoried instruction, rule and memory locations, including external project memory and global guidance. Metadata only.',
+    {
+      projectId: RecordIdSchema,
+      query: z.string().default(''),
+      scope: z.enum(['all', 'project', 'user-project', 'global']).default('all'),
+      offset: z.number().int().min(0).default(0),
+      limit: z.number().int().min(1).max(100).default(30),
+    },
+    async ({ projectId, query, scope, offset, limit }) => {
+      const project = store.get<Project>('project', projectId);
+      if (!project) throw new Error('Project not found. Scan its development root first.');
+      const files = documentChoices(project).filter(
+        (file) =>
+          (scope === 'all' || file.scope === scope) &&
+          `${file.path} ${file.sourcePath}`.toLowerCase().includes(query.toLowerCase()),
+      );
+      return output({
+        total: files.length,
+        files: files.slice(offset, offset + limit).map((file) => ({
+          documentId: file.id || undefined,
+          path: file.path,
+          sourcePath: file.sourcePath,
+          scope: file.scope,
+          provider: file.provider,
+          readOnly: file.readOnly,
+        })),
+      });
+    },
+  );
+  server.tool(
+    'kitfold_project_document',
+    'Read one explicitly selected inventoried instruction or memory file. Redacts sensitive-looking text; never collects session transcripts.',
+    {
+      projectId: RecordIdSchema,
+      documentId: z.string().max(100).optional(),
+      path: z.string().max(4096).optional(),
+    },
+    async (input) => output(await route(store, 'POST', 'document', input)),
+  );
   server.tool(
     'kitfold_connection',
     'Render project MCP connection settings for the selected harness. Returns text only; never writes agent configuration.',
