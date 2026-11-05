@@ -31,7 +31,7 @@ import {
   SettingsSchema,
   type Source,
 } from './model';
-import { approveProject } from './ownership';
+import { approveProject, matchesManifest, ownedProject } from './ownership';
 import { filePreview, planView } from './plan-view';
 import { createPlan, executePlan } from './planner';
 import { preserveProjectInventory } from './project-inventory';
@@ -290,22 +290,38 @@ export async function route(
         projectPath: z.string(),
         requirements: z.string().default(''),
         presetId: z.string().optional(),
+        restorePrevious: z.boolean().default(false),
       })
       .parse(input);
-    const detected = await detectProject(
-      await checkedProject(value.projectPath),
-      value.requirements,
-    );
+    const projectPath = await checkedProject(value.projectPath);
+    const owned = await ownedProject(store, projectPath);
+    const previousSetup = owned
+      ? {
+          providers: owned.kit.providers,
+          entryIds: owned.kit.entries.map((entry) => entry.id),
+          requirements: owned.kit.requirements || '',
+          presetId: owned.kit.presetId,
+          manifestMatches: await matchesManifest(owned),
+        }
+      : undefined;
+    const savedPreset =
+      previousSetup?.presetId && store.get('preset', previousSetup.presetId)
+        ? previousSetup.presetId
+        : undefined;
+    const requirements =
+      value.restorePrevious && previousSetup ? previousSetup.requirements : value.requirements;
+    const presetId = value.presetId || (value.restorePrevious ? savedPreset : undefined);
+    const detected = await detectProject(projectPath, requirements);
     const project = {
       ...preserveProjectInventory(store, detected),
       ...store.get<object>('project-override', detected.id),
     };
-    const result = recommend(store, project, value.presetId);
+    const result = recommend(store, project, presetId);
     const stacks = presetChain(store, result.presetId).flatMap((preset) => preset.stacks);
     const guidanceIssues = effectiveRules(store, project, stacks)
       .map((rule) => ({ id: rule.id, name: rule.name, findings: guidanceFindings(rule) }))
       .filter((rule) => rule.findings.length);
-    return { project, ...result, guidanceIssues };
+    return { project, ...result, guidanceIssues, previousSetup };
   }
   if (method === 'POST' && resource === 'plans' && !id)
     return planView(await createPlan(store, input as Parameters<typeof createPlan>[1]));

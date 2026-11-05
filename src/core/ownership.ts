@@ -1,8 +1,8 @@
 import { stat } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { Kit } from './kit';
+import { readLocalBytes } from './local-files';
 import type { Plan } from './model';
-import { hash } from './safety';
+import { assertWritePath, hash } from './safety';
 import type { Store } from './store';
 
 export interface Ownership {
@@ -17,6 +17,7 @@ export interface ProjectApproval {
   enabled: boolean;
   rootIdentity?: string;
 }
+const MAX_KIT_MANIFEST_BYTES = 4 * 1024 * 1024;
 export const projectKey = (path: string): string => `project-${hash(path).slice(0, 20)}`;
 
 export async function rootIdentity(path: string): Promise<string | null> {
@@ -50,12 +51,14 @@ export async function approveProject(store: Store, path: string, enabled: boolea
 }
 
 export async function matchesManifest(owned: Ownership, nextHash?: string): Promise<boolean> {
-  const file = Bun.file(join(owned.projectPath, '.kitfold/kit.json'));
-  return (
-    (await file.exists()) &&
-    file.size <= 4 * 1024 * 1024 &&
-    [owned.manifestHash, nextHash].includes(hash(await file.text()))
-  );
+  try {
+    const path = await assertWritePath(owned.projectPath, '.kitfold/kit.json');
+    return [owned.manifestHash, nextHash].includes(
+      hash(await readLocalBytes(path, MAX_KIT_MANIFEST_BYTES)),
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function assertAutomation(
