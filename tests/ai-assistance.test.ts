@@ -268,17 +268,19 @@ test('CLI cancellation drains the fixture process and removes its temporary file
   const previousPath = process.env.PATH;
   process.env.PATH = `${directory}:${previousPath}`;
   const controller = new AbortController();
+  let running: Promise<unknown> | undefined;
   try {
     expect(Bun.which('claude', { PATH: process.env.PATH })).toBe(executable);
-    const running = runAi({
+    running = runAi({
       request: AiRequestSchema.parse(request),
       prompt: 'Fixture only.',
       directory: data.store.directory,
       signal: controller.signal,
     });
     void running.catch(() => undefined);
-    for (let attempt = 0; attempt < 100 && !(await Bun.file(marker).exists()); attempt++)
-      await Bun.sleep(5);
+    const readinessDeadline = Date.now() + 2500;
+    while (!(await Bun.file(marker).exists()) && Date.now() < readinessDeadline)
+      await Bun.sleep(10);
     expect(await Bun.file(marker).exists()).toBe(true);
     const pid = Number(await Bun.file(marker).text());
     expect(pid).toBeGreaterThan(1);
@@ -288,6 +290,7 @@ test('CLI cancellation drains the fixture process and removes its temporary file
     expect(await readdir(join(data.store.directory, 'ai-work'))).toEqual([]);
   } finally {
     controller.abort();
+    await running?.catch(() => undefined);
     process.env.PATH = previousPath;
   }
 });

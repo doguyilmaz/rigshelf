@@ -44,7 +44,7 @@ const help = `Rigshelf · Project setup for coding agents
   rigshelf find "public technology terms"      Search skills.sh; suggestions only
   rigshelf add-source "URL / owner/repo / command" Research and register a source
   rigshelf presets / rules                     List editable presets or directives
-  rigshelf save-preset / save-rule <file.json>  Save a versioned library record
+  rigshelf save-preset / save-rule <file.json>  Save an editable library definition
   rigshelf archive / restore <entry-id>         Manage library visibility
   rigshelf export <file.json[.gz]>                   Portable library, presets and rules
   rigshelf import <file.json[.gz]> [--apply]         Preview import; --apply writes library only
@@ -163,9 +163,10 @@ async function main(): Promise<void> {
       case 'setup':
       case 'plan':
         result = await setupProject(store, required(), {
-          providers: (values.agents?.split(',') || store.settings().defaultProviders).map((value) =>
-            ProviderSchema.parse(value),
-          ),
+          providers:
+            values.agents === undefined
+              ? undefined
+              : values.agents.split(',').map((value) => ProviderSchema.parse(value)),
           entries: values.entries,
           presetId: values.preset,
           requirements: values.requirements,

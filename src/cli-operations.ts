@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { exportArchive, importArchive } from './core/archive';
 import { exportLibrary, importLibrary } from './core/backup';
 import { readLocalBytes } from './core/local-files';
-import type { Provider } from './core/model';
+import type { Preset, Provider } from './core/model';
 import { planView } from './core/plan-view';
 import { createPlan, executePlan } from './core/planner';
 import { route } from './core/service';
@@ -13,7 +13,7 @@ export async function setupProject(
   store: Store,
   path: string,
   options: {
-    providers: Provider[];
+    providers?: Provider[];
     entries?: string;
     presetId?: string;
     requirements?: string;
@@ -33,7 +33,10 @@ export async function setupProject(
   };
   const plan = await createPlan(store, {
     projectPath: path,
-    providers: options.providers,
+    providers:
+      options.providers ??
+      (options.presetId ? store.get<Preset>('preset', detected.presetId)?.providers : undefined) ??
+      store.settings().defaultProviders,
     presetId: detected.presetId,
     requirements: options.requirements || '',
     entryIds:

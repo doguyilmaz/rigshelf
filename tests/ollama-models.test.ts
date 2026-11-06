@@ -1,9 +1,72 @@
 import { afterEach, expect, mock, spyOn, test } from 'bun:test';
+import { AiRequestSchema } from '../src/core/ai-drafts';
 import { route } from '../src/core/service';
+import { runAi } from '../src/platform/ai-runner';
 import { getOllamaModels } from '../src/platform/ollama-models';
 import { fixture } from './helpers';
 
 afterEach(() => mock.restore());
+test('local generation and document-review requests refuse redirects before forwarding their private prompts', async () => {
+  const data = await fixture();
+  let forwarded = 0;
+  let received = 0;
+  const destination = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch() {
+      forwarded++;
+      return Response.json({ response: 'Unexpected forwarding.' });
+    },
+  });
+  const origin = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    async fetch(request) {
+      const input = (await request.json()) as { prompt: string };
+      expect(input.prompt).toContain('Private fixture note.');
+      received++;
+      return new Response(null, { status: 307, headers: { location: destination.url.toString() } });
+    },
+  });
+  const actualFetch = globalThis.fetch;
+  mockFetch(async (url, init) => {
+    expect(url).toBe('http://127.0.0.1:11434/api/generate');
+    return actualFetch(new URL('api/generate', origin.url), init);
+  });
+  try {
+    await expect(
+      runAi({
+        request: AiRequestSchema.parse({
+          task: 'rule',
+          intent: 'format',
+          text: 'Private fixture note.',
+          runner: 'ollama',
+          model: 'fixture',
+        }),
+        prompt: 'Private fixture note.',
+        directory: data.store.directory,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toThrow();
+    data.store.put('settings', {
+      id: 'main',
+      ...data.store.settings(),
+      aiRunner: 'ollama',
+      ollamaModel: 'fixture',
+    });
+    await expect(
+      route(data.store, 'POST', 'ai-review', { text: 'Private fixture note.', task: 'rule' }),
+    ).rejects.toThrow();
+    expect(received).toBe(2);
+    expect(forwarded).toBe(0);
+    expect(data.store.list('ai-draft')).toEqual([]);
+    expect(data.store.entries()).toEqual([]);
+  } finally {
+    await origin.stop(true);
+    await destination.stop(true);
+    await data.cleanup();
+  }
+});
 test('the shared model-list operation returns metadata without creating drafts, catalog content, plans or approval', async () => {
   const data = await fixture();
   try {

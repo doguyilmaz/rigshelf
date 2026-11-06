@@ -191,6 +191,7 @@ export const runAi: AiDriver = async ({ request, prompt, directory, signal }) =>
     if (!request.model) throw new Error('Choose an installed Ollama model.');
     const response = await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
+      redirect: 'error',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         model: request.model,

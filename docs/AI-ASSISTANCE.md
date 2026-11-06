@@ -25,6 +25,8 @@ The model control in AI panels and Settings can list installed model names. Open
 
 The list is bounded to 1 MiB, 1,000 models and a 2.5-second request deadline. Requests are cancelable, do not follow redirects and send no prompt, catalog data or credentials. Metadata is not stored in the catalog or exported. `remote_host`/`remote_model` reports produce a visible remote-routing label without exposing the host; absence of those fields is not a guarantee of local computation. Model routing remains controlled by the Ollama service. Sources: [model-list API](https://docs.ollama.com/api/tags), [official response schema](https://github.com/ollama/ollama/blob/main/docs/openapi.yaml).
 
+Generation and the older document-review endpoint also refuse HTTP redirects. They send an explicit prompt to the fixed loopback service only; they do not follow a redirected URL with that prompt. This does not constrain the chosen model service's own remote routing.
+
 The shared TypeScript operation is `getOllamaModels({ signal? }): Promise<OllamaModel[]>`. For example, a read-only caller can await the list; a panel owns an `AbortController` and aborts on closure. An unavailable service rejects with a fixed recovery message rather than converting failure into an empty successful list. `GET /api/ai/ollama-models` uses the same operation behind the existing private HTTP boundary; POST is refused.
 
 ## Data and authority

@@ -15,6 +15,7 @@ import type { AiFileInventory } from './ai-files';
 import { exportLibrary, importLibrary } from './backup';
 import { connection } from './connection';
 import { contentPreview } from './content-preview';
+import { savePreset, saveRule } from './definitions';
 import { detectProject } from './detect';
 import { discoverSkills } from './discovery';
 import { documentPlan, projectDocument } from './documents';
@@ -24,11 +25,9 @@ import { inventoryHistory, readInventoryBaseline } from './inventory-baselines';
 import {
   type Entry,
   McpSchema,
-  PresetSchema,
   type Project,
   RecordIdSchema,
   type Rule,
-  RuleSchema,
   SettingsSchema,
   type Source,
 } from './model';
@@ -352,20 +351,8 @@ export async function route(
     return planView(await executePlan(store, id, action));
   if (method === 'POST' && resource === 'plans' && id && action === 'recover')
     return planView(await recoverPlan(store, id));
-  if (method === 'PUT' && resource === 'presets') {
-    const preset = PresetSchema.parse(input);
-    const previous = store.get('preset', preset.id);
-    store.put('preset', preset);
-    try {
-      presetChain(store, preset.id);
-    } catch (error) {
-      if (previous) store.put('preset', previous as { id: string });
-      else store.remove('preset', preset.id);
-      throw error;
-    }
-    store.event('preset.saved', preset.name);
-    return preset;
-  }
+  if ((method === 'PUT' || method === 'POST') && resource === 'presets' && !id)
+    return savePreset(store, input, { createOnly: method === 'POST' });
   if (method === 'DELETE' && resource === 'presets' && id && !action) {
     if (
       store
@@ -376,16 +363,8 @@ export async function route(
     store.remove('preset', id);
     return { removed: true };
   }
-  if (method === 'PUT' && resource === 'rules') {
-    const rule = RuleSchema.parse(input);
-    if (guidanceFindings(rule).some((finding) => finding.level === 'block'))
-      throw new Error(
-        'Keep credential-looking values outside reusable directives. Use environment references.',
-      );
-    store.put('rule', rule);
-    store.event('rule.saved', rule.name);
-    return rule;
-  }
+  if ((method === 'PUT' || method === 'POST') && resource === 'rules' && !id)
+    return saveRule(store, input, { createOnly: method === 'POST' });
   if (method === 'DELETE' && resource === 'rules' && id && !action) {
     store.remove('rule', id);
     return { removed: true };
@@ -482,6 +461,7 @@ async function prepareReview(store: Store, raw: unknown): Promise<unknown> {
   if (!settings.ollamaModel) throw new Error('Choose an Ollama model in Settings first.');
   const response = await fetch('http://127.0.0.1:11434/api/generate', {
     method: 'POST',
+    redirect: 'error',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       model: settings.ollamaModel,
