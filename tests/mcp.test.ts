@@ -5,7 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { aiDraft, startAiDraft } from '../src/core/ai-assistance';
 import { bridgeReason, resolveDefinition } from '../src/core/mcp-compat';
-import type { Entry, Mcp, Preset, Rule } from '../src/core/model';
+import type { Entry, Mcp, Plan, Preset, Rule } from '../src/core/model';
 import { createPlan, executePlan } from '../src/core/planner';
 import { scan } from '../src/core/scanner';
 import { route } from '../src/core/service';
@@ -281,6 +281,11 @@ test('writable MCP supports create-only definitions and checked edits without gr
       stderr: 'pipe',
     }),
   );
+  const documented = new Set(
+    (await Bun.file(new URL('../docs/MCP.md', import.meta.url)).text()).match(/kitfold_[a-z_]+/g),
+  );
+  const exposed = new Set((await client.listTools()).tools.map((tool) => tool.name));
+  expect([...documented].sort()).toEqual([...exposed].sort());
   const preset: Preset = {
     id: 'mcp-preset',
     name: 'MCP fixture',
@@ -337,4 +342,78 @@ test('writable MCP supports create-only definitions and checked edits without gr
   expect(data.store.planSummaries()).toEqual([]);
   expect(data.store.list('approval')).toEqual([]);
   expect(data.store.list('trust')).toEqual([]);
+});
+
+test('MCP pages directives and large plan metadata without exposing bulk file bodies', async () => {
+  const data = await fixture();
+  cleanup.push(data.cleanup);
+  for (let index = 0; index < 62; index++) {
+    const suffix = String(index).padStart(2, '0');
+    data.store.put('rule', {
+      id: `page-${suffix}`,
+      name: `Rule ${suffix}`,
+      scope: 'pagination',
+      content: 'private fixture body',
+      enabled: true,
+      priority: 50,
+      provenance: 'Fixture',
+    } satisfies Rule);
+  }
+  const plan: Plan = {
+    id: crypto.randomUUID(),
+    projectPath: data.project,
+    providers: ['codex'],
+    entries: [],
+    createdAt: new Date().toISOString(),
+    warnings: [],
+    status: 'planned',
+    changes: Array.from({ length: 62 }, (_, index) => ({
+      path: `guides/${index}.md`,
+      beforeHash: null,
+      before: null,
+      after: Buffer.from(`private body ${index}`).toString('base64'),
+      reason: 'Fixture change',
+    })),
+  };
+  data.store.put('plan', plan);
+  const client = new Client({ name: 'pagination-fixture', version: '1.0.0' });
+  cleanup.unshift(() => client.close());
+  await client.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve('src/cli.ts'), 'mcp'],
+      env: { KITFOLD_DATA_DIR: data.store.directory },
+      stderr: 'pipe',
+    }),
+  );
+  const rules = await client.callTool({
+    name: 'kitfold_rules',
+    arguments: { scope: 'pagination', offset: 30, limit: 30 },
+  });
+  const rows = JSON.parse((rules.content as { text: string }[])[0]!.text) as { id: string }[];
+  expect(rows).toHaveLength(30);
+  expect(rows[0]!.id).toBe('page-30');
+  expect(JSON.stringify(rules)).not.toContain('private fixture body');
+  const result = await client.callTool({
+    name: 'kitfold_plan_changes',
+    arguments: { planId: plan.id, offset: 50, limit: 50 },
+  });
+  expect(result.isError).not.toBe(true);
+  const page = JSON.parse((result.content as { text: string }[])[0]!.text) as {
+    total: number;
+    nextOffset: null;
+    changes: { index: number; path: string }[];
+  };
+  expect(page.total).toBe(62);
+  expect(page.nextOffset).toBeNull();
+  expect(page.changes).toHaveLength(12);
+  expect(page.changes[0]).toMatchObject({ index: 50, path: 'guides/50.md' });
+  expect(JSON.stringify(result)).not.toContain('private body');
+  const preview = await client.callTool({
+    name: 'kitfold_plan_file',
+    arguments: { planId: plan.id, index: page.changes[0]!.index },
+  });
+  expect(JSON.stringify(preview)).toContain('private body 50');
+  expect(data.store.get<Plan>('plan', plan.id)?.status).toBe('planned');
+  expect(data.store.list('approval')).toHaveLength(0);
 });

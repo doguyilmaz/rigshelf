@@ -14,6 +14,7 @@ import {
   SetupSchema,
 } from './core/model';
 import { approveProject } from './core/ownership';
+import { planChanges } from './core/plan-view';
 import { checkedProject, inside, redact } from './core/safety';
 import { route } from './core/service';
 import type { Store } from './core/store';
@@ -79,6 +80,7 @@ export async function serveMcp(
         );
       return output({
         total: projects.length,
+        nextOffset: offset + limit < projects.length ? offset + limit : null,
         projects: projects.slice(offset, offset + limit).map((project) => ({
           id: project.id,
           name: project.name,
@@ -408,7 +410,7 @@ export async function serveMcp(
         store
           .list<import('./core/model').Rule>('rule')
           .filter((rule) => !scope || rule.scope === scope)
-          .slice(0, limit)
+          .slice(offset, offset + limit)
           .map(({ content, ...rule }) => ({ ...rule, characters: content.length })),
       );
     },
@@ -427,7 +429,26 @@ export async function serveMcp(
       return output({
         ...plan,
         changes: plan.changes.slice(0, 50),
-        note: 'File bodies are omitted. Use kitfold_plan_file for a bounded redacted preview.',
+        nextOffset: plan.fileCount > 50 ? 50 : null,
+        note: 'File bodies are omitted. Page metadata with kitfold_plan_changes; inspect bodies with kitfold_plan_file.',
+      });
+    },
+  );
+  server.tool(
+    'kitfold_plan_changes',
+    'Page file metadata for an existing plan, retaining original indices for kitfold_plan_file. Does not return file bodies or write project files.',
+    {
+      planId: z.string().uuid(),
+      offset: z.number().int().min(0).default(0),
+      limit: z.number().int().min(1).max(100).default(50),
+    },
+    async ({ planId, offset, limit }) => {
+      const plan = store.get<Plan>('plan', planId);
+      if (!plan) throw new Error('Plan not found');
+      return output({
+        total: plan.changes.length,
+        nextOffset: offset + limit < plan.changes.length ? offset + limit : null,
+        changes: planChanges(plan, offset, limit),
       });
     },
   );

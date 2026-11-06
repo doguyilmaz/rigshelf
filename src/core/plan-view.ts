@@ -29,6 +29,16 @@ export interface FilePreview {
   truncated: boolean;
   binary: boolean;
 }
+export function planChanges(plan: Plan, offset: number, limit: number): ChangeView[] {
+  return plan.changes.slice(offset, offset + limit).map((change, position) => ({
+    index: offset + position,
+    path: change.path,
+    reason: change.reason,
+    operation: change.after === null ? 'remove' : change.before === null ? 'create' : 'modify',
+    beforeBytes: change.before === null ? 0 : Buffer.byteLength(change.before, 'base64'),
+    afterBytes: change.after === null ? 0 : Buffer.byteLength(change.after, 'base64'),
+  }));
+}
 export function planView(plan: Plan, limit = plan.changes.length): PlanView {
   return {
     id: plan.id,
@@ -41,14 +51,7 @@ export function planView(plan: Plan, limit = plan.changes.length): PlanView {
     purpose: plan.purpose,
     requiresAdoption: plan.requiresAdoption,
     fileCount: plan.changes.length,
-    changes: plan.changes.slice(0, limit).map((change, index) => ({
-      index,
-      path: change.path,
-      reason: change.reason,
-      operation: change.after === null ? 'remove' : change.before === null ? 'create' : 'modify',
-      beforeBytes: change.before === null ? 0 : Buffer.byteLength(change.before, 'base64'),
-      afterBytes: change.after === null ? 0 : Buffer.byteLength(change.after, 'base64'),
-    })),
+    changes: planChanges(plan, 0, limit),
   };
 }
 export function filePreview(plan: Plan, index: number): FilePreview {

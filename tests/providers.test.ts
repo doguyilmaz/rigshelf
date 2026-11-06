@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { parse } from '@iarna/toml';
 import { connection } from '../src/core/connection';
 import type { Mcp } from '../src/core/model';
-import { adapters, mergeMcp, renderMcp } from '../src/core/providers';
+import { adapters, canonicalMcp, mergeMcp, renderMcp } from '../src/core/providers';
 
 const stdio: Mcp = {
   transport: 'stdio',
@@ -83,4 +83,24 @@ test('connection snippets use each harness format and writable mode requires an 
   });
   expect(writable.content).toContain('--root');
   expect(writable.content).toContain('--write');
+});
+
+test('Codex local environment references import faithfully while remote execution and helper auth stay native', () => {
+  expect(
+    canonicalMcp({
+      command: 'bun',
+      args: ['server.ts'],
+      env_vars: ['TOKEN', { name: 'REGION', source: 'local' }],
+    })?.env,
+  ).toEqual({ TOKEN: '${TOKEN}', REGION: '${REGION}' });
+  for (const native of [
+    { command: 'bun', env_vars: [{ name: 'TOKEN', source: 'remote' }] },
+    { command: 'bun', environment_id: 'remote-machine' },
+    { url: 'https://example.com/mcp', http_headers_helper: 'private-helper' },
+    { url: 'https://example.com/mcp', auth: 'chatgpt' },
+    { url: 'https://example.com/mcp', oauth: { clientId: 'fixture-client' } },
+    { url: 'https://example.com/mcp', authProviderType: 'google_credentials' },
+    { url: 'https://example.com/mcp', type: 'websocket' },
+  ])
+    expect(() => canonicalMcp(native)).toThrow('native configuration');
 });

@@ -312,7 +312,15 @@ async function importMcp(
       configurations.add(path);
       for (const group of mcpLocationGroups(store, config, key, localPath, project))
         for (const [name, raw] of Object.entries(group.servers)) {
-          const canonical = canonicalMcp(raw);
+          let canonical: ReturnType<typeof canonicalMcp>;
+          try {
+            canonical = canonicalMcp(raw);
+          } catch (error) {
+            skipped.push(
+              `${path}#${group.fragment}${name}: ${error instanceof Error ? error.message : 'Unsupported native MCP definition.'}`,
+            );
+            continue;
+          }
           if (!canonical) continue;
           const parsed = McpSchema.safeParse(sanitizeMcp(canonical));
           if (!parsed.success) {

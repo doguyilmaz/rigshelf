@@ -1,5 +1,15 @@
 # Validation record
 
+## Integration and source-maintenance check
+
+The 2026-11-06 follow-up passes 201 unit/integration tests across 32 files, strict TypeScript, 1,157 matching English/Turkish messages, formatting/lint, production build and all twenty UI suites. New fixtures cover source edits/deletion/retargeting during network requests, immutable import attribution, native-only MCP execution/authentication diagnostics without losing valid siblings, Directive pagination and large-plan metadata pagination over actual stdio MCP. The documented tool inventory is checked against the writable server's advertised tools. The integration Skill passes the canonical Skill metadata validator; local Markdown links resolve.
+
+CLI examples also run through the package script in a disposable project: help, read-only scan, plan/diff/Apply/rollback, all six connection formats and archive export/import preview. Real project setups and global Harness configuration are not test fixtures.
+
+Source research uses a consistent private catalog backup and a separate working catalog. Adoption merges dated source evidence and immutable Snapshots transactionally, checking that previous content/supporting bytes, authored metadata, installation relationships, project records and permissions remain intact. Detailed source results stay in ignored private QA evidence; missing upstream paths and unversioned native/local references are unresolved evidence, not successful freshness or safety claims.
+
+Installed native help was checked for Bun 1.4.4, Codex CLI 0.166.0 and Claude Code 2.1.318. No paid generation or live third-party MCP/Plugin execution was used for verification. The lockfile advisory check returned no known advisories; this is not a new qualified security audit. Larger framework major upgrades remain separate from native integration compatibility.
+
 ## Populated selection-control alignment
 
 This delta passes 195 unit/integration tests, strict TypeScript, formatting/lint, locale checks, the production build and all twenty UI suites. The shared geometry assertions also pass the existing 134-case layout matrix. These are checks of the exercised states, not a claim that every visual defect has been eliminated.

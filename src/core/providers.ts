@@ -46,7 +46,7 @@ export const adapters: Adapter[] = [
     mcpKey: 'mcpServers',
     format: 'json',
     note: 'Uses project skills and shared AGENTS.md. Custom Kiro agents may need explicit resources. No automatic tool permissions are granted.',
-    docs: 'https://kiro.dev/docs/cli/chat/configuration/',
+    docs: 'https://kiro.dev/docs/configuration/',
   },
   {
     id: 'opencode',
@@ -286,6 +286,31 @@ export function mergeMcp(
 
 export function canonicalMcp(raw: unknown): Mcp | undefined {
   const input = object(raw);
+  if (
+    (input.environment_id !== undefined && input.environment_id !== 'local') ||
+    input.http_headers_helper !== undefined ||
+    input.oauth !== undefined ||
+    input.authProviderType !== undefined ||
+    (input.auth !== undefined && input.auth !== 'oauth')
+  )
+    throw new Error(
+      'This MCP uses native execution or authentication features that cannot be imported portably. Keep its native configuration.',
+    );
+  if (
+    input.type !== undefined &&
+    !['local', 'remote', 'stdio', 'http', 'sse'].includes(String(input.type))
+  )
+    throw new Error('Unsupported native MCP transport. Keep the native configuration.');
+  const environmentNames = (Array.isArray(input.env_vars) ? input.env_vars : []).map(
+    (value: unknown) => {
+      if (typeof value === 'string') return value;
+      const reference = object(value);
+      if (typeof reference.name === 'string' && reference.source === 'local') return reference.name;
+      throw new Error(
+        'Remote or unknown MCP environment references cannot be imported as local variables. Keep the native configuration.',
+      );
+    },
+  );
   const command = Array.isArray(input.command) ? input.command : undefined;
   const url = input.url || input.serverUrl;
   const allowed = input.allowedTools ?? input.enabledTools ?? input.enabled_tools;
@@ -324,11 +349,7 @@ export function canonicalMcp(raw: unknown): Mcp | undefined {
           : [],
       env: {
         ...stringMap(input.env || input.environment),
-        ...Object.fromEntries(
-          (Array.isArray(input.env_vars) ? input.env_vars : [])
-            .filter((value): value is string => typeof value === 'string')
-            .map((name) => [name, `\${${name}}`]),
-        ),
+        ...Object.fromEntries(environmentNames.map((name) => [name, `\${${name}}`])),
       },
       headers: {},
       ...(typeof input.cwd === 'string' ? { cwd: input.cwd } : {}),

@@ -6,7 +6,7 @@ AI authoring is a separate runtime capability: Claude Code and Codex have bounde
 
 Read-only inventory recognizes native Agent definitions, Commands, Hooks, known config files, Plugin manifests/cache components and Claude Agent memory scopes. Files remain data for explicit inspection; discovery never runs them or promises portable conversion of Plugin execution/approval semantics. OpenCode's explicit `OPENCODE_CONFIG_DIR` is supported. See [AI discovery](AI-DISCOVERY.md) for exclusions and bounds.
 
-Mappings are based on primary vendor documentation linked in [research](RESEARCH.md). They produce project files; the host agent controls when it discovers or approves those files.
+Mappings were rechecked against primary vendor documentation on 2026-11-06; see [research](RESEARCH.md). They produce project files; the host agent controls when it discovers or approves those files.
 
 | Harness | Skills | Guidance | MCP |
 | --- | --- | --- | --- |
@@ -24,6 +24,8 @@ In CLI setup, explicit `--agents` takes precedence. Without that flag, an explic
 Definition-writing clients retain legacy explicit upserts. For a new record use CLI `save-preset`/`save-rule --create-only` or writable MCP `createOnly: true`. For a checked edit use CLI `--expect previous.json` or MCP `expected` with the previously read full definition. A stale check fails and leaves the newer record intact. Create-only and expected controls are mutually exclusive; neither grants Apply or automation permission.
 
 Skill resources retain relative paths and executable intent. Unsupported Claude-specific hooks, model, context and tool-approval metadata are omitted with compatibility notes. Manual-only invocation is retained only where its semantics are documented; incompatible targets are refused rather than made automatically callable. Harness-specific prose still needs author review. Native Plugins are retained as saved recipes or typed native references with scoped installation/configuration/cache/catalog evidence. Rigshelf does not install native Plugin packages or convert their Hooks/permissions into portable Skills. Discovery and activation are separate; see [AI discovery](AI-DISCOVERY.md#native-plugin-references-in-library).
+
+Native-only MCP execution/authentication fields are not silently converted. Codex local `env_vars` strings and `{name, source: "local"}` references are supported; remote environment references/executor selection, dynamic header helpers and first-party session authentication stay native with per-server inventory diagnostics. Other portable servers in that file remain discoverable. Custom OAuth/ADC configuration and unsupported transports such as native WebSocket remain native as well. Account OAuth tokens are not copied.
 
 MCP definitions have canonical stdio/HTTP/SSE transport, arguments, environment references, headers, optional working directory and tool filters. Adapters use native support when documented. For gaps such as unsupported filters, SSE, composed environment values or working-directory semantics, a project-local canonical definition and `kitfold mcp-proxy` bridge preserve the supported behavior. The `kitfold` executable must be on `PATH` for a bridge. Missing required environment variables fail with the variable name, without exposing values.
 

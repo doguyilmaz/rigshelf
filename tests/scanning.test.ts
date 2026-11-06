@@ -229,3 +229,35 @@ test('Claude user-level project MCP sections retain their project scope without 
   expect(store.installations()).toHaveLength(0);
   expect(store.entries()).toHaveLength(1);
 });
+
+test('unsupported native MCP features are reported without dropping valid siblings or running helpers', async () => {
+  const { store, project, home } = await setup();
+  await Bun.write(join(project, 'package.json'), '{}');
+  await Bun.write(
+    join(project, '.codex/config.toml'),
+    `
+[mcp_servers.portable]
+command = "bun"
+args = ["server.ts"]
+[mcp_servers.remote]
+command = "bun"
+environment_id = "other-machine"
+[mcp_servers.helper]
+url = "https://example.com/mcp"
+http_headers_helper = "must-never-execute"
+`,
+  );
+  const result = await scan(store, { roots: [project], globals: false, home });
+  expect(
+    store
+      .entries()
+      .filter((entry) => entry.kind === 'mcp')
+      .map((entry) => entry.name),
+  ).toEqual(['portable']);
+  expect(
+    result.skipped.filter((message) => message.includes('Keep its native configuration')),
+  ).toHaveLength(2);
+  expect(await Bun.file(join(project, '.codex/config.toml')).text()).toContain(
+    'must-never-execute',
+  );
+});

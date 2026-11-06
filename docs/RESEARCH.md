@@ -1,13 +1,13 @@
 # Research log
 
-Checked 2026-11-05. Links describe evidence, not permanent compatibility guarantees.
+Agent contract links rechecked 2026-11-06. Links describe evidence, not permanent compatibility guarantees.
 
 ## Agent contracts
 
-- [Agent Skills specification](https://github.com/agentskills/agentskills/blob/main/docs/specification.mdx): a skill is a folder, not just its Markdown file. Preserve references, assets, and scripts. Metadata is discovered before the body is activated. A library outside provider discovery paths avoids listing every skill in every session.
+- [Agent Skills specification](https://agentskills.io/specification): a skill is a folder, not just its Markdown file. Preserve references, assets, and scripts. Metadata is discovered before the body is activated. A library outside provider discovery paths avoids listing every skill in every session.
 - [Claude Code skills](https://code.claude.com/docs/en/skills): project skill folders and plugin skills have distinct provenance. Claude-specific execution features must not silently acquire equivalent semantics in another harness.
 - [OpenCode skills](https://opencode.ai/docs/skills/): supports its own skill folders and shared `.agents/skills` folders. [MCP configuration](https://opencode.ai/docs/mcp-servers/) uses local/remote records, command arrays, and an `environment` field. Blindly copying Claude MCP JSON would be incorrect.
-- [Kiro skills](https://kiro.dev/docs/skills/) and [scope rules](https://kiro.dev/docs/cli/chat/configuration/): project skills and steering are separate capabilities. [Kiro MCP](https://kiro.dev/docs/mcp/configuration/) uses `mcpServers`; permission grants must not be broadened by conversion.
+- [Kiro skills](https://kiro.dev/docs/skills/) and [scope rules](https://kiro.dev/docs/configuration/): project skills and steering are separate capabilities. [Kiro MCP](https://kiro.dev/docs/mcp/configuration/) uses `mcpServers`; permission grants must not be broadened by conversion.
 - [Antigravity discovery](https://antigravity.google/docs/customization-discovery?tab=cli) and [MCP](https://antigravity.google/docs/mcp): distinguish CLI/IDE versions and workspace support. Do not assume the old global-only MCP path covers every surface.
 - [Skills CLI](https://github.com/vercel-labs/skills): prefer recording `bunx skills add` recipes for compatible repositories. Listing and installation are different operations; installation may invoke network access and must be explicit.
 - The user confirmed T3 and the native Grok CLI. [Official Grok skills](https://docs.x.ai/build/features/skills-plugins-marketplaces) and [MCP](https://docs.x.ai/build/features/mcp-servers) document `.grok/skills`, AGENTS.md, and project `.grok/config.toml`. The Grok adapter now targets that CLI. In T3, choose the underlying harness; a selected model name does not by itself establish discovery paths. Ollama remains a model endpoint, separate from harness conversion.
@@ -19,6 +19,12 @@ Checked 2026-11-05. Links describe evidence, not permanent compatibility guarant
 - [Antigravity MCP](https://antigravity.google/docs/mcp) documents cwd and tool allow/deny fields, but the checked page does not establish `${VAR}` interpolation. Authenticated definitions that need it use a Rigshelf bridge rather than a guessed schema.
 - The optional MCP bridge preserves stdio/HTTP/SSE, resolves declared environment references, and enforces tool allow/deny lists. Native formats remain the first choice. Sampling, elicitation, and arbitrary experimental MCP capabilities are outside the bridge contract; preserve a native integration when those are needed.
 - Claude manual-only skill invocation is preserved where documented. Conversion refuses a manual-only skill when the target's equivalent policy cannot be established; it does not silently make it automatically invocable.
+
+## Integration maintenance check
+
+The catalog MCP server, forwarding bridge, integration Skill and six adapters were compared with these contracts. Codex now documents remote executor environment selection, sourced `env_vars` objects and dynamic HTTP header helpers. Local variable references are portable; remote selection, remote references, helper execution and first-party session authentication remain native and are reported rather than silently dropped. Antigravity CLI uses workspace `.agents/mcp_config.json` and Streamable HTTP; legacy SSE uses the explicit bridge. Kiro's former CLI configuration URL redirects to its shared configuration-scope page.
+
+Local help was inspected with Bun 1.4.4, Codex CLI 0.166.0 and Claude Code 2.1.318. The bounded runner isolation flags are present in those help outputs; no paid model invocation or native account login was performed. This does not certify every installed or future client version. See [MCP contracts](MCP.md) and [maintenance](MAINTENANCE.md).
 
 ## Existing local implementation
 

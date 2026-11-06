@@ -1,14 +1,14 @@
 # Rigshelf
 
-A local workbench for setting up coding agents, one project at a time.
+Set up coding agents for each project from your own private library.
 
-Collect skills, MCP definitions and reusable guidance in a private library. Choose a project, review a focused kit, select your agents, and apply a reversible setup plan. Your whole library stays outside agent context.
+Save Skills, MCP definitions, native Plugin references and reusable directives once. Choose a project, select a focused kit and its Harnesses, inspect the file changes, then Apply. Keeping something in Library does not load it into every Agent session.
 
 **Claude Code · Codex · Kiro · OpenCode · Antigravity · Grok CLI**
 
 ## Run locally
 
-Requires [Bun](https://bun.sh/) 1.4.4 or newer. macOS is the primary tested platform; the CI workflow targets Linux. No account, database service or model subscription is required.
+Requires [Bun](https://bun.sh/) 1.4.4 or newer. macOS is the primary tested platform; Linux has CI coverage. Rigshelf runs a local web interface with a Bun server and SQLite. There is no hosted account or database service to configure.
 
 ```sh
 bun install --frozen-lockfile
@@ -16,105 +16,88 @@ bun run build
 bun run start
 ```
 
-Open the **private access URL** printed in the terminal. The workbench binds only to `127.0.0.1`, starting at port `47471`. If that default is occupied, it tries the next seven ports. An explicit `bun run rigshelf ui --port 47500` uses only that port and never stops another process. The URL contains an access key; keep it private. Stop with Ctrl-C. The private key survives restarts. To rotate it, stop existing workbench processes and run `bun run rigshelf ui --reset-access`; servers started afterward use the new key.
+Open the private access URL printed in the terminal. The server binds to `127.0.0.1`, starting at port `47471`. If that default is occupied, it tries the next seven ports. To choose a fixed port:
 
-Choose **Settings → Language** for English or Turkish. The choice is local to your browser and preserves current drafts. The [six-language release plan](docs/LOCALIZATION.md) tracks additional translations.
+```sh
+bun run rigshelf ui --port 47500
+```
 
-This branch implements the [project-first Rigshelf experience](docs/EXPERIENCE.md). The former interface remains on `main` at `1fad90c`; [comparison instructions](docs/EXPERIENCE.md#run-and-compare) explain how to return to it. The new name is a working product identity, not a registered package or domain.
+Keep the access URL private. Stop with Ctrl-C. The access key survives restarts; stop existing processes before using `ui --reset-access` to rotate access for subsequent starts.
 
-For a global executable, run `bun link` in this checkout. It registers `rigshelf` and the compatibility command `kitfold`; it does not install global Skills. Generated MCP bridges still use `kitfold` on the target Harness's `PATH`.
+For development, `bun run dev` builds the web interface once and watches server files. After editing `web/`, restart that command to rebuild the interface. See [Contributing](CONTRIBUTING.md).
 
-## A normal day
+English and Turkish are available in **Settings → Language**. Technical terms remain English. Four additional languages are tracked in the [localization release plan](docs/LOCALIZATION.md).
 
-1. **Prepare → choose a folder.** Inspect an existing or empty project folder. Agents, detected stack and the focused kit appear together.
-2. **Choose the tools and Agents.** Keep the suggested Preset or adjust it. Add saved Skills/MCP; **Find more tools** lets you scan, paste a link/command, use AI or import individual Skills from a source without leaving the project.
-3. **Review → Apply.** Read the exact file changes and compatibility notes. Applying is a separate action; existing authored guidance stays protected.
-4. **Start working.** The handoff shows your Agent's project discovery paths, a starting prompt and history/recovery access. Returning to the folder restores privately reviewed exact choices. Unfinished edits can be recovered in the same tab after reload.
+## Prepare your first project
 
-The [library explorer](docs/LIBRARY.md) separates content type, platform, technology and task, with source/project/agent refinements, visible filter chips and saved browser views. Classification can be corrected without editing snapshot content.
+1. **Choose a folder.** Start at **Set up a project**. Browse to an existing or empty folder, or try the built-in example without changing real files.
+2. **Build your kit.** Inspect the detected stack, choose a Preset and select the Harnesses you use. Add Skills and MCP from Library. **Find more tools** offers local scanning, source links and AI assistance in the same flow.
+3. **Review setup.** Inspect exact file changes, content findings and compatibility notes. Resolve conflicts before applying.
+4. **Apply and start working.** Follow the handoff to open or reload your Agent. Activity retains the plan and recovery actions. Returning projects can reuse privately reviewed choices.
 
-The library groups sources and content versions, with project/tag filters, custom forks, supporting-file editors, archives and provenance receipts. Presets inherit; directives follow global → domain → stack → project scope. Instruction and memory files load only when opened, and edits use the same plan/rollback engine.
+The [walkthrough](docs/QUICKSTART.md) covers first use, returning projects and recovery. Setup writes Agent configuration and guidance; it does not scaffold application code or install application dependencies.
 
-## CLI
+## What belongs in Library
+
+| Content | How Rigshelf handles it |
+| --- | --- |
+| Skills | Immutable Snapshots with supporting files, executable intent and source receipts; converted to documented project discovery formats during setup. |
+| MCP | Canonical server definitions with environment references; native configuration where supported, a local forwarding bridge for documented gaps. |
+| Plugins | Native references, versions, components and installation/cache/catalog evidence. Native package installation and Hook execution remain with the Harness. |
+| Directives and Presets | Editable scoped guidance and reusable kit defaults, with checked edits to protect concurrent changes. |
+| Memory and other AI files | Inventoried locations; content opens explicitly. Reviewed edits use the plan engine. Conversations and account token stores are excluded. |
+
+Browse [by source](docs/LIBRARY.md), or filter by type, platform, technology, task, project and Harness. Custom Skills retain their own lineage. Gitignored AI locations are included in [bounded read-only discovery](docs/AI-DISCOVERY.md); dependencies and private runtime stores are excluded.
+
+A source check records reachability and, where available, an upstream commit. Importing a newer Skill creates or reuses an immutable Snapshot. It does not upgrade an existing project, move its pins or approve automation. See [source maintenance](docs/MAINTENANCE.md).
+
+## CLI and Agent sessions
+
+Commands work directly from this checkout:
 
 ```sh
 bun run rigshelf --help
-rigshelf scan
-rigshelf setup ~/Developer/my-app --preset expo --agents claude,codex
-rigshelf diff <plan-id> --file AGENTS.md
-rigshelf apply <plan-id>
-rigshelf rollback <plan-id>
-rigshelf find "SwiftUI gestures"
-rigshelf add-source "bunx skills add expo/skills"
-rigshelf connection --agents claude,codex
-mkdir -p "$HOME/Backups"
-rigshelf export "$HOME/Backups/rigshelf-library.json.gz"
+bun run rigshelf scan --root /absolute/projects --no-global
+bun run rigshelf setup /absolute/project --preset expo --agents claude,codex
+bun run rigshelf diff <plan-id> --file AGENTS.md
+bun run rigshelf apply <plan-id>
+bun run rigshelf rollback <plan-id>
+bun run rigshelf connection --agents claude,codex
 ```
 
-`setup` prepares a plan by default; add `--apply` for an explicitly requested immediate setup. `--entries ""` produces guidance only. `--replace-existing` permits reviewed replacements of differing skill files while preserving original bytes for rollback. Project-external symlinks remain protected.
+`setup` prepares a plan; `--apply` explicitly applies it immediately. `--entries ""` selects guidance only. A reviewed replacement requires `--replace-existing`; rollback protects later edits with preconditions.
 
-For reusable definitions, `save-preset` and `save-rule` accept `--create-only` for new IDs or `--expect previous.json` for a checked edit. Writable MCP save tools expose the same controls as `createOnly` and `expected`. A stale edit fails rather than overwriting the newer record. The web editors use these checks automatically and keep failed drafts copyable.
+To register local executable aliases, run `bun link` in this checkout. It registers `rigshelf` and compatibility alias `kitfold`, without installing global Skills. Generated MCP forwarding bridges require `kitfold` on the target Harness's `PATH`.
 
-Automatic additions need both project permission and approval of each exact clean snapshot:
+The [MCP integration guide](docs/MCP.md) covers connection snippets, every shipped tool, pagination, read/plan mode, writable roots and the optional [integration Skill](skills/kitfold/SKILL.md). The Skill ID and `kitfold_*` tool names are retained compatibility contracts. In T3, select the actual Harness; the chosen model alone does not determine discovery paths.
+
+AI assistance can use your installed Claude Code/Codex CLI, local Ollama, a saved local/remote Chat Completions connection, or a pending draft answered in a connected MCP session. Generation is explicit; proposals are reviewed before use. API credentials use server environment references. See [AI assistance](docs/AI-ASSISTANCE.md) for setup and limits.
+
+Automatic additions are optional. They require both current project approval and approval of each exact clean Snapshot. New revisions require a new review; revocation stops pending automatic work. Existing authored guidance is preserved. See the [automation walkthrough](docs/QUICKSTART.md#continue-and-recover).
+
+## Data and backup
+
+Fresh installs use `~/.local/share/rigshelf/catalog.sqlite`. An existing `~/.local/share/kitfold` location stays in use. If both default catalogs exist, choose explicitly with `RIGSHELF_DATA_DIR`; Rigshelf does not merge or move them. Legacy `KITFOLD_DATA_DIR` remains accepted. [Brand compatibility](docs/BRANDING.md) explains retained storage and protocol names. Rigshelf is a working identity, not a registered public package or domain.
+
+**Settings → Review backup** compares a previous export, previews record changes and downloads one complete library archive. Archives include sources, content, Presets and directives; they exclude project state, rollback preimages, access keys and automation approvals. An exclusion report identifies omitted sensitive-looking records. A library export is not a full workbench backup; see [data formats](docs/DATA.md).
+
+GitHub/S3/R2 remote Sync is planned, not implemented. Its [design contract](docs/BACKUP-SYNC.md) requires reviewed batch changes, PR/merge where applicable and conditional publication. It rules out implicit uploads and per-file commits.
+
+## Verify and contribute
 
 ```sh
-rigshelf trust <entry-id>
-rigshelf automation ~/Developer/my-app on
-rigshelf watch ~/Developer/my-app --auto
-```
-
-Use `automation ... off` or `untrust <entry-id>` to revoke either permission. The workbench runs the same watcher while open. New upstream versions require a new review; existing guidance stays unchanged during automatic additions.
-
-## In an agent session
-
-Rigshelf exposes a stdio MCP server and a small [integration skill](skills/kitfold/SKILL.md).
-
-```json
-{
-  "mcpServers": {
-    "rigshelf": {
-      "command": "rigshelf",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-This is a Claude-style example; other harnesses use their own MCP configuration. Read/plan tools are available by default. To authorize mutations, use `mcp --write --root /absolute/project/path`. Write tools reject plans outside those roots. A writable connection can also edit the private library; enable it only in a trusted session. Model selection inside T3 is separate from the underlying harness's file discovery.
-
-AI assistance uses an explicitly chosen installed Claude Code/Codex CLI, local Ollama model, saved local/remote Chat Completions connection or a waiting draft request in a connected MCP session. Configure your own API service under **Settings → Your API connections**; credentials use server environment references and stay outside exports. Generation starts only when requested; provider usage limits and billing can apply. The app does not read CLI credential stores. Review the proposal before saving. See [AI assistance](docs/AI-ASSISTANCE.md).
-
-## Your data
-
-Fresh installs use `~/.local/share/rigshelf/catalog.sqlite`. An existing `~/.local/share/kitfold` catalog stays in use, with an explanation in Settings. If both default catalogs exist, choose explicitly with `RIGSHELF_DATA_DIR`; the app never merges or moves them. `RIGSHELF_DATA_DIR` overrides storage, and legacy `KITFOLD_DATA_DIR` remains accepted. See [brand and compatibility decisions](docs/BRANDING.md). SQLite and the data directory are private to the local user. Content snapshots, rollback preimages and project paths stay outside this source tree. There is no hosted registry, telemetry or conversation/session collection.
-
-Versioned JSON and compressed JSON archives contain library content, sources, presets and rules. Projects, access keys, session data, automation approvals and rollback preimages are excluded. Sensitive-looking records are omitted with an explicit report inside the archive. Treat custom content and source notes as private. See [data formats](docs/DATA.md) and [security](SECURITY.md).
-
-**Settings → Review backup** can compare a previous export, preview the record changes and download one complete archive. A changed catalog requires a fresh review. GitHub/S3 remote Sync is not implemented yet; its [batch/PR and conditional-publication contract](docs/BACKUP-SYNC.md) rules out per-file commits and implicit uploads.
-
-## Verification
-
-```sh
-bun run check
 bun run format
+bun run check
 bun run verify
 bun run lint
 bunx playwright install chromium
 bun run test:ui
 ```
 
-Tests use isolated disposable projects. They do not write into existing development repositories or agent configuration. [Validation notes](docs/VALIDATION.md) describe coverage and practical limitations; heuristics and passing tests are not security guarantees.
+Tests use isolated disposable projects. See [validation scope](docs/VALIDATION.md), [security policy](SECURITY.md) and [security review limits](docs/SECURITY-REVIEW.md). Passing tests and source reachability do not establish content safety.
 
-## More detail
+- [Harness formats and limitations](docs/COMPATIBILITY.md) · [primary-source research](docs/RESEARCH.md)
+- [Product requirements](docs/PRODUCT.md) · [architecture decisions](docs/DECISIONS.md) · [acceptance record](docs/ACCEPTANCE.md)
+- [Experience and branch comparison](docs/EXPERIENCE.md) · [Contributing](CONTRIBUTING.md)
 
-- [First project walkthrough](docs/QUICKSTART.md) and the in-app **Getting started** guide
-- [Product requirements](docs/PRODUCT.md) and [acceptance record](docs/ACCEPTANCE.md)
-- [Architecture and decisions](docs/DECISIONS.md)
-- [Provider formats and limitations](docs/COMPATIBILITY.md)
-- [Source research](docs/RESEARCH.md)
-- [Security review and evidence limits](docs/SECURITY-REVIEW.md)
-- [Contributing](CONTRIBUTING.md)
-
-UI fonts are distributed under their original OFL licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
-
-MIT licensed. Rigshelf is an independent project and is not affiliated with the supported harness vendors.
+MIT licensed. Local fonts retain their original OFL licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). Rigshelf is independent of the supported Harness vendors.
