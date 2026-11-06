@@ -1,5 +1,13 @@
 # Validation record
 
+## Populated selection-control alignment
+
+This delta passes 195 unit/integration tests, strict TypeScript, formatting/lint, locale checks, the production build and all twenty UI suites. The shared geometry assertions also pass the existing 134-case layout matrix. These are checks of the exercised states, not a claim that every visual defect has been eliminated.
+
+The Preset regression measures native control size, label-center alignment, row-column consistency, nonoverlap and label hit-target height on populated lists. It runs before the empty-search case, includes a long realistic Skill name, and checks English/Turkish at 1440, 1280, 1024, 768, 390 and 320 px. A second browser page changes the interface language through Settings while retaining the unsaved Preset and its exact pin. Space/Tab and label-click checks exercise the controls. Shared layout assertions extend native-control alignment checks to other audited pages.
+
+The original styles fail the new check with a 3px center offset and 12px controls. This was not an accessibility-engine finding: the prior Axe/overflow tests passed while missing the visible defect. The corrected field selectors exclude checkbox/radio controls from text-field margins/sizing. The suite reports its practical scope rather than claiming that passing page-level checks proves a polished interface. Evidence is ignored under `.local/qa/checkbox-alignment` and `.local/qa/presets`.
+
 ## Rebrand storage and compatibility follow-up
 
 The rebrand delta passes 195 unit/integration tests across 32 files, strict TypeScript, formatting/lint and the production build. English/Turkish still have 1,157 matching messages after removing unused old brand/slogan labels and adding the storage explanation. New directory fixtures cover fresh default naming, exact legacy Snapshot/file/recovery-record retention, partial folders, two-catalog refusal, explicit environment precedence and no implicit copy or merge. Native MCP fixtures retain old tool names and legacy environment configuration while verifying the Rigshelf handshake. New connection snippets use Rigshelf across all six Harness formats.

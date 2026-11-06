@@ -407,12 +407,15 @@ function PresetEditor({
                 </p>
                 <div className="explicit-picks">
                   {matchingEntries.slice(0, visiblePicks).map((entry) => (
-                    <div key={entry.id}>
-                      <span>
+                    <fieldset
+                      key={entry.id}
+                      aria-label={`${entry.name} · ${entry.digest.slice(0, 8)}`}
+                    >
+                      <span title={`${entry.name} · ${entry.digest.slice(0, 8)}`}>
                         {entry.name}
                         <small className="muted"> · {entry.digest.slice(0, 8)}</small>
                       </span>
-                      <label>
+                      <label className="check-label">
                         <input
                           type="checkbox"
                           checked={value.entryIds.includes(entry.id)}
@@ -427,7 +430,7 @@ function PresetEditor({
                         />
                         {t('Include')}
                       </label>
-                      <label>
+                      <label className="check-label">
                         <input
                           type="checkbox"
                           checked={value.excludedIds.includes(entry.id)}
@@ -442,7 +445,7 @@ function PresetEditor({
                         />
                         {t('Exclude')}
                       </label>
-                    </div>
+                    </fieldset>
                   ))}
                 </div>
                 {!matchingEntries.length && (

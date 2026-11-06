@@ -1,5 +1,36 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+/** Validate the rendered control geometry, including nested form labels. */
+export async function assertSelectionControlsAligned(root: Locator, label: string): Promise<void> {
+  const issues = await root.locator('label').evaluateAll((labels) =>
+    labels.flatMap((node) => {
+      const input = node.querySelector<HTMLInputElement>(
+        ':scope > input[type="checkbox"], :scope > input[type="radio"]',
+      );
+      if (!input?.getClientRects().length) return [];
+      const style = getComputedStyle(input);
+      if (style.opacity === '0' || style.visibility === 'hidden') return [];
+      const control = input.getBoundingClientRect();
+      const bounds = node.getBoundingClientRect();
+      const offset = Math.abs(control.top + control.height / 2 - bounds.top - bounds.height / 2);
+      const name =
+        node.textContent?.trim().slice(0, 100) ||
+        input.getAttribute('aria-label') ||
+        'Unlabeled control';
+      return [
+        ...(offset > 1 ? [`${name}: control is ${offset}px off the label center`] : []),
+        ...(control.width < 14 || control.width > 18 || control.height < 14 || control.height > 18
+          ? [`${name}: unexpected control size ${control.width}×${control.height}`]
+          : []),
+        ...(control.left < bounds.left - 1 || control.right > bounds.right + 1
+          ? [`${name}: control escapes its label`]
+          : []),
+      ];
+    }),
+  );
+  expect(issues, label).toEqual([]);
+}
+
 export async function assertSurfaceFits(page: Page, label: string): Promise<void> {
   const problems = await page.evaluate(() => {
     const issues: string[] = [];
@@ -12,6 +43,7 @@ export async function assertSurfaceFits(page: Page, label: string): Promise<void
     return issues;
   });
   expect(problems, label).toEqual([]);
+  await assertSelectionControlsAligned(page.locator('main'), label);
 }
 
 export async function assertDialogFits(page: Page, dialog: Locator, label: string): Promise<void> {

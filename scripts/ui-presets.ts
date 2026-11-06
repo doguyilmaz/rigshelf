@@ -6,12 +6,18 @@ import type { Preset, Rule } from '../src/core/model';
 import { scan } from '../src/core/scanner';
 import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
+import { assertSelectionControlsAligned } from './layout-check';
 import { assertNeutralTheme } from './theme-check';
 import { navigateTo } from './ui-navigation';
 
 const data = await fixture();
 for (let index = 0; index < 65; index++)
-  sampleSkill(data.store, `fixture-guide-${String(index).padStart(3, '0')}`);
+  sampleSkill(
+    data.store,
+    index === 0
+      ? 'cross-platform-mobile-release-engineering-and-accessibility-guide'
+      : `fixture-guide-${String(index).padStart(3, '0')}`,
+  );
 await Bun.write(join(data.project, 'package.json'), '{}');
 await scan(data.store, { roots: [data.project], globals: false, home: data.home });
 const original: Preset = {
@@ -60,7 +66,11 @@ async function audit(name: string) {
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .analyze();
   expect(result.violations.map((item) => item.id)).toEqual([]);
-  await page.screenshot({ path: join(directory, `${name}.png`), fullPage: true });
+  if (name.startsWith('preset-picks-'))
+    await page
+      .locator('dialog .explicit-picks')
+      .screenshot({ path: join(directory, `${name}.png`) });
+  else await page.screenshot({ path: join(directory, `${name}.png`), fullPage: true });
 }
 try {
   await page.goto(server.accessUrl);
@@ -121,15 +131,98 @@ try {
     .locator('summary')
     .filter({ hasText: 'Explicit library picks and exclusions' })
     .click();
-  await expect(dialog.locator('.explicit-picks > div')).toHaveCount(60);
+  await expect(dialog.locator('.explicit-picks > fieldset')).toHaveCount(60);
+  await assertSelectionControlsAligned(dialog, 'Populated Preset controls');
   await dialog.getByRole('button', { name: 'Show more', exact: true }).click();
-  await expect(dialog.locator('.explicit-picks > div')).toHaveCount(65);
-  const lastPick = dialog.locator('.explicit-picks > div').last();
+  await expect(dialog.locator('.explicit-picks > fieldset')).toHaveCount(65);
+  const lastPick = dialog.locator('.explicit-picks > fieldset').last();
   const pinnedName = (await lastPick.locator('span').first().textContent())!
     .split(' · ')[0]!
     .trim();
   const pinnedEntry = data.store.entries().find((entry) => entry.name === pinnedName)!;
   await lastPick.getByRole('checkbox', { name: 'Include', exact: true }).check();
+  const languagePage = await context.newPage();
+  await languagePage.goto(server.accessUrl);
+  await navigateTo(languagePage, 'Settings');
+  for (const locale of ['en', 'tr']) {
+    if (locale === 'tr') {
+      await languagePage.getByLabel('Interface language', { exact: true }).click();
+      await languagePage.getByRole('option', { name: 'Türkçe', exact: true }).click();
+      await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+    }
+    for (const width of [1440, 1280, 1024, 768, 390, 320]) {
+      await page.setViewportSize({ width, height: 860 });
+      const firstPick = dialog.locator('.explicit-picks > fieldset').first();
+      await firstPick.scrollIntoViewIfNeeded();
+      await assertSelectionControlsAligned(dialog, `Populated ${locale} Preset at ${width}px`);
+      expect(
+        await dialog
+          .locator('.explicit-picks')
+          .evaluate((node) => node.scrollWidth <= node.clientWidth),
+      ).toBe(true);
+      const layout = await dialog.locator('.explicit-picks > fieldset').evaluateAll((rows) =>
+        rows.map((row) => {
+          const title = row.querySelector('span')!.getBoundingClientRect();
+          const bounds = row.getBoundingClientRect();
+          const labels = [...row.querySelectorAll('label')].map((node) =>
+            node.getBoundingClientRect(),
+          );
+          return {
+            include: labels[0]!.left,
+            exclude: labels[1]!.left,
+            overlap:
+              title.right > labels[0]!.left ||
+              labels[0]!.right > labels[1]!.left ||
+              labels[1]!.right > bounds.right + 1,
+            heights: labels.map((bounds) => bounds.height),
+          };
+        }),
+      );
+      expect(
+        layout.every((row) => !row.overlap && row.heights.every((height) => height >= 24)),
+      ).toBe(true);
+      expect(
+        layout.every(
+          (row) =>
+            Math.abs(row.include - layout[0]!.include) < 1 &&
+            Math.abs(row.exclude - layout[0]!.exclude) < 1,
+        ),
+      ).toBe(true);
+      await audit(`preset-picks-${locale}-${width}`);
+    }
+  }
+  await languagePage.getByLabel('Arayüz dili', { exact: true }).click();
+  await languagePage.getByRole('option', { name: 'English', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await languagePage.close();
+  const firstInclude = dialog
+    .locator('.explicit-picks > fieldset')
+    .first()
+    .getByRole('checkbox', { name: 'Include', exact: true });
+  const firstExclude = dialog
+    .locator('.explicit-picks > fieldset')
+    .first()
+    .getByRole('checkbox', { name: 'Exclude', exact: true });
+  await firstInclude.focus();
+  await page.keyboard.press('Space');
+  await expect(firstInclude).toBeChecked();
+  await page.keyboard.press('Tab');
+  await expect(firstExclude).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(firstExclude).toBeChecked();
+  await firstInclude.uncheck();
+  await firstExclude.uncheck();
+  await dialog
+    .locator('.explicit-picks > fieldset')
+    .first()
+    .getByText('Include', { exact: true })
+    .click();
+  await expect(firstInclude).toBeChecked();
+  await firstInclude.uncheck();
+  await expect(lastPick.getByRole('checkbox', { name: 'Include', exact: true })).toBeChecked();
+  checks.push(
+    'Populated Include/Exclude controls align with their labels and consistent columns in English/Turkish at six widths. Full labels and keyboard Space/Tab retain independent selections without clipping long names.',
+  );
   await dialog
     .getByRole('textbox', { name: 'Find a skill or MCP snapshot…', exact: true })
     .fill('no-fixture-match');

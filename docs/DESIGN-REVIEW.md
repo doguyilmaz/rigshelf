@@ -1,5 +1,16 @@
 # Interface review and open design choices
 
+## Checkbox alignment correction
+
+| Before | After | Why |
+| --- | --- | --- |
+| Generic editor field spacing also added a 6px top margin to Preset checkboxes, shifting them 3px below label centers | Text-field margins and sizing exclude checkbox/radio controls | Shared field styles must not move native selection controls. |
+| Include/Exclude used 12px controls and labels that could wrap in narrow rows | Consistent 15px controls, unbroken labels, 32px label targets and aligned grid columns | Keep the two actions readable and aligned across rows and languages. |
+| Truncated names had no full-name hint and independent row choices lacked a named group | Each row is a named fieldset with a full name/digest tooltip | Retain identity when the available name column is narrow. |
+| Preset visual checks ran after a no-results search | Populated-list geometry checks run before empty-state checks in English/Turkish at six widths | Page overflow and Axe alone cannot detect a misplaced checkbox. |
+
+The regression first failed against the original rendered styles with the measured 3px center offset. Shared layout verification now checks native control size, label-center alignment and containment on other audited pages as well. Keyboard Space/Tab and clicking the label remain functional, and Include/Exclude keep their existing independent selection semantics. Existing catalogs and project files are unaffected. Private browser evidence stays under `.local/qa/checkbox-alignment` and `.local/qa/presets`.
+
 ## Stability and connection follow-up
 
 | Before | After | Why |
