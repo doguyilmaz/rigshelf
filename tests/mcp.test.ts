@@ -219,6 +219,14 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
   expect(client.getServerVersion()?.name).toBe('rigshelf');
   expect(names).toContain('kitfold_recommend');
   expect(names).toContain('kitfold_plan');
+  expect(names).toContain('kitfold_backup_review');
+  expect(names).not.toContain('kitfold_backup_apply');
+  const backups = await client.callTool({
+    name: 'kitfold_backup_review',
+    arguments: { action: 'destinations' },
+  });
+  expect(backups.isError).not.toBe(true);
+  expect(JSON.stringify(backups.content)).toContain('[]');
   expect(names).not.toContain('kitfold_apply');
   expect(names).not.toContain('kitfold_save_preset');
   expect(names).not.toContain('kitfold_save_rule');

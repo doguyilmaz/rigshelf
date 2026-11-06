@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs } from 'node:util';
+import { backupHelp, runBackupCommand } from './backup-cli';
 import { readImport, setupProject, writeExport } from './cli-operations';
 import { readRecord } from './core/local-files';
 import { PresetSchema, ProviderSchema, RuleSchema } from './core/model';
@@ -56,7 +57,7 @@ const help = `Rigshelf · Project setup for coding agents
 RIGSHELF_DATA_DIR overrides private storage; KITFOLD_DATA_DIR remains compatible.
 The default port advances when occupied. Explicit --port never moves.
 Access survives restarts. --reset-access invalidates old URLs for the next server start.
-`;
+${backupHelp}`;
 
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
@@ -81,6 +82,9 @@ async function main(): Promise<void> {
       'reset-access': { type: 'boolean' },
       'create-only': { type: 'boolean' },
       expect: { type: 'string' },
+      mode: { type: 'string' },
+      cursor: { type: 'string' },
+      'acknowledge-frozen': { type: 'boolean' },
     },
   });
   if (values.help) {
@@ -103,6 +107,9 @@ async function main(): Promise<void> {
   };
   try {
     switch (command) {
+      case 'backup':
+        result = await runBackupCommand(store, subject, extra, positionals[3], values);
+        break;
       case 'connection':
         result = await Promise.all(
           (values.agents?.split(',') || store.settings().defaultProviders).map((provider) =>

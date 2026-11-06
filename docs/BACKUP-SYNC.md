@@ -1,35 +1,73 @@
-# Backup and synchronization
+# Back up your private library
 
-Backup is secondary to project setup. A backup destination never becomes an agent discovery root or an authority source. Importing a backup cannot restore project ownership, automation permissions or a running AI request.
+Open **Settings → Manage backups**. Connect an existing private GitHub repository or S3-compatible bucket. Saving the connection sends no library data. There is no upload watcher or automatic commit loop.
 
-## Available now
+1. **Add destination.** Paste a GitHub repository URL, or choose R2/S3/MinIO and enter its endpoint, bucket and region. Advanced settings contain branch/prefix and credential variable names.
+2. **Configure credentials in the server environment.** Restart Rigshelf after defining them. Missing variable names appear beside the connection. Secret values never go through the browser, portable definitions or operation receipts.
+3. **Test connection.** GitHub tests private repository/branch reads; write permission is exercised during Sync. S3 tests conditional creation/replacement with one temporary object and deletes it. Cleanup failure blocks Sync and reports the temporary key. Neither test sends a library archive.
+4. **Review changes before Sync.** Search changes, inspect bounded before/after content and review exclusions. The review binds the library, exact destination and remote version for 30 minutes.
+5. **Sync reviewed Snapshot.** GitHub creates one commit and PR. Review merge separately, or merge on GitHub and Check remote status. S3 uploads immutable objects, then conditionally publishes the current pointer. A verified identical remote library is a no-op.
 
-**Settings → Review backup** lists the portable records and excluded content. Select a previous Rigshelf `.json.gz` export to compare added, changed, removed and unchanged records. Comparison validates the complete archive with the import validator, but does not import it. Changes cover immutable resources and editable metadata, sources, Presets and directives. List order and export timestamps alone do not count as changes.
+**Backup verified** means Rigshelf read and validated the complete published archive. **Waiting for PR merge** is unfinished. **Outcome needs confirmation** means a request may have completed despite a lost response; check status before retrying. Retry requires acknowledgment of the original frozen Snapshot, which can be older than your current library. Leaving this page does not cancel Sync. Server shutdown cancels and drains owned work.
 
-**Download reviewed archive** creates one complete compressed archive using the existing versioned portable format. Its fingerprint must still match the reviewed catalog. A catalog change refuses the download and asks for a fresh review. The original baseline remains a file chosen by the user; the app does not infer that a downloaded file reached durable storage.
+## Credentials and destinations
 
-Library exports omit Settings, AI connection profiles, credentials, local project inventories, access keys, approvals, AI jobs and rollback preimages. Custom content, source URLs/notes, provenance paths and record names can still be private. Review exclusions and keep the archive private. A portable library is not a full database/disaster-recovery backup; use a consistent SQLite backup for that separate purpose.
+Use your secret manager or shell environment to set the selected variables before starting Rigshelf. Never commit values. A separately launched MCP process needs its own selected environment.
 
-**GitHub and S3 remote connectors are planned, not implemented or enabled.** No background file watcher commits or uploads records. The current download is not a remote Sync receipt.
+| Destination | Default variables | Required access |
+| --- | --- | --- |
+| GitHub.com | `RIGSHELF_BACKUP_GITHUB_TOKEN` | Fine-grained token limited to the existing private repository; Contents and Pull requests read/write, metadata read. |
+| S3 / R2 / MinIO | `RIGSHELF_BACKUP_S3_ACCESS_KEY_ID`, `RIGSHELF_BACKUP_S3_SECRET_ACCESS_KEY` | Object read/write/delete within the chosen bucket/prefix. Delete is only for the temporary probe. |
+| Temporary S3 credentials | Explicit optional `RIGSHELF_BACKUP_*` session-token reference | Same object scope. Ambient AWS credentials/session tokens are not forwarded. |
 
-## GitHub contract
+GitHub needs an initialized target branch. Public or redirected repositories are refused. Archived private repositories remain readable for restore; Sync needs an active repository. GitHub Enterprise, OAuth browser login and SSH authentication are not implemented.
 
-1. Select an existing private repository, backup prefix and base branch. Show the exact destination and privacy before a remote read or write. Authentication stays outside portable definitions.
-2. Read the destination's current commit and backup manifest; compare it with the current portable library. Preview the batch, omitted records, object sizes and destination. Record the local fingerprint, remote commit and format version in the review.
-3. **Sync** rechecks both local content and remote head. A mismatch requires renewed review. Identical content is a no-op. One pending operation per destination prevents duplicate clicks from creating duplicate PRs.
-4. Write the full batch into one Git tree, preserve the base tree and unrelated paths, and create **one commit per reviewed batch** on a dedicated branch. Multiple blobs may belong to that commit; never commit once per file. Open one PR with a readable metadata/change summary and link it. Keep PR creation and merge separate, explicit actions.
-5. Reconcile ambiguous network failures by operation ID and commit/content fingerprint before retrying. Never force-push or silently overwrite a changed destination. A failed or unmerged PR is not a completed backup.
+R2 typically uses `https://ACCOUNT_ID.r2.cloudflarestorage.com` and region `auto`. S3 needs the bucket's regional endpoint/region, for example `https://s3.us-east-1.amazonaws.com` / `us-east-1`. Local MinIO can use `http://127.0.0.1:9000`. Other endpoints require HTTPS. Endpoints are origins without credentials, paths, queries or fragments. Requests use path-style bucket addressing and refuse redirects; choose the correct region/endpoint directly.
 
-GitHub's [Git trees API](https://docs.github.com/en/rest/git/trees) supports constructing a batch against an existing base tree. Omitting the base tree can delete unrelated files when committed, so preserving it is part of this contract. A canonical readable manifest accompanies the portable content; a binary archive diff alone is insufficient review evidence.
+Confirm private bucket/public-access settings in your storage console. This is an owner assertion, not an automated privacy proof. Rigshelf does not encrypt archives or manage encryption-key recovery. GitHub rules, required checks and merge conflicts still apply; Rigshelf never force-pushes or bypasses them.
 
-## S3-compatible contract
+## Content and publication
 
-S3-compatible means the object-storage API, including AWS S3 and compatible services such as R2 or MinIO, subject to provider acceptance. It does not imply that every vendor implements every concurrency control.
+One gzip [portable library](DATA.md#portable-library) contains Skills/supporting resources, canonical MCP definitions, native Plugin references, sources, Presets and directives. An exclusion report identifies omitted sensitive-looking content. Heuristics do not prove that remaining content is public or secret-free.
 
-Use an explicitly chosen private bucket and prefix. Upload a content-addressed, immutable full snapshot, then publish the small current manifest **last**, with an expected ETag or an initial-create precondition. Recheck the local review before upload and the destination before publication. If publication loses a race, retain the uploaded snapshot and ask for a new comparison; do not overwrite the winner or delete data as compensation. Unreferenced-object retention and pruning require a separate explicit policy.
+Project source files, inventories, conversations, Settings, connections, access keys, credentials, automation approvals and rollback preimages are excluded. Custom content, notes, names and provenance can still be private. This is a library backup, not a complete database/device backup. **Settings → Review backup** still offers an independent local export.
 
-AWS documents [`If-Match` and `If-None-Match` conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html). A connector must verify its provider's actual conditional behavior; absence of support blocks mutable-manifest Sync. S3 has no native PR or merge: the app presents its own review, then publishes the batch after explicit Sync. Credentials are supplied through a selected external credential mechanism; none belongs in an archive, manifest, browser response or log.
+Under the selected prefix, `current.json` points to `manifests/<sha256>.json` and `snapshots/<sha256>.json.gz`. The readable manifest indexes records/digests and exclusions, and links its previous manifest. Archives/manifests are immutable and independently verified. History follows the linked chain in bounded pages. Export timestamps and list order alone do not count as changes.
 
-## Acceptance before connecting a real destination
+GitHub builds one tree against the reviewed `base_tree`, preserving unrelated paths, then one commit on `rigshelf-backup/<operation-uuid>` and one PR. A changed base requires renewed review. Merge checks the unchanged PR head/base and sends GitHub's expected head SHA. The current pointer is canonical single-line JSON, allowing competing pointer updates to participate in native merge-conflict handling. GitHub's merge API has no atomic expected-base parameter; review native conflicts/protections accordingly. Externally edited PRs cannot be merged/closed by Rigshelf.
 
-Require isolated adapter tests for changed-head conflicts, conditional-write failures, duplicate clicks, empty changes, interrupted uploads, ambiguous completion, expired credentials and size limits. Provide a restore preview with integrity validation and no implicit Apply. Add explicit destination capability documentation, bounded retries/cancellation, redacted diagnostics and provider-specific acceptance. Encryption/key recovery and retention remain separate design decisions, never silently selected or advertised as shipped.
+S3 first checks conditional behavior, uploads archive/manifest using `If-None-Match: *`, then publishes `current.json` using the reviewed `If-Match` ETag or initial-create precondition. A changed pointer refuses publication and retains immutable uploads. Unknown acknowledgments never justify overwriting a winner. Services failing the capability probe are blocked.
+
+## Restore and interruption
+
+Choose **Backup history → Review restore**. Default restore adds missing library records and keeps existing and local-only records. An explicit option previews replacing existing Presets/directives. Conflicting immutable Snapshot IDs remain blockers. The archive and current library are rechecked before one transactional import. No project files or permissions are restored; nothing is activated.
+
+Interrupted Sync retains a private staged archive and receipt. Check status or retry the same operation; duplicate clicks do not create another operation/PR. Close an unchanged pending PR explicitly to abandon it without merging. Removing a connection removes only the local profile; remote archives, branches and receipts remain. Configuration changes/removal refuse while unfinished work could publish. Rotate credentials through the same selected environment references, restart and reconcile. There is no automatic remote pruning or retention policy.
+
+Limits: 128 MiB compressed archive, 512 MiB decompressed JSON, 256 MiB imported resources, 8 MiB manifest, 8 KiB pointer. GitHub archives are limited to 32 MiB. Keep at most twelve destination profiles. Sync has a three-minute deadline and at most two active jobs per process; destination exclusion persists across aliases/processes. See [data and lifecycle](DATA.md#remote-backup-records-and-authority).
+
+## CLI and MCP
+
+```sh
+rigshelf backup list
+rigshelf backup save destination.json
+rigshelf backup test <destination-id>
+rigshelf backup review <destination-id>
+rigshelf backup sync <review-id>
+rigshelf backup status <operation-id>
+rigshelf backup history <destination-id>
+rigshelf backup restore-review <destination-id> <manifest-digest>
+rigshelf backup restore <restore-review-id>
+```
+
+`rigshelf --help` includes checked edits, frozen retry, merge review/merge, PR closure and history continuation. Sync waits for its owned job; an unmerged PR returns pending. CLI output is JSON. Destination JSON contains configuration and variable names only; use the UI or `BackupDestinationSchema` in `src/core/backup-destinations.ts`. Existing edits require `--expect previous.json`.
+
+The [MCP guide](MCP.md) covers read/plan reviews and explicitly writable execution. MCP cannot create or reroute destinations. Imported content never grants backup authority.
+
+## Verification scope
+
+Isolated protocol fixtures cover Git batching, unrelated files, lost acknowledgments, duplicates, edited PRs/protection, public repositories, unsafe paths, native S3 credential selection, conditional failures, stale reviews, cancellation, alias/process exclusion, no-op verification, history, restore and integrity limits. Chromium fixtures cover connection/review/Sync/merge/restore, responsive layout and accessibility. These are development regressions, not qualified security reproductions or live provider certification.
+
+No real account or destination is preconfigured. Before relying on a service, run its connection test, publish a small reviewed library, verify restore in a disposable catalog, and check access/encryption/retention settings. Real GitHub/R2/S3 acceptance remains separate from protocol fixtures.
+
+Primary contracts: [Git trees](https://docs.github.com/en/rest/git/trees), [PR merge](https://docs.github.com/en/rest/pulls/pulls), [AWS conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html), [R2 extensions](https://developers.cloudflare.com/r2/api/s3/extensions/) and [Bun S3](https://bun.com/docs/runtime/s3).

@@ -162,6 +162,11 @@ export function exportLibrary(store: Store) {
 }
 
 export function importLibrary(store: Store, raw: unknown, apply = false): ImportReview {
+  if (apply) return store.db.transaction(() => validateLibraryImport(store, raw, true)).immediate();
+  return validateLibraryImport(store, raw, false);
+}
+
+function validateLibraryImport(store: Store, raw: unknown, apply: boolean): ImportReview {
   const bundle = BackupSchema.parse(raw);
   const conflicts: string[] = [];
   const entryIds = new Set<string>(),

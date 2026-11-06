@@ -4,12 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { closeAiDrafts } from './core/ai-assistance';
 import { compareArchive, exportArchive, importArchive } from './core/archive';
 import { Automation } from './core/automation';
+import { closeBackupJobs } from './core/backup-jobs';
+import type { BackupTransportFactory } from './core/backup-transport';
 import { DefinitionConflict } from './core/definitions';
 import { inside } from './core/safety';
 import { inventoryScan } from './core/scan-lifecycle';
 import { route } from './core/service';
 import type { Store } from './core/store';
 import type { AiDriver } from './platform/ai-runner';
+import { devBuild } from './platform/dev-build';
 import { createDirectoryPicker, type DirectoryPickerDriver } from './platform/folder-picker';
 
 export type WorkbenchServer = Bun.Server<undefined> & { accessUrl: string };
@@ -37,6 +40,7 @@ export function startServer(
     chooseDirectory?: DirectoryPickerDriver;
     aiDriver?: AiDriver;
     resetAccess?: boolean;
+    backupTransport?: BackupTransportFactory;
   } = {},
 ): WorkbenchServer {
   let token = '';
@@ -161,12 +165,15 @@ export function startServer(
         const input: unknown = hasBody ? await readJson(request) : undefined;
         if (url.pathname === '/api/pick-directory') server.timeout(request, 0);
         const result =
-          url.pathname === '/api/pick-directory'
-            ? await directoryPicker.pick(input, request.signal)
-            : await route(store, request.method, url.pathname.slice(5), input, {
-                aiDriver: options.aiDriver,
-                signal: request.signal,
-              });
+          url.pathname === '/api/dev-build' && request.method === 'GET'
+            ? await devBuild(root)
+            : url.pathname === '/api/pick-directory'
+              ? await directoryPicker.pick(input, request.signal)
+              : await route(store, request.method, url.pathname.slice(5), input, {
+                  aiDriver: options.aiDriver,
+                  signal: request.signal,
+                  backupTransport: options.backupTransport,
+                });
         if (url.pathname.startsWith('/api/automation/')) await automation.sync();
         return Response.json(result ?? { error: 'Not found' }, {
           status: result === undefined ? 404 : 200,
@@ -227,6 +234,7 @@ export function startServer(
     const settled = await Promise.allSettled([
       stopped,
       closeAiDrafts(store),
+      closeBackupJobs(store),
       directoryPicker.close(),
       inventoryScan(store).close(),
       automation.stop(),

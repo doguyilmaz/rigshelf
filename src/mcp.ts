@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import { registerBackupTools } from './backup-mcp';
 import { aiDraft, completeAiDraft, listAiDrafts } from './core/ai-assistance';
 import type { AiFileInventory } from './core/ai-files';
 import { brand } from './core/brand';
@@ -33,6 +34,7 @@ export async function serveMcp(
       );
   };
   const server = new McpServer({ name: brand.slug, version: '0.1.0' });
+  registerBackupTools(server, store, writable);
   const output = (result: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(result) }],
   });

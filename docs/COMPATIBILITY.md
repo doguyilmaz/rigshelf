@@ -42,3 +42,9 @@ macOS is the primary development/test platform. The CI workflow targets Linux. N
 Directory fields offer typed paths and a local native chooser. See [directory selection](DIRECTORY-SELECTION.md) for adapters, platform validation limits and the distinction between choosing a folder and granting project authority.
 
 Read-only inventory extends beyond generated setup paths: nested and gitignored AI locations, user-scoped Claude project memory, known global harness directories, explicit Claude/Codex config roots and known Aims profile locations are supported. Shared aliases retain their origin and are deduplicated. Account/session stores and dependency directories are excluded. [AI discovery](AI-DISCOVERY.md) records exact scope and bounds; it does not imply automatic context loading or support for arbitrary undocumented storage formats.
+
+## Library backup transports
+
+Backup is separate from Harness setup and AI generation. GitHub.com supports existing private repositories, initialized branches, one commit/PR per reviewed batch, explicit merge/status/closure and integrity-checked history/restore. It uses a selected fine-grained token environment reference, Git Trees/Commits/Refs and PR REST APIs. GitHub Enterprise, OAuth login and SSH are not supported. Native protection rules still apply; no force push or per-file commit is used.
+
+S3/R2/MinIO use Bun native S3 signing, path-style addressing, explicit endpoint/bucket/region and selected environment references. HTTPS is required except loopback HTTP. Conditional object create/replace and ETags are mandatory and probed before publication. A service failing those checks is refused. Provider behavior is covered by isolated protocol fixtures; real-account acceptance must be done for the chosen service. No remote retention, encryption-key management or automatic pruning is provided. See [setup and limits](BACKUP-SYNC.md).

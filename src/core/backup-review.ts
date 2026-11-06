@@ -22,18 +22,19 @@ export interface BackupReview {
   counts: { added: number; changed: number; removed: number; unchanged: number };
   excluded: LibraryBundle['excluded'];
 }
-function canonical(value: unknown, depth = 0): string {
+export function canonicalBackup(value: unknown, depth = 0): string {
   if (depth > 32) throw new Error('Backup record nesting exceeds 32 levels.');
-  if (Array.isArray(value)) return `[${value.map((item) => canonical(item, depth + 1)).join(',')}]`;
+  if (Array.isArray(value))
+    return `[${value.map((item) => canonicalBackup(item, depth + 1)).join(',')}]`;
   if (value && typeof value === 'object')
     return `{${Object.entries(value)
       .filter(([, item]) => item !== undefined)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonical(item, depth + 1)}`)
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalBackup(item, depth + 1)}`)
       .join(',')}}`;
   return JSON.stringify(value) ?? 'null';
 }
-function records(bundle: ComparableBundle): BackupRecord[] {
+export function backupRecords(bundle: ComparableBundle): BackupRecord[] {
   const record = (
     kind: string,
     value: { id: string; name: string },
@@ -42,7 +43,7 @@ function records(bundle: ComparableBundle): BackupRecord[] {
     id: `${kind}:${value.id}`,
     kind,
     name: value.name,
-    digest: hash(canonical(content)),
+    digest: hash(canonicalBackup(content)),
   });
   return [
     ...bundle.entries.map((value) => record(value.entry.kind, value.entry, value)),
@@ -51,16 +52,27 @@ function records(bundle: ComparableBundle): BackupRecord[] {
     ...bundle.rules.map((value) => record('directive', value, value)),
   ].sort((left, right) => left.id.localeCompare(right.id));
 }
-export function backupFingerprint(bundle: LibraryBundle): string {
-  return hash(canonical({ records: records(bundle), excluded: bundle.excluded }));
+export function backupFingerprint(
+  bundle: ComparableBundle & Pick<LibraryBundle, 'excluded'>,
+): string {
+  return hash(canonicalBackup({ records: backupRecords(bundle), excluded: bundle.excluded }));
 }
 export function compareBackup(bundle: LibraryBundle, baseline?: ComparableBundle): BackupReview {
-  const previous = new Map(
-    (baseline ? records(baseline) : []).map((record) => [record.id, record]),
+  return compareBackupRecords(
+    backupRecords(bundle),
+    baseline ? backupRecords(baseline) : undefined,
+    bundle.excluded,
   );
+}
+export function compareBackupRecords(
+  current: BackupRecord[],
+  baseline: BackupRecord[] | undefined,
+  excluded: LibraryBundle['excluded'],
+): BackupReview {
+  const previous = new Map((baseline || []).map((record) => [record.id, record]));
   const changes: BackupReview['changes'] = [];
   const counts = { added: 0, changed: 0, removed: 0, unchanged: 0 };
-  for (const record of records(bundle)) {
+  for (const record of current) {
     const before = previous.get(record.id);
     const action = !before ? 'added' : before.digest === record.digest ? 'unchanged' : 'changed';
     counts[action]++;
@@ -73,11 +85,11 @@ export function compareBackup(bundle: LibraryBundle, baseline?: ComparableBundle
     changes.push({ id: record.id, kind: record.kind, name: record.name, action: 'removed' });
   }
   return {
-    fingerprint: backupFingerprint(bundle),
+    fingerprint: hash(canonicalBackup({ records: current, excluded })),
     compared: !!baseline,
     changes,
     counts,
-    excluded: bundle.excluded,
+    excluded,
   };
 }
 export function reviewBackup(store: Store): BackupReview {

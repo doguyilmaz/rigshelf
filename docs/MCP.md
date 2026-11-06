@@ -46,6 +46,7 @@ Default read/plan tools:
 
 | Tool | Purpose and principal input |
 | --- | --- |
+| `kitfold_backup_review` | Read selected saved destinations; explicitly prepare Sync, restore and merge reviews, reconcile status or page backup changes/history. Does not publish, merge or restore. |
 | `kitfold_projects` | Project metadata; `query`, `offset`, `limit`. No instruction bodies. |
 | `kitfold_project_files` | Inventoried AI file metadata for `projectId`; filter by `query`, `scope`, `kind`. |
 | `kitfold_project_document` | Explicit document read using `projectId` and `documentId` or an inventoried `path`. |
@@ -70,6 +71,7 @@ Additional tools with `mcp --write`:
 
 | Tool | Effect |
 | --- | --- |
+| `kitfold_backup_apply` | Explicitly execute Sync, restore, merge, cancel, close PR or frozen retry using a reviewed ID. No destination authoring or credential handling. |
 | `kitfold_add_source` | Register and research a public URL/repository/recipe from `input`; recipes are never executed. |
 | `kitfold_import_skill` | Import `sourceId`, `path` into an immutable library Snapshot, without project activation. |
 | `kitfold_custom_skill` | Save a reviewed custom Skill from `name`, `description`, `body`, optional `tags`. |
@@ -80,6 +82,8 @@ Additional tools with `mcp --write`:
 | `kitfold_recover` | Recover an interrupted `planId` within allowed roots after journal validation. |
 | `kitfold_snapshot_approval` | Approve/revoke exact clean Snapshot `id` with `approved`; never inferred from source trust. |
 | `kitfold_project_automation` | Enable/revoke automation for `projectPath` with `enabled`, within allowed roots. |
+
+Backup review uses `action: "changes"` for Sync reviews or `"restore-changes"` for restore reviews, with `offset` and `limit`. Continue `nextOffset`, `nextExcludedOffset` and `nextConflictOffset` as applicable. Backup destinations are preconfigured in the workbench/CLI; MCP cannot author or reroute them. Sync returns an owned asynchronous operation; use `action: "status"` with its ID to reconcile. A PR waiting for merge is not a completed backup.
 
 The catalog server exposes tools. The forwarding bridge can additionally forward upstream resources and prompts; those are separate capabilities, not catalog endpoints.
 

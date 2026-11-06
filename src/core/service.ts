@@ -14,6 +14,8 @@ import {
 import type { AiFileInventory } from './ai-files';
 import { exportLibrary, importLibrary } from './backup';
 import { reviewBackup } from './backup-review';
+import { backupRoute } from './backup-routes';
+import type { BackupTransportFactory } from './backup-transport';
 import { connection } from './connection';
 import { contentPreview } from './content-preview';
 import { usesLegacyDirectoryName } from './data-directory';
@@ -103,7 +105,11 @@ export async function route(
   method: string,
   path: string,
   input: unknown,
-  options: { aiDriver?: AiDriver; signal?: AbortSignal } = {},
+  options: {
+    aiDriver?: AiDriver;
+    signal?: AbortSignal;
+    backupTransport?: BackupTransportFactory;
+  } = {},
 ): Promise<unknown> {
   const segments = path.split('/').map((segment) => decodeURIComponent(segment));
   if (
@@ -113,6 +119,16 @@ export async function route(
     throw new Error('Invalid API route.');
   const [resource, id, action] = segments;
   if (id) RecordIdSchema.parse(id);
+  if (
+    [
+      'backup-destinations',
+      'backup-reviews',
+      'backup-operations',
+      'backup-merge-reviews',
+      'backup-restore-reviews',
+    ].includes(resource)
+  )
+    return backupRoute(store, method, segments, input, options);
   if (resource === 'ai') {
     if (method === 'GET' && id === 'providers' && segments.length === 2)
       return aiProviders(store.settings().aiConnections);
