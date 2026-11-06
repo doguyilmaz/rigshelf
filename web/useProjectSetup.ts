@@ -36,6 +36,19 @@ export interface SetupProps extends PageProps {
   entryRequest?: KitEntryRequest;
 }
 
+function classificationSignature(project?: Project): string {
+  return JSON.stringify(
+    project
+      ? {
+          path: project.path,
+          name: project.name,
+          stacks: project.stacks,
+          dependencies: project.dependencies,
+        }
+      : null,
+  );
+}
+
 export function useProjectSetup({
   state,
   notify,
@@ -100,16 +113,10 @@ export function useProjectSetup({
   });
   const previousGuidance = useRef(guidanceSignature);
   const knownProject = state.projects.find((project) => project.id === detected?.project.id);
-  const projectClassification = JSON.stringify(
-    knownProject
-      ? {
-          path: knownProject.path,
-          name: knownProject.name,
-          stacks: knownProject.stacks,
-          dependencies: knownProject.dependencies,
-        }
-      : null,
-  );
+  const inspectedClassification = classificationSignature(detected?.project);
+  const projectClassification = knownProject
+    ? classificationSignature(knownProject)
+    : inspectedClassification;
   const previousProject = useRef<{ id: string; classification: string } | undefined>(undefined);
   useEffect(() => {
     if (edited && path)
@@ -134,11 +141,12 @@ export function useProjectSetup({
     if (
       id &&
       previousProject.current?.id === id &&
-      previousProject.current.classification !== projectClassification
+      previousProject.current.classification !== projectClassification &&
+      projectClassification !== inspectedClassification
     )
       invalidate();
     previousProject.current = id ? { id, classification: projectClassification } : undefined;
-  }, [detected?.project.id, projectClassification, invalidate]);
+  }, [detected?.project.id, projectClassification, inspectedClassification, invalidate]);
 
   async function inspect(
     projectPath = path,

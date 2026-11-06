@@ -58,6 +58,8 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 
 Library carries the current project kit and can return an explicitly inspected Skill/MCP revision to it without replaying that choice into another project. Dirty metadata remains protected. Archived-only results have a recovery action. Browser storage failures are visible, oversized draft choices remain recoverable for trimming under the unchanged write limit, and classification/default changes invalidate retained inspection. Read-only dependency checks and pending suggestions lead back to the relevant kit; older plans remain searchable and reachable.
 
+Shared-definition web editors refuse stale saves/deletes and preserve drafts. CLI and writable MCP offer the same explicit create-only/expected controls, with legacy upserts retained for compatibility. Two-page, CLI/MCP and HTTP fixtures cover the concurrency boundary. Clipboard failure has a real read-only/manual-selection recovery path rather than only a changed button label.
+
 ## Operating limits
 
 Native discovery may require a new or reloaded agent session. Rigshelf does not inject tools into a running harness without a supported reload mechanism. The bridge covers tools/resources/prompts and documented filtering/interpolation gaps; experimental extensions, sampling and elicitation need an appropriate native integration.

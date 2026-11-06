@@ -1,5 +1,27 @@
 # Validation record
 
+## Final overnight checkout
+
+The final checkout passes `bun run check`, `bun run format`, `bun run verify`, `bun run lint`, 183 unit/integration tests across 29 files, 1,131-message EN/TR parity and all eighteen UI suites. The final browser run records no uncaught page errors or automated accessibility violations in its audited cases. It includes the 134-case layout pass plus focused acquisition, model, project-context and concurrent-editor flows. Reports and screenshots remain ignored private evidence.
+
+Final additions cover a real CLI private-URL/startup/SIGTERM inventory drain, active HTTP mutations after client disconnection, atomic Skill import reconciliation across two WAL connections, and read-only MCP restoration of privately reviewed exact choices without new plans or permissions. The integration Skill passes the canonical skill validator using an isolated tool environment; its compatibility ID stays unchanged. Static source review, normal tests and the earlier qualified-audit limits remain distinct. No actual paid model, external repository write, global removal or public publication occurs.
+
+The CLI smoke fixture initially tried to wrap an already consumed stdout stream in a new Response. It now drains the existing reader; the actual command flow and shutdown checks pass. This was a fixture correction, not a relaxed production assertion. Current initial client payload is about 475 KB / 154 KB gzip; current test directories clean to zero and the built application is about 2 MB, excluding runtime dependencies. Older counts below record previous milestones.
+
+## Owned inventory shutdown and stable acquisition
+
+The inventory-lifecycle follow-up passes 179 tests across 29 files, strict TypeScript, 1,128 matching EN/TR messages, formatting/lint and the build. Deterministic fixtures verify that shutdown blocks new inventory starts and waits for the active job/failure receipt. An actual HTTP scan imports twenty isolated fixture Skills and finishes before server shutdown returns; no global or existing development project is read by that case.
+
+The acquisition browser flow delays a real scan response while opening a source inspector. The inspector remains open after the response; returning to the list exposes completion and returning to the kit remains explicit. The same flow continues through import/review/Apply and private returning setup. A first identical inventory record does not falsely invalidate an already fresh inspection, while the existing classification-change case still requires renewed inspection. These are normal lifecycle/user-flow regressions, not qualified security reproductions or an immediate scan-cancellation guarantee.
+
+## Concurrent definition editing and copy recovery
+
+The follow-up passes 176 unit/integration tests across 28 files, strict TypeScript, formatting/lint, 1,125 matching EN/TR messages and the production build. All eighteen UI suites pass with the checked editors and manual-copy fallback. The Preset suite uses two actual browser pages to verify that a stale save/delete preserves the other page's newer Preset/Directive, retains editable fields, offers Copy draft and can duplicate a Preset separately. Missing clipboard APIs open a read-only dialog with complete selectable text, keyboard selection and a return to the original editor; desktop/390px/320px accessibility and overflow checks pass.
+
+Domain tests cover normalized expected fields, stale update/delete refusal, ID mismatch, required expected payloads, no resurrection and no success events on rejected writes. Real CLI/MCP protocol fixtures exercise create-only and checked operations against one isolated SQLite catalog, including contradictory flags and malformed expected files without an unchecked fallback. HTTP checks verify 409 conflicts, 400 malformed input and omission of newer definition bodies from conflict errors. Default read/plan MCP still exposes no definition writer. These are normal engineering checks, separate from qualified security reproduction or immutable definition history.
+
+The UI test's nonempty textarea lookup initially used label-text matching, which includes its child text in Playwright; the corrected locator uses the actual accessible textbox name. The behavior was reproduced on isolated HTML and no UI constraint was relaxed. Earlier section counts below record previous milestones.
+
 ## Current project context and reusable defaults
 
 The current pass completes 171 unit/integration tests across 28 files, strict TypeScript, formatting/lint, 1,115 matching EN/TR messages, the production build and all eighteen browser suites. The two new suites cover exact Library-to-kit handoff, project-bound one-shot requests, dirty dismissal, unchanged applied files, visible storage failure, Preset Agent precedence, complete pin paging, edited-field duplication and same-name/Unicode definition creation. Archived-only Library recovery and retained-classification invalidation extend existing suites. Reports remain ignored under `.local/qa/project-context` and `.local/qa/presets`.

@@ -1113,5 +1113,21 @@
   "No matching Skills or MCP servers.": "Eşleşen Skills veya MCP sunucusu yok.",
   "Every project": "Her proje",
   "Scope": "Kapsam",
-  "Only this project": "Yalnızca bu proje"
+  "Only this project": "Yalnızca bu proje",
+  "Operation failed": "İşlem tamamlanamadı",
+  "Copy draft": "Taslağı kopyala",
+  "Keep a copy of your draft before reopening. Duplicate also saves this Preset separately.": "Yeniden açmadan önce taslağının bir kopyasını sakla. Çoğalt işlemi de bu Preset’i ayrı kaydeder.",
+  "Keep a copy of your draft before reopening the saved Directive.": "Kayıtlı direktifi yeniden açmadan önce taslağının bir kopyasını sakla.",
+  "This Preset changed or was removed. Your edits are still here. Reopen it to compare before saving.": "Bu Preset değişti veya kaldırıldı. Düzenlemelerin hâlâ burada. Kaydetmeden önce karşılaştırmak için yeniden aç.",
+  "This Directive changed or was removed. Your edits are still here. Reopen it to compare before saving.": "Bu direktif değişti veya kaldırıldı. Düzenlemelerin hâlâ burada. Kaydetmeden önce karşılaştırmak için yeniden aç.",
+  "Copy this text": "Bu metni kopyala",
+  "Text to copy": "Kopyalanacak metin",
+  "Select text": "Metni seç",
+  "Your browser could not access the clipboard. Select the text, then copy it with your keyboard.": "Tarayıcın panoya erişemedi. Metni seç, ardından klavyenden kopyala.",
+  "Starting inventory scan…": "Envanter taraması başlatılıyor…",
+  "Scan finished. Return to kit Library to choose tools.": "Tarama bitti. Araçları seçmek için kit Library’sine dön.",
+  "Scanning collects tools in Library. Use Back to kit Library when you are ready; your current view stays open.": "Tarama araçları Library’de toplar. Hazır olduğunda Kit Library’sine dön’ü kullan; mevcut görünümün açık kalır.",
+  "The workbench is shutting down. Reopen it before continuing.": "Workbench kapanıyor. Devam etmeden önce yeniden aç.",
+  "The workbench is shutting down. Reopen it before scanning.": "Workbench kapanıyor. Taramadan önce yeniden aç.",
+  "The workbench could not complete this request. Reopen it and try again.": "Workbench bu isteği tamamlayamadı. Yeniden açıp tekrar dene."
 }

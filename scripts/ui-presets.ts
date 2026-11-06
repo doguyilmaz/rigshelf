@@ -187,6 +187,136 @@ try {
     2,
   );
   expect(data.store.get<Rule>('rule', 'focused-note')?.content).toBe('Original note.');
+  await navigateTo(page, 'Presets');
+  const originalCard = page
+    .locator('.preset-card')
+    .filter({ has: page.getByRole('heading', { name: 'Focused work', exact: true }) })
+    .filter({ hasText: 'Saved original.' });
+  await originalCard.click();
+  dialog = page.getByRole('dialog', { name: 'Focused work', exact: true });
+  await dialog
+    .getByRole('textbox', { name: 'Description', exact: true })
+    .fill('My unsaved Preset draft.');
+  const otherPage = await context.newPage();
+  otherPage.on('pageerror', (error) => errors.push(error.message));
+  await otherPage.goto(server.accessUrl);
+  await navigateTo(otherPage, 'Presets');
+  await otherPage
+    .locator('.preset-card')
+    .filter({ has: otherPage.getByRole('heading', { name: 'Focused work', exact: true }) })
+    .filter({ hasText: 'Saved original.' })
+    .click();
+  const otherPreset = otherPage.getByRole('dialog', { name: 'Focused work', exact: true });
+  await otherPreset
+    .getByRole('textbox', { name: 'Description', exact: true })
+    .fill('Saved from another window.');
+  await otherPreset.getByRole('button', { name: 'Save preset', exact: true }).click();
+  await expect(otherPreset).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Save preset', exact: true }).click();
+  await expect(
+    dialog
+      .locator('.notice')
+      .getByText(
+        'This Preset changed or was removed. Your edits are still here. Reopen it to compare before saving.',
+        { exact: true },
+      ),
+  ).toBeVisible();
+  await expect(dialog.getByRole('textbox', { name: 'Description', exact: true })).toHaveValue(
+    'My unsaved Preset draft.',
+  );
+  await expect(dialog.getByRole('button', { name: 'Copy draft', exact: true })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Remove', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Remove preset', exact: true }).click();
+  await expect(
+    dialog
+      .locator('.notice')
+      .getByText(
+        'This Preset changed or was removed. Your edits are still here. Reopen it to compare before saving.',
+        { exact: true },
+      ),
+  ).toBeVisible();
+  expect(data.store.get<Preset>('preset', original.id)?.description).toBe(
+    'Saved from another window.',
+  );
+  await dialog.getByRole('button', { name: 'Duplicate', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(
+    data.store
+      .list<Preset>('preset')
+      .some((item) => item.description === 'My unsaved Preset draft.' && item.id !== original.id),
+  ).toBe(true);
+  checks.push(
+    'Two windows cannot silently overwrite or delete a changed Preset. The stale draft remains editable/copyable and Duplicate saves it separately.',
+  );
+
+  await navigateTo(page, 'Directives');
+  await page
+    .locator('.directive-group button')
+    .filter({ has: page.getByText('Focused note', { exact: true }) })
+    .first()
+    .click();
+  await page.getByLabel('Directive content', { exact: true }).fill('My unsaved Directive draft.');
+  await navigateTo(otherPage, 'Directives');
+  await otherPage
+    .locator('.directive-group button')
+    .filter({ has: otherPage.getByText('Focused note', { exact: true }) })
+    .first()
+    .click();
+  await otherPage
+    .getByLabel('Directive content', { exact: true })
+    .fill('Saved from another window.');
+  await otherPage.getByRole('button', { name: 'Save directive', exact: true }).click();
+  await expect(
+    otherPage.getByText('Directive saved. Apply a new setup plan to refresh project files.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Save directive', exact: true }).click();
+  const directiveError = page
+    .locator('.editor-form .notice')
+    .getByText(
+      'This Directive changed or was removed. Your edits are still here. Reopen it to compare before saving.',
+      { exact: true },
+    );
+  await expect(directiveError).toBeVisible();
+  await expect(page.getByLabel('Directive content', { exact: true })).toHaveValue(
+    'My unsaved Directive draft.',
+  );
+  await expect(page.getByRole('button', { name: 'Copy draft', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await page.getByRole('button', { name: 'Remove directive', exact: true }).click();
+  await expect(directiveError).toBeVisible();
+  expect(data.store.get<Rule>('rule', 'focused-note')?.content).toBe('Saved from another window.');
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }),
+  );
+  await page.getByRole('button', { name: 'Copy draft', exact: true }).click();
+  const manualCopy = page.getByRole('dialog', { name: 'Copy this text', exact: true });
+  const copyText = manualCopy.getByRole('textbox', { name: 'Text to copy', exact: true });
+  expect(JSON.parse(await copyText.inputValue()).content).toBe('My unsaved Directive draft.');
+  await manualCopy.getByRole('button', { name: 'Select text', exact: true }).click();
+  expect(
+    await copyText.evaluate(
+      (input) =>
+        (input as HTMLTextAreaElement).selectionEnd - (input as HTMLTextAreaElement).selectionStart,
+    ),
+  ).toBe((await copyText.inputValue()).length);
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 860 });
+    await audit(`manual-copy-${width}`);
+  }
+  await manualCopy.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.getByLabel('Directive content', { exact: true })).toHaveValue(
+    'My unsaved Directive draft.',
+  );
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 860 });
+    await audit(`directive-conflict-${width}`);
+  }
+  await otherPage.close();
+  checks.push(
+    'Checked Directive save/delete protects another window’s authored content, keeps the unsaved draft visible and offers a copy before reopening.',
+  );
   expect(data.store.planSummaries()).toHaveLength(0);
   expect(data.store.list('approval')).toEqual([]);
   checks.push(
@@ -196,6 +326,10 @@ try {
   await Bun.write(join(directory, 'report.json'), JSON.stringify({ checks, errors }, null, 2));
   process.stdout.write(`${JSON.stringify({ checks, errors })}\n`);
 } catch (error) {
+  await Bun.write(
+    join(directory, 'failure-accessibility.txt'),
+    await page.locator('body').ariaSnapshot(),
+  ).catch(() => undefined);
   await page
     .screenshot({ path: join(directory, 'failure.png'), fullPage: true })
     .catch(() => undefined);

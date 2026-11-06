@@ -28,6 +28,7 @@ export function AcquireTools({
   const [source, setSource] = useState<Source>();
   const [adding, setAdding] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [scanRequested, setScanRequested] = useState(false);
   const [limit, setLimit] = useState(12);
   const sources = useMemo(() => {
     const stackSet = new Set(stacks);
@@ -59,9 +60,9 @@ export function AcquireTools({
     setScanning(true);
     try {
       await api('scan', 'POST', {});
+      setScanRequested(true);
       await refresh();
       notify(t('Finding your projects and existing tools. Nothing is installed or changed.'));
-      onClose();
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
@@ -126,6 +127,24 @@ export function AcquireTools({
           <ArrowRight size={15} />
         </button>
       </div>
+      {(scanning || scanRequested || state.scan.state === 'running') && (
+        <Notice>
+          <p role="status">
+            {scanning
+              ? t('Starting inventory scan…')
+              : state.scan.state === 'running'
+                ? state.scan.message
+                : state.scan.state === 'error'
+                  ? state.scan.message
+                  : t('Scan finished. Return to kit Library to choose tools.')}
+          </p>
+          <p>
+            {t(
+              'Scanning collects tools in Library. Use Back to kit Library when you are ready; your current view stays open.',
+            )}
+          </p>
+        </Notice>
+      )}
       <div className="workspace-section-title acquire-sources-heading">
         <div>
           <h2>{t('Browse saved sources')}</h2>

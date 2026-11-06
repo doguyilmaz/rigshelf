@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { t } from './i18n';
-import { useModalPresence } from './ModalPresence';
+import { ModalPresence, useModalPresence } from './ModalPresence';
 
 const MODAL_EXIT_MS = 160;
+const COPY_FEEDBACK_MS = 1500;
 
 export function Button({
   children,
@@ -192,22 +193,61 @@ export function CopyButton({
 }): ReactNode {
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  async function copy(): Promise<void> {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      setFailed(true);
+    }
+  }
   return (
-    <Button
-      variant="secondary"
-      onClick={() => {
-        void navigator.clipboard
-          .writeText(text)
-          .then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          })
-          .catch(() => setFailed(true));
-      }}
-    >
-      {copied ? <Check size={14} /> : <Copy size={14} />}{' '}
-      {failed ? t('Select and copy below') : copied ? t('Copied') : label}
-    </Button>
+    <>
+      <Button variant="secondary" onClick={() => void copy()}>
+        {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? t('Copied') : label}
+      </Button>
+      <ModalPresence>
+        {failed && <ManualCopyDialog text={text} onClose={() => setFailed(false)} />}
+      </ModalPresence>
+    </>
+  );
+}
+function ManualCopyDialog({ text, onClose }: { text: string; onClose: () => void }): ReactNode {
+  const manualText = useRef<HTMLTextAreaElement>(null);
+  return (
+    <Modal title={t('Copy this text')} onClose={onClose}>
+      <p>
+        {t(
+          'Your browser could not access the clipboard. Select the text, then copy it with your keyboard.',
+        )}
+      </p>
+      <textarea
+        ref={manualText}
+        className="code-editor manual-copy-text"
+        aria-label={t('Text to copy')}
+        value={text}
+        readOnly
+        rows={10}
+      />
+      <div className="modal-actions">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            manualText.current?.focus();
+            manualText.current?.select();
+          }}
+        >
+          {t('Select text')}
+        </Button>
+        <Button onClick={onClose}>{t('Done')}</Button>
+      </div>
+    </Modal>
   );
 }
 export function Notice({

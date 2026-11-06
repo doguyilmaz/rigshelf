@@ -41,7 +41,7 @@ Motion explains a state change or preserves continuity. Repeated keyboard action
 6. Global/project scope, Plugin evidence, compatibility gaps and missing credentials are understandable at the action that depends on them. Native Plugin activation is not falsely claimed by portable Skill setup.
 7. Project guidance and memory can be inspected without importing conversations. Reuse/promote actions expose project/broader scope and preserve source files.
 8. Automation remains optional per project, requires current exact approvals, has clear status/revocation and does not silently grow context.
-9. Library maintenance, source updates, suggestions, history and recovery lead back to a particular project/task. Background jobs have honest progress, cancellation and useful next steps.
+9. Library maintenance, source updates, suggestions, history and recovery lead back to a particular project/task. Background work reports progress and useful next steps; cancelable operations drain their owned work, while graceful shutdown completes active inventory/file operations.
 10. English and Turkish retain technical vocabulary. Remaining release locales are tracked explicitly; untranslated authored content stays intact.
 11. The app is light, responsive, keyboard-usable and reliable with a large catalog, long paths/names, empty states, narrow/short windows, reduced motion, interrupted requests and absent native Providers.
 12. Public source contains no private inventory, source content, screenshots or machine paths. Existing catalogs, portable schema-1 archives, CLI/MCP clients and project manifests remain readable through the rename.
@@ -60,9 +60,9 @@ Existing repositories/global agent installations are read-only sources. All setu
 - [x] Improve AI intake/proposals and first-run Provider setup without mandatory cloud accounts or surprise generation.
 - [x] Make returning-project defaults, draft recovery, success/handoff, compatibility and recovery understandable.
 - [x] Connect Library/source intake, Presets, directives, memory and maintenance to the daily workflow.
-- [ ] Exercise realistic first-time/returning flows, large catalogs, multi-agent review/apply/rollback, empty/offline/stale states, locales, responsive behavior and motion.
-- [ ] Perform focused source/data/security review, required check/format/verify/lint/UI suites, and document limits/evidence.
-- [ ] Produce a concrete comparison/run path and a concise handoff with meaningful grouped commits.
+- [x] Exercise realistic first-time/returning flows, large catalogs, multi-agent review/apply/rollback, empty/offline/stale states, locales, responsive behavior and motion.
+- [x] Perform focused source/data/security review, required check/format/verify/lint/UI suites, and document limits/evidence.
+- [x] Produce a concrete comparison/run path and a concise handoff with meaningful grouped commits.
 
 ## Requirement traceability
 
@@ -86,4 +86,8 @@ Library now carries the current project context and can send one explicitly insp
 
 Fresh explicit Presets supply Harness defaults, while manual/recovered/reviewed choices take precedence. An explicit Use Preset Agents action changes those choices. Duplicate retains edited selectors/stack tags/pins; new same-name definitions use a distinct ID and create-only transactions preserve existing records. Preset pins page through the full matching list rather than silently stopping at 60.
 
-Remaining review targets: final performance/keyboard/source-boundary review and the run/comparison handoff. Multi-instance server reuse is a future reliability consideration; any implementation must verify catalog/server identity before sending or displaying a persistent access key. It must not probe another user's listener with credentials or infer ownership from a port/PID alone.
+The final review covers 183 unit/integration tests and eighteen browser suites, including responsive/motion/keyboard behavior, first-use collection, exact returning choices, concurrent definitions, copy fallback, inventory shutdown, client disconnects and multi-connection import reconciliation. Read-only MCP can explicitly restore private returning choices, and the integration Skill routes setup, checked definition maintenance and pending draft proposals separately. The real CLI startup/access/SIGTERM flow is tested against an isolated catalog. Validation and focused source review retain their practical limits in VALIDATION.md and SECURITY-REVIEW.md.
+
+Remaining release decisions are explicit: Rigshelf is a working identity; four additional languages must pass the six-language public-release gate; live vendor/platform acceptance remains separate from fixture tests. Native Plugin execution/conversion and arbitrary session injection are not claimed. External development repositories and global agent installations remained read-only during this branch's QA, and no service/package/domain was published or registered.
+
+Multi-instance server reuse is a future reliability consideration; any implementation must verify catalog/server identity before sending or displaying a persistent access key. It must not probe another user's listener with credentials or infer ownership from a port/PID alone. Current fallback selects a free loopback port and prints the actual private URL; an older saved tab may still belong to an older server.

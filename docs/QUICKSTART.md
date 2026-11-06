@@ -14,6 +14,8 @@ For new content, use **Library → Add to library → Start with AI**. Paste a l
 2. In **Library**, use **Scan this machine**. Physical AI locations are inspected even when gitignored or untracked. Supported Skills and sanitized MCP definitions enter your private library. This does not activate them in an agent or edit originals.
 3. Review partial/unavailable-location diagnostics. In **Projects**, use AI file types to separate instructions, memory, rules, Agents, Commands, Config, Plugins and Hooks. Global files have their own group. Skill snapshots and installation relationships are browsed in Library.
 
+**Find tools on this machine** inside project setup retains your current source/kit view. Read the scan status, then use **Back to kit Library** when ready. A late scan response does not close a different inspector. Ctrl-C reports shutdown and waits for active inventory/file operations before closing the private catalog.
+
 ## Set up a project
 
 1. Choose **Set up a project** and select a folder using known projects, Browse or a typed path. The folder must already exist; an empty new-project folder is supported. Rigshelf does not scaffold application code.
@@ -27,6 +29,10 @@ You can visit Library, Settings or another page and return to the same setup dra
 Library shows the kit you are choosing tools for. Open a Skill or MCP Snapshot and use **Add to project kit** to return with that exact revision; unsaved editor changes still require a discard decision. Already selected versions are marked. Plugins and references retain their own inspection flow and are not presented as portable Skill activation. **Return to project kit** preserves your brief and choices.
 
 An explicitly chosen Preset supplies its default Agents on a fresh kit. Deliberate Agent choices, recovered drafts and previously reviewed project choices take precedence. If they differ, **Use Preset Agents** lets you switch explicitly. **Defaults → Presets** supports creating, editing and duplicating starting points; duplicate includes your current edited selectors, stack tags and pins. Same-name new definitions preserve older records. Explicit pins have search and **Show more**, including selections hidden by the current filter.
+
+If another window changes or removes an open Preset/Directive, saving or removing from the older web editor stops. Your current fields remain open and **Copy draft** preserves them before you reopen the saved definition. Preset **Duplicate** can also save your draft as a separate starting point. This does not automatically merge two authors' instructions.
+
+If clipboard access is unavailable, a read-only copy dialog provides **Select text** and manual keyboard copying. It retains the exact requested draft and returns to the original editor without saving anything.
 
 ## Revisit a project
 

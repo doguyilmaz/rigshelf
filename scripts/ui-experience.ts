@@ -8,6 +8,12 @@ import { fixture } from '../tests/helpers';
 import { assertNeutralTheme } from './theme-check';
 
 const data = await fixture();
+data.store.put('settings', {
+  id: 'main',
+  ...data.store.settings(),
+  roots: [data.project],
+  scanGlobals: false,
+});
 await Bun.write(join(data.project, 'package.json'), '{"dependencies":{"expo":"56"}}');
 const authored = '# Project notes\n\nPreserve this authored guidance.\n';
 await Bun.write(join(data.project, 'AGENTS.md'), authored);
@@ -107,9 +113,38 @@ try {
   await expect(picker.getByLabel('Type', { exact: true })).toHaveText('Skills');
   await picker.getByRole('button', { name: 'Find more tools', exact: true }).click();
   const acquire = page.getByRole('dialog', { name: 'Find tools for this project', exact: true });
+  let releaseScan: () => void = () => undefined;
+  const scanGate = new Promise<void>((resolve) => {
+    releaseScan = resolve;
+  });
+  let scanStarted = false;
+  let scanReleased = false;
+  await page.route('**/api/scan', async (request) => {
+    const response = await request.fetch();
+    scanStarted = true;
+    await scanGate;
+    await request.fulfill({ response });
+    scanReleased = true;
+  });
+  await acquire.getByRole('button', { name: /^Find tools on this machine/ }).click();
+  await expect.poll(() => scanStarted).toBe(true);
   await acquire.getByLabel('Search saved sources', { exact: true }).fill('example/experience');
   await acquire.locator('.acquire-source-list button').click();
   const detail = page.getByRole('dialog', { name: 'example/experience-expo-skills', exact: true });
+  await expect(detail).toBeVisible();
+  releaseScan();
+  await expect.poll(() => scanReleased).toBe(true);
+  await expect(detail).toBeVisible();
+  await detail.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await expect(
+    acquire.getByText('Scan finished. Return to kit Library to choose tools.', { exact: true }),
+  ).toBeVisible();
+  await acquire.locator('.acquire-source-list button').click();
+  await expect(detail).toBeVisible();
+  await page.unroute('**/api/scan');
+  checks.push(
+    'Inventory scanning retains the acquisition view and exposes completion. A delayed scan response cannot dismiss a different source inspector; returning to the kit remains explicit.',
+  );
   await detail.getByRole('button', { name: 'Find skills in source', exact: true }).click();
   await expect(
     detail.getByRole('button', { name: 'Import & add to kit', exact: true }),

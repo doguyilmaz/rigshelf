@@ -1113,5 +1113,21 @@
   "No matching Skills or MCP servers.": "No matching Skills or MCP servers.",
   "Every project": "Every project",
   "Scope": "Scope",
-  "Only this project": "Only this project"
+  "Only this project": "Only this project",
+  "Operation failed": "Operation failed",
+  "Copy draft": "Copy draft",
+  "Keep a copy of your draft before reopening. Duplicate also saves this Preset separately.": "Keep a copy of your draft before reopening. Duplicate also saves this Preset separately.",
+  "Keep a copy of your draft before reopening the saved Directive.": "Keep a copy of your draft before reopening the saved Directive.",
+  "This Preset changed or was removed. Your edits are still here. Reopen it to compare before saving.": "This Preset changed or was removed. Your edits are still here. Reopen it to compare before saving.",
+  "This Directive changed or was removed. Your edits are still here. Reopen it to compare before saving.": "This Directive changed or was removed. Your edits are still here. Reopen it to compare before saving.",
+  "Copy this text": "Copy this text",
+  "Text to copy": "Text to copy",
+  "Select text": "Select text",
+  "Your browser could not access the clipboard. Select the text, then copy it with your keyboard.": "Your browser could not access the clipboard. Select the text, then copy it with your keyboard.",
+  "Starting inventory scan…": "Starting inventory scan…",
+  "Scan finished. Return to kit Library to choose tools.": "Scan finished. Return to kit Library to choose tools.",
+  "Scanning collects tools in Library. Use Back to kit Library when you are ready; your current view stays open.": "Scanning collects tools in Library. Use Back to kit Library when you are ready; your current view stays open.",
+  "The workbench is shutting down. Reopen it before continuing.": "The workbench is shutting down. Reopen it before continuing.",
+  "The workbench is shutting down. Reopen it before scanning.": "The workbench is shutting down. Reopen it before scanning.",
+  "The workbench could not complete this request. Reopen it and try again.": "The workbench could not complete this request. Reopen it and try again."
 }

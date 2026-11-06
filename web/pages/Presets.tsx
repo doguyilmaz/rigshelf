@@ -3,7 +3,17 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import type { Preset } from '../../src/core/model';
 import { AiAssist } from '../AiAssist';
 import { api, apiId } from '../api';
-import { Badge, Button, Empty, Modal, Notice, PageHeader, SearchBox, Spinner } from '../components';
+import {
+  Badge,
+  Button,
+  CopyButton,
+  Empty,
+  Modal,
+  Notice,
+  PageHeader,
+  SearchBox,
+  Spinner,
+} from '../components';
 import { definitionId } from '../definition-id';
 import { useDraftGuard } from '../drafts';
 import { t } from '../i18n';
@@ -141,6 +151,7 @@ function PresetEditor({
   const [selectors, setSelectors] = useState(preset.selectors.join('\n'));
   const [stacks, setStacks] = useState(preset.stacks.join(', '));
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [aiDirty, setAiDirty] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isNew = !preset.id;
@@ -178,26 +189,35 @@ function PresetEditor({
         .filter(Boolean),
     };
   }
+  function mutationFailed(error: unknown): void {
+    const message = error instanceof Error ? error.message : t('Operation failed');
+    setSaveError(message);
+    notify(message, true);
+  }
   async function save(event: FormEvent): Promise<void> {
     event.preventDefault();
+    setSaveError('');
     setBusy(true);
     try {
       if (isNew && value.id && state.presets.some((preset) => preset.id === value.id))
         throw new Error(t('That preset ID already exists. Choose another ID.'));
-      await api('presets', isNew ? 'POST' : 'PUT', {
+      const next = {
         ...editedPreset(),
         id: value.id || definitionId(value.name, state.presets),
-      });
+      };
+      if (isNew) await api('presets', 'POST', next);
+      else await api(`presets/${apiId(preset.id)}`, 'PATCH', { value: next, expected: preset });
       await refresh();
       notify(t('Preset saved'));
       if (mounted.current) onClose();
     } catch (error) {
-      notify((error as Error).message, true);
+      mutationFailed(error);
     } finally {
       setBusy(false);
     }
   }
   async function duplicate(): Promise<void> {
+    setSaveError('');
     setBusy(true);
     try {
       await api('presets', 'POST', {
@@ -209,19 +229,20 @@ function PresetEditor({
       notify(t('Preset duplicated'));
       if (mounted.current) onClose();
     } catch (error) {
-      notify((error as Error).message, true);
+      mutationFailed(error);
     } finally {
       setBusy(false);
     }
   }
   async function remove(): Promise<void> {
+    setSaveError('');
     setBusy(true);
     try {
-      await api(`presets/${apiId(preset.id)}`, 'DELETE');
+      await api(`presets/${apiId(preset.id)}`, 'DELETE', { expected: preset });
       await refresh();
       if (mounted.current) onClose();
     } catch (error) {
-      notify((error as Error).message, true);
+      mutationFailed(error);
     } finally {
       setBusy(false);
     }
@@ -238,6 +259,17 @@ function PresetEditor({
     >
       <form className="editor-form" onSubmit={(event) => void save(event)}>
         <fieldset className="editor-fields" disabled={busy} aria-label={t('Preset fields')}>
+          {saveError && (
+            <Notice tone="warning">
+              <p>{t(saveError)}</p>
+              <p>
+                {t(
+                  'Keep a copy of your draft before reopening. Duplicate also saves this Preset separately.',
+                )}
+              </p>
+              <CopyButton label={t('Copy draft')} text={JSON.stringify(editedPreset(), null, 2)} />
+            </Notice>
+          )}
           <AiAssist
             onDirtyChange={setAiDirty}
             settings={state.settings}

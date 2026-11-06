@@ -3,7 +3,7 @@ import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 import type { Rule } from '../../src/core/model';
 import { AiAssist } from '../AiAssist';
 import { api, apiId } from '../api';
-import { Badge, Button, Empty, Notice, PageHeader, Spinner } from '../components';
+import { Badge, Button, CopyButton, Empty, Notice, PageHeader, Spinner } from '../components';
 import { definitionId } from '../definition-id';
 import { requestDiscard, useDraftGuard } from '../drafts';
 import { t } from '../i18n';
@@ -121,6 +121,7 @@ export function RuleEditor({
   const [value, setValue] = useState(rule);
   const mounted = useMountedRef();
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(rule);
   const [deleting, setDeleting] = useState(false);
   const [aiDirty, setAiDirty] = useState(false);
@@ -151,32 +152,45 @@ export function RuleEditor({
   ];
   const update = <Key extends keyof Rule>(key: Key, next: Rule[Key]) =>
     setValue((current) => ({ ...current, [key]: next }));
+  function mutationFailed(error: unknown): void {
+    const message = error instanceof Error ? error.message : t('Operation failed');
+    setSaveError(message);
+    notify(message, true);
+  }
   async function save(event: FormEvent): Promise<void> {
     event.preventDefault();
+    setSaveError('');
     setBusy(true);
     try {
-      const next = await api<Rule>('rules', saved.id ? 'PUT' : 'POST', {
+      const definition = {
         ...value,
         id: value.id || definitionId(value.name, state.rules),
-      });
+      };
+      const next = saved.id
+        ? await api<Rule>(`rules/${apiId(saved.id)}`, 'PATCH', {
+            value: definition,
+            expected: saved,
+          })
+        : await api<Rule>('rules', 'POST', definition);
       setValue(next);
       setSaved(next);
       await refresh();
       notify(t('Directive saved. Apply a new setup plan to refresh project files.'));
     } catch (error) {
-      notify((error as Error).message, true);
+      mutationFailed(error);
     } finally {
       setBusy(false);
     }
   }
   async function remove(): Promise<void> {
+    setSaveError('');
     setBusy(true);
     try {
-      await api(`rules/${apiId(value.id)}`, 'DELETE');
+      await api(`rules/${apiId(value.id)}`, 'DELETE', { expected: saved });
       await refresh();
       if (mounted.current) onRemove();
     } catch (error) {
-      notify((error as Error).message, true);
+      mutationFailed(error);
     } finally {
       setBusy(false);
     }
@@ -184,6 +198,13 @@ export function RuleEditor({
   return (
     <form className="editor-form" onSubmit={(event) => void save(event)}>
       <fieldset className="editor-fields" disabled={busy} aria-label={t('Directive fields')}>
+        {saveError && (
+          <Notice tone="warning">
+            <p>{t(saveError)}</p>
+            <p>{t('Keep a copy of your draft before reopening the saved Directive.')}</p>
+            <CopyButton label={t('Copy draft')} text={JSON.stringify(value, null, 2)} />
+          </Notice>
+        )}
         <div className="editor-heading">
           <p className="eyebrow">{t('DIRECTIVE EDITOR')}</p>
           <div className="button-row">
