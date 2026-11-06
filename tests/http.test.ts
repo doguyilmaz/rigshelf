@@ -1,5 +1,6 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, expect, mock, spyOn, test } from 'bun:test';
 import { randomInt } from 'node:crypto';
+import type { Preset, Source } from '../src/core/model';
 import type { Store } from '../src/core/store';
 import type { AiDriver } from '../src/platform/ai-runner';
 import type { DirectoryPickerDriver } from '../src/platform/folder-picker';
@@ -37,8 +38,105 @@ async function serverFixture(chooseDirectory?: DirectoryPickerDriver, aiDriver?:
   const token = new URLSearchParams(new URL(server.accessUrl).hash.slice(1)).get('access');
   if (!token) throw new Error('No private access token');
   expect(html).not.toContain(token);
-  return { ...value, base, token };
+  return { ...value, base, token, server };
 }
+
+test('definition collisions and stale checked edits report HTTP 409 without returning the newer body or accepting unchecked fallbacks', async () => {
+  const data = await serverFixture();
+  const preset = data.store.get<Preset>('preset', 'expo')!;
+  const headers = { 'x-kitfold-token': data.token, 'content-type': 'application/json' };
+  const duplicate = await fetch(`${data.base}/api/presets`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(preset),
+  });
+  expect(duplicate.status).toBe(409);
+  const newer = { ...preset, description: 'Newer private fixture definition.' };
+  data.store.put('preset', newer);
+  const stale = await fetch(`${data.base}/api/presets/${preset.id}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ value: preset, expected: preset }),
+  });
+  expect(stale.status).toBe(409);
+  expect(await stale.text()).not.toContain(newer.description);
+  const invalid = await fetch(`${data.base}/api/presets/${preset.id}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ value: preset, expected: null }),
+  });
+  expect(invalid.status).toBe(400);
+  expect(data.store.get('preset', preset.id)).toEqual(newer);
+  expect(data.store.planSummaries()).toEqual([]);
+  expect(data.store.list('approval')).toEqual([]);
+});
+
+test('forced socket shutdown still drains an in-flight source mutation after its client disconnects', async () => {
+  const data = await serverFixture();
+  const actualFetch = globalThis.fetch;
+  let release: () => void = () => undefined;
+  let entered: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const began = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  spyOn(globalThis, 'fetch').mockImplementation(
+    Object.assign(
+      async (input: Parameters<typeof fetch>[0]) => {
+        const url = new URL(String(input));
+        if (url.hostname !== 'api.github.com')
+          throw new Error('Unexpected fixture network request.');
+        entered();
+        await gate;
+        if (url.pathname.endsWith('/commits/HEAD')) return Response.json({ sha: 'c'.repeat(40) });
+        if (url.pathname.includes('/git/trees/'))
+          return Response.json({ tree: [], truncated: false });
+        return Response.json({
+          owner: { login: 'example' },
+          license: { spdx_id: 'MIT' },
+          archived: false,
+          description: 'An isolated fixture.',
+        });
+      },
+      { preconnect: actualFetch.preconnect },
+    ),
+  );
+  let closing: Promise<void> | undefined;
+  try {
+    const pending = actualFetch(`${data.base}/api/sources`, {
+      method: 'POST',
+      headers: { 'x-kitfold-token': data.token, 'content-type': 'application/json' },
+      body: JSON.stringify({ input: 'example/shutdown-fixture', research: true }),
+    }).catch(() => undefined);
+    await began;
+    let closed = false;
+    closing = data.server.stop(true).then(() => {
+      closed = true;
+    });
+    await pending;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(closed).toBe(false);
+    release();
+    await closing;
+    const source = data.store
+      .sources()
+      .find((source) => source.url === 'https://github.com/example/shutdown-fixture') as Source;
+    expect(source.latestRef).toBe('c'.repeat(40));
+    expect(source.status).toBe('reachable');
+    expect(source.skillCount).toBe(0);
+    expect(data.store.planSummaries()).toEqual([]);
+  } finally {
+    release();
+    try {
+      await closing;
+      await data.server.stop(true);
+    } finally {
+      mock.restore();
+    }
+  }
+});
 
 test('AI draft requests use private JSON authorization, return metadata-only status and never grant project authority', async () => {
   let calls = 0;

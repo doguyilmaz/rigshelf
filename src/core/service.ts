@@ -15,7 +15,14 @@ import type { AiFileInventory } from './ai-files';
 import { exportLibrary, importLibrary } from './backup';
 import { connection } from './connection';
 import { contentPreview } from './content-preview';
-import { savePreset, saveRule } from './definitions';
+import {
+  removePreset,
+  removeRule,
+  savePreset,
+  saveRule,
+  updatePreset,
+  updateRule,
+} from './definitions';
 import { detectProject } from './detect';
 import { discoverSkills } from './discovery';
 import { documentPlan, projectDocument } from './documents';
@@ -40,7 +47,8 @@ import { effectiveRules, presetChain, recommend } from './recommend';
 import { recoverPlan } from './recovery';
 import { readReviewResponse } from './review-response';
 import { checkedProject, hash, now, redact, scanText, slug } from './safety';
-import { sanitizeMcp, scan, scanProgress } from './scanner';
+import { inventoryScan } from './scan-lifecycle';
+import { sanitizeMcp, scanProgress } from './scanner';
 import { reviseSkill } from './skill-revisions';
 import { addSource, editSource } from './source-library';
 import type { Store } from './store';
@@ -138,7 +146,7 @@ export async function route(
     return id ? readInventoryBaseline(store, id) : inventoryHistory(store);
   if (method === 'POST' && resource === 'scan') {
     if (scanProgress.state === 'running') throw new Error('A scan is already running');
-    void scan(store).catch((error) => store.event('scan.failed', String(error)));
+    inventoryScan(store).start();
     return { started: true };
   }
   if (method === 'GET' && resource === 'entries' && id && action === 'files') {
@@ -353,22 +361,16 @@ export async function route(
     return planView(await recoverPlan(store, id));
   if ((method === 'PUT' || method === 'POST') && resource === 'presets' && !id)
     return savePreset(store, input, { createOnly: method === 'POST' });
-  if (method === 'DELETE' && resource === 'presets' && id && !action) {
-    if (
-      store
-        .list<{ id: string; parentId: string }>('preset')
-        .some((preset) => preset.parentId === id)
-    )
-      throw new Error('Reassign child presets before removing this parent.');
-    store.remove('preset', id);
-    return { removed: true };
-  }
+  if (method === 'PATCH' && resource === 'presets' && id && !action)
+    return updatePreset(store, id, input);
+  if (method === 'DELETE' && resource === 'presets' && id && !action)
+    return removePreset(store, id, input);
   if ((method === 'PUT' || method === 'POST') && resource === 'rules' && !id)
     return saveRule(store, input, { createOnly: method === 'POST' });
-  if (method === 'DELETE' && resource === 'rules' && id && !action) {
-    store.remove('rule', id);
-    return { removed: true };
-  }
+  if (method === 'PATCH' && resource === 'rules' && id && !action)
+    return updateRule(store, id, input);
+  if (method === 'DELETE' && resource === 'rules' && id && !action)
+    return removeRule(store, id, input);
   if (method === 'PUT' && resource === 'settings') {
     const settings = SettingsSchema.parse(input);
     store.put('settings', { id: 'main', ...settings });

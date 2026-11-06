@@ -53,6 +53,8 @@ rigshelf export "$HOME/Backups/kitfold-library.json.gz"
 
 `setup` prepares a plan by default; add `--apply` for an explicitly requested immediate setup. `--entries ""` produces guidance only. `--replace-existing` permits reviewed replacements of differing skill files while preserving original bytes for rollback. Project-external symlinks remain protected.
 
+For reusable definitions, `save-preset` and `save-rule` accept `--create-only` for new IDs or `--expect previous.json` for a checked edit. Writable MCP save tools expose the same controls as `createOnly` and `expected`. A stale edit fails rather than overwriting the newer record. The web editors use these checks automatically and keep failed drafts copyable.
+
 Automatic additions need both project permission and approval of each exact clean snapshot:
 
 ```sh

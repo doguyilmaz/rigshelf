@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+import { join, resolve } from 'node:path';
 import { exportLibrary } from '../src/core/backup';
 import { Store } from '../src/core/store';
 import { openWorkbenchServer } from '../src/platform/workbench-start';
@@ -9,6 +10,74 @@ const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0)) await cleanup();
 });
+
+test('the real CLI prints a usable private URL and gracefully drains its isolated inventory on SIGTERM', async () => {
+  const data = await fixture();
+  cleanups.push(data.cleanup);
+  await Bun.write(join(data.project, 'package.json'), '{}');
+  for (let index = 0; index < 3; index++)
+    await Bun.write(
+      join(data.project, '.agents/skills', `cli-fixture-${index}`, 'SKILL.md'),
+      `---\nname: cli-fixture-${index}\ndescription: Use for isolated CLI verification.\n---\n\nKeep inputs explicit.\n`,
+    );
+  data.store.put('settings', {
+    id: 'main',
+    ...data.store.settings(),
+    roots: [data.project],
+    scanGlobals: false,
+  });
+  const reservation = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch: () => new Response('fixture'),
+  });
+  const port = reservation.port!;
+  await reservation.stop(true);
+  const child = Bun.spawn([process.execPath, resolve('src/cli.ts'), 'ui', '--port', String(port)], {
+    env: { KITFOLD_DATA_DIR: data.store.directory },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const stderr = new Response(child.stderr).text();
+  cleanups.unshift(async () => {
+    if (child.exitCode === null) child.kill('SIGKILL');
+    await child.exited;
+  });
+  const reader = child.stdout.getReader();
+  const decoder = new TextDecoder();
+  let printed = '';
+  let access: string | undefined;
+  while (!access) {
+    const part = await reader.read();
+    if (part.done) throw new Error('Fixture CLI ended before printing its private URL.');
+    printed += decoder.decode(part.value, { stream: true });
+    if (printed.length > 64 * 1024)
+      throw new Error('Fixture CLI startup output exceeded its bound.');
+    access = printed.match(/http:\/\/127\.0\.0\.1:\d+\/#access=[a-f0-9]{64}/)?.[0];
+  }
+  const remaining = (async () => {
+    let part = await reader.read();
+    while (!part.done) part = await reader.read();
+    reader.releaseLock();
+  })();
+  expect(printed).toContain('Rigshelf is ready at');
+  const base = new URL(access).origin;
+  const token = new URLSearchParams(new URL(access).hash.slice(1)).get('access')!;
+  expect((await fetch(`${base}/api/state`)).status).toBe(403);
+  const started = await fetch(`${base}/api/scan`, {
+    method: 'POST',
+    headers: { 'x-kitfold-token': token, 'content-type': 'application/json' },
+    body: '{}',
+  });
+  expect(started.status).toBe(200);
+  child.kill('SIGTERM');
+  expect(await child.exited).toBe(0);
+  expect(await stderr).toContain('Closing Rigshelf.');
+  await remaining;
+  expect(data.store.entries()).toHaveLength(3);
+  expect(data.store.events().some((event) => event.action === 'scan.completed')).toBe(true);
+  expect(data.store.planSummaries()).toEqual([]);
+}, 10000);
 
 test('same-catalog access survives a process restart, stays out of state/portable exports and can be explicitly rotated', async () => {
   const data = await fixture();

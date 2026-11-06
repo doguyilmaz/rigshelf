@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { closeAiDrafts } from './core/ai-assistance';
 import { exportArchive, importArchive } from './core/archive';
 import { Automation } from './core/automation';
+import { DefinitionConflict } from './core/definitions';
 import { inside } from './core/safety';
+import { inventoryScan } from './core/scan-lifecycle';
 import { route } from './core/service';
 import type { Store } from './core/store';
 import type { AiDriver } from './platform/ai-runner';
@@ -49,120 +51,138 @@ export function startServer(
     'Content-Security-Policy':
       "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
   };
+  const activeRequests = new Set<Promise<Response>>();
+  let closing = false;
   const server = Bun.serve({
     hostname: '127.0.0.1',
     port,
     maxRequestBodySize: 128 * 1024 * 1024,
     idleTimeout: 60,
-    async fetch(request) {
-      const url = new URL(request.url);
-      const host = request.headers.get('host');
-      if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`)
-        return new Response('Invalid host', { status: 403, headers });
-      const origin = request.headers.get('origin');
-      if (origin && origin !== base && origin !== `http://localhost:${port}`)
-        return new Response('Origin denied', { status: 403, headers });
-      if (url.pathname.startsWith('/api/')) {
-        if (request.headers.get('x-kitfold-token') !== token)
-          return Response.json(
-            {
-              error:
-                'Open the private access URL printed by rigshelf ui. The access key is required for this workbench.',
-            },
-            { status: 403, headers },
-          );
-        if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method))
-          return new Response('Method denied', { status: 405, headers });
-        if (url.pathname === '/api/pick-directory' && request.method !== 'POST')
-          return new Response('Method denied', { status: 405, headers });
-        if (url.pathname === '/api/library-export' && request.method === 'GET') {
-          try {
-            const archive = exportArchive(store);
-            return new Response(new Uint8Array(archive.bytes).buffer, {
-              headers: {
-                ...headers,
-                'Content-Type': 'application/gzip',
-                'Content-Disposition': 'attachment; filename="rigshelf-library.json.gz"',
-                'X-Kitfold-Excluded': String(archive.excluded),
-              },
-            });
-          } catch (error) {
-            return Response.json(
-              { error: error instanceof Error ? error.message : 'Export failed' },
-              { status: 400, headers },
-            );
-          }
-        }
-        if (url.pathname === '/api/library-import' && request.method === 'POST') {
-          if (request.headers.get('content-type') !== 'application/gzip')
-            return new Response('Gzip required', { status: 415, headers });
-          try {
-            return Response.json(
-              importArchive(
-                store,
-                new Uint8Array(await request.arrayBuffer()),
-                url.searchParams.get('apply') === '1',
-              ),
-              { headers },
-            );
-          } catch (error) {
-            return Response.json(
-              { error: error instanceof Error ? error.message : 'Import failed' },
-              { status: 400, headers },
-            );
-          }
-        }
-        const hasBody =
-          ['POST', 'PUT', 'PATCH'].includes(request.method) ||
-          (request.method === 'DELETE' && request.body !== null);
-        if (hasBody && !request.headers.get('content-type')?.startsWith('application/json'))
-          return new Response('JSON required', { status: 415, headers });
+    fetch(request) {
+      if (closing)
+        return Response.json(
+          { error: 'The workbench is shutting down. Reopen it before continuing.' },
+          { status: 503, headers },
+        );
+      const pending = handleRequest(request);
+      activeRequests.add(pending);
+      return pending.finally(() => activeRequests.delete(pending));
+    },
+    error() {
+      return Response.json(
+        { error: 'The workbench could not complete this request. Reopen it and try again.' },
+        { status: 500, headers },
+      );
+    },
+  });
+  async function handleRequest(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const host = request.headers.get('host');
+    if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`)
+      return new Response('Invalid host', { status: 403, headers });
+    const origin = request.headers.get('origin');
+    if (origin && origin !== base && origin !== `http://localhost:${port}`)
+      return new Response('Origin denied', { status: 403, headers });
+    if (url.pathname.startsWith('/api/')) {
+      if (request.headers.get('x-kitfold-token') !== token)
+        return Response.json(
+          {
+            error:
+              'Open the private access URL printed by rigshelf ui. The access key is required for this workbench.',
+          },
+          { status: 403, headers },
+        );
+      if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method))
+        return new Response('Method denied', { status: 405, headers });
+      if (url.pathname === '/api/pick-directory' && request.method !== 'POST')
+        return new Response('Method denied', { status: 405, headers });
+      if (url.pathname === '/api/library-export' && request.method === 'GET') {
         try {
-          const input: unknown = hasBody ? await readJson(request) : undefined;
-          if (url.pathname === '/api/pick-directory') server.timeout(request, 0);
-          const result =
-            url.pathname === '/api/pick-directory'
-              ? await directoryPicker.pick(input, request.signal)
-              : await route(store, request.method, url.pathname.slice(5), input, {
-                  aiDriver: options.aiDriver,
-                  signal: request.signal,
-                });
-          if (url.pathname.startsWith('/api/automation/')) await automation.sync();
-          return Response.json(result ?? { error: 'Not found' }, {
-            status: result === undefined ? 404 : 200,
-            headers,
+          const archive = exportArchive(store);
+          return new Response(new Uint8Array(archive.bytes).buffer, {
+            headers: {
+              ...headers,
+              'Content-Type': 'application/gzip',
+              'Content-Disposition': 'attachment; filename="rigshelf-library.json.gz"',
+              'X-Kitfold-Excluded': String(archive.excluded),
+            },
           });
         } catch (error) {
           return Response.json(
-            { error: error instanceof Error ? error.message : 'Operation failed' },
+            { error: error instanceof Error ? error.message : 'Export failed' },
             { status: 400, headers },
           );
         }
       }
-      if (request.method !== 'GET' && request.method !== 'HEAD')
-        return new Response('Method denied', { status: 405, headers });
-      let decodedPath: string;
-      try {
-        decodedPath = decodeURIComponent(url.pathname);
-      } catch {
-        return new Response('Invalid path encoding', { status: 400, headers });
+      if (url.pathname === '/api/library-import' && request.method === 'POST') {
+        if (request.headers.get('content-type') !== 'application/gzip')
+          return new Response('Gzip required', { status: 415, headers });
+        try {
+          return Response.json(
+            importArchive(
+              store,
+              new Uint8Array(await request.arrayBuffer()),
+              url.searchParams.get('apply') === '1',
+            ),
+            { headers },
+          );
+        } catch (error) {
+          return Response.json(
+            { error: error instanceof Error ? error.message : 'Import failed' },
+            { status: 400, headers },
+          );
+        }
       }
-      const path = resolve(root, `.${decodedPath}`);
-      if (!inside(root, path)) return new Response('Not found', { status: 404, headers });
-      if (path !== root && (await Bun.file(path).exists()))
-        return new Response(Bun.file(path), { headers });
-      const index = Bun.file(join(root, 'index.html'));
-      if (!(await index.exists()))
-        return new Response('Build the web UI with bun run build, then restart.', {
-          status: 503,
+      const hasBody =
+        ['POST', 'PUT', 'PATCH'].includes(request.method) ||
+        (request.method === 'DELETE' && request.body !== null);
+      if (hasBody && !request.headers.get('content-type')?.startsWith('application/json'))
+        return new Response('JSON required', { status: 415, headers });
+      try {
+        const input: unknown = hasBody ? await readJson(request) : undefined;
+        if (url.pathname === '/api/pick-directory') server.timeout(request, 0);
+        const result =
+          url.pathname === '/api/pick-directory'
+            ? await directoryPicker.pick(input, request.signal)
+            : await route(store, request.method, url.pathname.slice(5), input, {
+                aiDriver: options.aiDriver,
+                signal: request.signal,
+              });
+        if (url.pathname.startsWith('/api/automation/')) await automation.sync();
+        return Response.json(result ?? { error: 'Not found' }, {
+          status: result === undefined ? 404 : 200,
           headers,
         });
-      const html = await index.text();
-      return new Response(html, {
-        headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8' },
+      } catch (error) {
+        return Response.json(
+          { error: error instanceof Error ? error.message : 'Operation failed' },
+          { status: error instanceof DefinitionConflict ? 409 : 400, headers },
+        );
+      }
+    }
+    if (request.method !== 'GET' && request.method !== 'HEAD')
+      return new Response('Method denied', { status: 405, headers });
+    let decodedPath: string;
+    try {
+      decodedPath = decodeURIComponent(url.pathname);
+    } catch {
+      return new Response('Invalid path encoding', { status: 400, headers });
+    }
+    const path = resolve(root, `.${decodedPath}`);
+    if (!inside(root, path)) return new Response('Not found', { status: 404, headers });
+    if (path !== root && (await Bun.file(path).exists()))
+      return new Response(Bun.file(path), { headers });
+    const index = Bun.file(join(root, 'index.html'));
+    if (!(await index.exists()))
+      return new Response('Build the web UI with bun run build, then restart.', {
+        status: 503,
+        headers,
       });
-    },
-  });
+    const html = await index.text();
+    return new Response(html, {
+      headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  }
   try {
     token = store.db.transaction(() => {
       const saved = store.get<{ id: string; token: string }>('local-ui-access', 'main');
@@ -183,11 +203,24 @@ export function startServer(
       store.event('automation.failed', error instanceof Error ? error.message : 'Startup failed'),
     );
   server.stop = async (closeActiveConnections?: boolean) => {
-    await closeAiDrafts(store);
-    await directoryPicker.close();
+    closing = true;
     const stopped = stop(closeActiveConnections);
-    await automation.stop();
-    return stopped;
+    const settled = await Promise.allSettled([
+      stopped,
+      closeAiDrafts(store),
+      directoryPicker.close(),
+      inventoryScan(store).close(),
+      automation.stop(),
+      ...activeRequests,
+    ]);
+    const failures = settled
+      .filter((result) => result.status === 'rejected')
+      .map((result) => result.reason as unknown);
+    if (failures.length)
+      throw new AggregateError(
+        failures,
+        'Could not settle all workbench operations during shutdown.',
+      );
   };
   return Object.assign(server, { accessUrl: `${base}/#access=${token}` });
 }

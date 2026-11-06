@@ -340,6 +340,12 @@ export async function serveMcp(
       projectPath: z.string(),
       requirements: z.string().default(''),
       presetId: z.string().optional(),
+      restorePrevious: z
+        .boolean()
+        .default(false)
+        .describe(
+          'Restore the privately reviewed brief and Preset for a returning project. Leave false for new explicit requirements. Returned previousSetup includes exact pins and Harness choices, never new permission.',
+        ),
     },
     async (input) => output(await route(store, 'POST', 'detect', input)),
   );
@@ -485,9 +491,26 @@ export async function serveMcp(
     );
     server.tool(
       'kitfold_save_rule',
-      'Save a reusable scoped directive explicitly requested or reviewed by the user.',
-      RuleSchema.shape,
-      async (input) => output(await route(store, 'PUT', 'rules', input)),
+      'Save a reusable scoped directive explicitly requested or reviewed by the user. For new records set createOnly=true. For updates pass expected from kitfold_rules to refuse concurrent changes. Omitted controls retain explicit legacy upsert.',
+      {
+        ...RuleSchema.shape,
+        createOnly: z.boolean().optional(),
+        expected: RuleSchema.optional().describe(
+          'The complete unmodified definition read by ID. Reassemble all content pages; do not use listing summaries or redacted/truncated content.',
+        ),
+      },
+      async ({ createOnly, expected, ...value }) => {
+        if (createOnly && expected)
+          throw new Error('Choose create-only or a checked update, not both.');
+        return output(
+          await route(
+            store,
+            expected ? 'PATCH' : createOnly ? 'POST' : 'PUT',
+            expected ? `rules/${value.id}` : 'rules',
+            expected ? { value, expected } : value,
+          ),
+        );
+      },
     );
     server.tool(
       'kitfold_add_source',
@@ -501,9 +524,26 @@ export async function serveMcp(
     );
     server.tool(
       'kitfold_save_preset',
-      'Save an explicitly requested project preset; cycles and invalid agent IDs are rejected.',
-      PresetSchema.shape,
-      async (input) => output(await route(store, 'PUT', 'presets', input)),
+      'Save an explicitly requested project Preset. For new records set createOnly=true. For updates pass expected from kitfold_presets to refuse concurrent changes. Omitted controls retain explicit legacy upsert. Cycles and invalid Agent IDs are rejected.',
+      {
+        ...PresetSchema.shape,
+        createOnly: z.boolean().optional(),
+        expected: PresetSchema.optional().describe(
+          'The complete unmodified definition from kitfold_presets with its ID, not a listing summary.',
+        ),
+      },
+      async ({ createOnly, expected, ...value }) => {
+        if (createOnly && expected)
+          throw new Error('Choose create-only or a checked update, not both.');
+        return output(
+          await route(
+            store,
+            expected ? 'PATCH' : createOnly ? 'POST' : 'PUT',
+            expected ? `presets/${value.id}` : 'presets',
+            expected ? { value, expected } : value,
+          ),
+        );
+      },
     );
     server.tool(
       'kitfold_custom_skill',

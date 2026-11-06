@@ -2,7 +2,7 @@
 import { parseArgs } from 'node:util';
 import { readImport, setupProject, writeExport } from './cli-operations';
 import { readRecord } from './core/local-files';
-import { ProviderSchema } from './core/model';
+import { PresetSchema, ProviderSchema, RuleSchema } from './core/model';
 import { approveProject } from './core/ownership';
 import { filePreview, planView } from './core/plan-view';
 import { executePlan } from './core/planner';
@@ -45,6 +45,7 @@ const help = `Rigshelf · Project setup for coding agents
   rigshelf add-source "URL / owner/repo / command" Research and register a source
   rigshelf presets / rules                     List editable presets or directives
   rigshelf save-preset / save-rule <file.json>  Save an editable library definition
+    --create-only preserves existing IDs; --expect previous.json checks an update before saving.
   rigshelf archive / restore <entry-id>         Manage library visibility
   rigshelf export <file.json[.gz]>                   Portable library, presets and rules
   rigshelf import <file.json[.gz]> [--apply]         Preview import; --apply writes library only
@@ -78,6 +79,8 @@ async function main(): Promise<void> {
       'replace-existing': { type: 'boolean' },
       limit: { type: 'string' },
       'reset-access': { type: 'boolean' },
+      'create-only': { type: 'boolean' },
+      expect: { type: 'string' },
     },
   });
   if (values.help) {
@@ -125,13 +128,21 @@ async function main(): Promise<void> {
         const close = () => {
           if (closing) return;
           closing = true;
+          process.stderr.write(
+            'Closing Rigshelf. Waiting for active inventory and file operations to finish.\n',
+          );
           void server
             .stop(true)
             .then(() => {
               store.close();
               process.exit(0);
             })
-            .catch(() => process.exit(1));
+            .catch((error: unknown) => {
+              process.stderr.write(
+                `Rigshelf could not finish shutdown: ${error instanceof Error ? error.message : 'Operation failed'}\n`,
+              );
+              process.exit(1);
+            });
         };
         process.once('SIGINT', close);
         process.once('SIGTERM', close);
@@ -264,11 +275,22 @@ async function main(): Promise<void> {
         result = store.list('rule');
         break;
       case 'save-preset':
-        result = await route(store, 'PUT', 'presets', await readRecord(required()));
+      case 'save-rule': {
+        if (values['create-only'] && values.expect !== undefined)
+          throw new Error('Choose --create-only or --expect, not both.');
+        const resource = command === 'save-preset' ? 'presets' : 'rules';
+        const schema = command === 'save-preset' ? PresetSchema : RuleSchema;
+        const value = schema.parse(await readRecord(required()));
+        const checked = values.expect !== undefined;
+        const expected = checked ? await readRecord(values.expect!) : undefined;
+        result = await route(
+          store,
+          checked ? 'PATCH' : values['create-only'] ? 'POST' : 'PUT',
+          checked ? `${resource}/${value.id}` : resource,
+          checked ? { value, expected } : value,
+        );
         break;
-      case 'save-rule':
-        result = await route(store, 'PUT', 'rules', await readRecord(required()));
-        break;
+      }
       case 'archive':
         result = await route(store, 'DELETE', `entries/${required()}`, undefined);
         break;
