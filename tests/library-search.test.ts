@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import {
+  compareLibraryItems,
   defaultLibraryFilters,
   facetCounts,
   filterLibrary,
@@ -54,6 +55,22 @@ const sample = [
 ];
 const items = () =>
   libraryItems({ entries: sample, sources: [source], installations: [] }, 'active');
+
+test('library order stays stable across inventory input order and equal sort scores', () => {
+  const records = [
+    entry('z', 'same-name', [], { sourceId: 'z-source' }),
+    entry('a', 'same-name', [], { sourceId: 'a-source' }),
+    entry('b', 'alpha', []),
+  ];
+  for (const sort of ['name', 'updated', 'usage']) {
+    const ordered = (entries: Entry[]) =>
+      libraryItems({ entries, sources: [source], installations: [] }, 'active')
+        .sort((left, right) => compareLibraryItems(left, right, sort))
+        .map((item) => item.entry.id);
+    expect(ordered(records)).toEqual(['b', 'a', 'z']);
+    expect(ordered([...records].reverse())).toEqual(ordered(records));
+  }
+});
 
 test('classification matches token boundaries and respects independent manual overrides', () => {
   expect(classifyEntry({ name: 'capital-review', tags: [] }).platforms).not.toContain('backend');

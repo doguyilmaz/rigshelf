@@ -116,7 +116,20 @@ export function libraryItems(state: LibraryInput, status: LibraryFilters['status
       ),
     });
   }
-  return result.sort((left, right) => left.entry.name.localeCompare(right.entry.name));
+  return result.sort((left, right) => compareLibraryItems(left, right, 'name'));
+}
+export function compareLibraryItems(left: LibraryItem, right: LibraryItem, sort: string): number {
+  const usage = (item: LibraryItem) =>
+    new Set(item.locations.map((location) => location.projectId).filter(Boolean)).size;
+  const primary =
+    sort === 'updated'
+      ? (Date.parse(right.entry.updatedAt) || 0) - (Date.parse(left.entry.updatedAt) || 0)
+      : sort === 'usage'
+        ? usage(right) - usage(left)
+        : 0;
+  return (
+    primary || left.entry.name.localeCompare(right.entry.name) || left.key.localeCompare(right.key)
+  );
 }
 const any = (selected: string[], actual: string[]) =>
   !selected.length ||

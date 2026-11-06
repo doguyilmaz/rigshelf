@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
+  compareLibraryItems,
   defaultLibraryFilters,
   facetCounts,
   filterLibrary,
@@ -77,14 +78,7 @@ export function Library(props: PageProps): ReactNode {
   );
   const results = useMemo(
     () =>
-      filterLibrary(items, filters).sort((left, right) =>
-        sort === 'updated'
-          ? (Date.parse(right.entry.updatedAt) || 0) - (Date.parse(left.entry.updatedAt) || 0)
-          : sort === 'usage'
-            ? new Set(right.locations.map((location) => location.projectId).filter(Boolean)).size -
-              new Set(left.locations.map((location) => location.projectId).filter(Boolean)).size
-            : left.entry.name.localeCompare(right.entry.name),
-      ),
+      filterLibrary(items, filters).sort((left, right) => compareLibraryItems(left, right, sort)),
     [items, filters, sort],
   );
   const kinds = useMemo(() => facetCounts(items, filters, 'kind'), [items, filters]);
@@ -94,8 +88,11 @@ export function Library(props: PageProps): ReactNode {
       filters.kind === 'all' ? items : items.filter((item) => item.entry.kind === filters.kind),
     );
     return sort === 'name'
-      ? grouped.sort((left, right) =>
-          (left.source?.name || left.sourceId).localeCompare(right.source?.name || right.sourceId),
+      ? grouped.sort(
+          (left, right) =>
+            (left.source?.name || left.sourceId).localeCompare(
+              right.source?.name || right.sourceId,
+            ) || left.sourceId.localeCompare(right.sourceId),
         )
       : grouped;
   }, [results, items, sort, filters.kind]);
