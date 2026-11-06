@@ -163,17 +163,30 @@ export function snapshotDigest(files: PackedFile[]): string {
   );
 }
 
+interface SkillImportOptions {
+  custom?: boolean;
+  upstreamPath?: string;
+  upstreamRef?: string;
+  findings?: Finding[];
+}
+
 export function saveSkill(
   store: Store,
   body: string,
   files: PackedFile[],
   source: Source,
-  extra: {
-    custom?: boolean;
-    upstreamPath?: string;
-    upstreamRef?: string;
-    findings?: Finding[];
-  } = {},
+  extra: SkillImportOptions = {},
+): Entry {
+  // Merge authored metadata and provenance in the same transaction as the snapshot write.
+  return store.db.transaction(() => persistSkill(store, body, files, source, extra))();
+}
+
+function persistSkill(
+  store: Store,
+  body: string,
+  files: PackedFile[],
+  source: Source,
+  extra: SkillImportOptions,
 ): Entry {
   if (Buffer.byteLength(body, 'utf8') > MAX_TEXT_BYTES)
     throw new Error('SKILL.md exceeds the 512 KiB instruction limit.');

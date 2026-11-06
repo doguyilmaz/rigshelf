@@ -1,11 +1,13 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, expect, mock, spyOn, test } from 'bun:test';
 import { mkdir, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { importSkillDirectory } from '../src/core/ingest';
+import { importSkillDirectory, saveSkill } from '../src/core/ingest';
+import type { Source } from '../src/core/model';
 import { createPlan, executePlan } from '../src/core/planner';
 import { scan } from '../src/core/scanner';
 import { route } from '../src/core/service';
-import { fixture } from './helpers';
+import { Store } from '../src/core/store';
+import { fixture, sampleSkill } from './helpers';
 
 const cleanups: (() => Promise<void>)[] = [];
 async function setup() {
@@ -14,7 +16,46 @@ async function setup() {
   return value;
 }
 afterEach(async () => {
+  mock.restore();
   for (const cleanup of cleanups.splice(0)) await cleanup();
+});
+test('a re-import cannot overwrite authored metadata committed by a concurrent catalog connection', async () => {
+  const data = await setup();
+  const original = sampleSkill(data.store, 'shared-snapshot');
+  const source = data.store.get<Source>('source', original.sourceId)!;
+  const files = data.store.files(original.id);
+  const other = new Store(data.store.directory);
+  cleanups.unshift(async () => other.close());
+  const readEntry = data.store.entry.bind(data.store);
+  let interleaved = false;
+  spyOn(data.store, 'entry').mockImplementation((id) => {
+    const result = readEntry(id);
+    if (!interleaved && id === original.id) {
+      interleaved = true;
+      const edited = other.entry(id)!;
+      other.saveEntry({ ...edited, tags: ['authored-classification'], archived: true });
+    }
+    return result;
+  });
+  expect(() =>
+    saveSkill(data.store, original.body, files, source, {
+      custom: true,
+      upstreamRef: 'new-receipt',
+    }),
+  ).toThrow();
+  expect(interleaved).toBe(true);
+  mock.restore();
+  expect(other.entry(original.id)?.tags).toEqual(['authored-classification']);
+  expect(other.entry(original.id)?.archived).toBe(true);
+  expect(other.files(original.id)).toEqual(files);
+  const retried = saveSkill(data.store, original.body, files, source, {
+    custom: true,
+    upstreamRef: 'new-receipt',
+  });
+  expect(retried.tags).toEqual(['authored-classification']);
+  expect(retried.archived).toBe(true);
+  expect(retried.origins?.some((origin) => origin.ref === 'new-receipt')).toBe(true);
+  expect(retried.digest).toBe(original.digest);
 });
 test('global discovery confines linked skills to inventoried roots while retaining shared global aliases', async () => {
   const { store, root, home } = await setup();
