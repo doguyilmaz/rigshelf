@@ -1,5 +1,13 @@
 # Validation record
 
+## Project maintenance and model selection
+
+The follow-up passes 166 unit/integration tests across 27 files, strict TypeScript, formatting/lint, 1,092 matching EN/TR messages and the production build. All sixteen browser suites pass, including the maintenance, delayed-import, model-selection and existing AI-authoring flows. Reports remain ignored under `.local/qa/maintenance`, `.local/qa/models` and `.local/qa/experience`.
+
+Manual project checks preserve authored guidance/inventory and cannot request automatic writes. Browser checks cover observed counts, explicit prepare/check actions, live classification titles, canceled/accepted draft replacement without duplicate prompts, pending suggestions, older-plan paging and history search at four widths. A delayed successful import is retained in Library after its editor closes, but cannot adopt itself into the abandoned kit.
+
+Model fixtures cover exact loopback-only metadata reads, no prompt/credential forwarding, exact names, remote indicators, private-host omission, malformed/oversized responses, cancellation and shared API read-only behavior. Browser cases cover no request on editor/Provider selection, explicit listing/refresh, empty/offline/manual selection, unchanged saved choices, remote feedback, separate generation and no save/plan/approval from a proposal. Model/network calls use isolated fixture drivers and intercepted metadata, not real paid models or the user's Ollama inventory. These are normal engineering checks, not qualified security reproductions.
+
 ## Rigshelf project-first experience
 
 On `experience/project-first`, strict TypeScript, formatting/lint, 161 unit/integration tests across 25 files and the 1,048-message EN/TR parity check pass. All fourteen browser suites pass, including the new normal-motion source-acquisition, 45-Skill paging, exact resource/pin retention, tab-draft reload, fresh inspection, in-flight Apply retention, handoff and returning-project flow.

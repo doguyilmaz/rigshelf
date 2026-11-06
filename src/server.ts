@@ -125,6 +125,7 @@ export function startServer(
               ? await directoryPicker.pick(input, request.signal)
               : await route(store, request.method, url.pathname.slice(5), input, {
                   aiDriver: options.aiDriver,
+                  signal: request.signal,
                 });
           if (url.pathname.startsWith('/api/automation/')) await automation.sync();
           return Response.json(result ?? { error: 'Not found' }, {

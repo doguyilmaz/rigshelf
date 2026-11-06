@@ -24,16 +24,20 @@ import { Select } from '../Select';
 import { RuleEditor } from './Directives';
 import { PlanReview } from './PlanReview';
 import { type DocumentChoice, ProjectDocuments } from './ProjectDocuments';
+import { ProjectMaintenance } from './ProjectMaintenance';
 
 export function Projects(props: PageProps): ReactNode {
   const { state, navigate } = props;
   const [query, setQuery] = useState('');
   const [stack, setStack] = useState('all');
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<Project>();
+  const [selectedId, setSelectedId] = useState<string>();
+  const selected = state.projects.find((project) => project.id === selectedId);
   const projects = state.projects.filter(
     (project) =>
-      `${project.name} ${project.path}`.toLowerCase().includes(query.toLowerCase()) &&
+      `${project.name} ${project.path} ${project.stacks.join(' ')}`
+        .toLowerCase()
+        .includes(query.toLowerCase()) &&
       (stack === 'all' || project.stacks.includes(stack)),
   );
   const stacks = [...new Set(state.projects.flatMap((project) => project.stacks))].sort();
@@ -93,12 +97,16 @@ export function Projects(props: PageProps): ReactNode {
                     type="button"
                     className="icon-button"
                     aria-label={t('Inspect {{name}}', { name: project.name })}
-                    onClick={() => setSelected(project)}
+                    onClick={() => setSelectedId(project.id)}
                   >
                     <ArrowUpRight size={18} />
                   </button>
                 </div>
-                <button type="button" className="project-name" onClick={() => setSelected(project)}>
+                <button
+                  type="button"
+                  className="project-name"
+                  onClick={() => setSelectedId(project.id)}
+                >
                   {project.name}
                 </button>
                 <code title={project.path}>{shortPath(project.path)}</code>
@@ -168,7 +176,7 @@ export function Projects(props: PageProps): ReactNode {
       )}
       <ModalPresence>
         {selected && (
-          <ProjectDetail {...props} project={selected} onClose={() => setSelected(undefined)} />
+          <ProjectDetail {...props} project={selected} onClose={() => setSelectedId(undefined)} />
         )}
       </ModalPresence>
     </>
@@ -199,6 +207,7 @@ function ProjectDetail({
   const [plan, setPlan] = useState<PlanView>();
   const [rule, setRule] = useState<Rule>();
   const [busy, setBusy] = useState(false);
+  const [automationBusy, setAutomationBusy] = useState(false);
   const [name, setName] = useState(project.name);
   const [stacks, setStacks] = useState(project.stacks.join(', '));
   const [savedClassification, setSavedClassification] = useState({
@@ -258,40 +267,46 @@ function ProjectDetail({
       onClose={() => guard(onClose)}
       wide
     >
+      <ProjectMaintenance
+        {...{ project, state, refresh, notify }}
+        onPrepare={() => navigate('setup', project.path)}
+      />
       <div className="project-detail-layout">
         <div>
-          <p className="eyebrow">{t('PROJECT CLASSIFICATION')}</p>
-          {project.discovery === 'configuration' && (
-            <Notice>
-              {t(
-                'Referenced by a user-level project MCP configuration. Project source files have not been scanned.',
-              )}
-            </Notice>
-          )}
-          <div className="editor-form">
-            <label>
-              {t('Display name')}
-              <input value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <label>
-              {t('Stack tags')}
-              <input value={stacks} onChange={(event) => setStacks(event.target.value)} />
-            </label>
-            <Button variant="secondary" onClick={() => void save()}>
-              {t('Save classification')}
-            </Button>
-          </div>
-          {project.workspaces?.length ? (
-            <div className="workspace-list">
-              <p className="eyebrow">{t('WORKSPACES')}</p>
-              {project.workspaces.map((workspace) => (
-                <p key={workspace.path}>
-                  <code>{workspace.path}</code>
-                  <span className="muted"> · {workspace.stacks.join(', ')}</span>
-                </p>
-              ))}
+          <details className="project-classification">
+            <summary>{t('Project name & stack')}</summary>
+            {project.discovery === 'configuration' && (
+              <Notice>
+                {t(
+                  'Referenced by a user-level project MCP configuration. Project source files have not been scanned.',
+                )}
+              </Notice>
+            )}
+            <div className="editor-form">
+              <label>
+                {t('Display name')}
+                <input value={name} onChange={(event) => setName(event.target.value)} />
+              </label>
+              <label>
+                {t('Stack tags')}
+                <input value={stacks} onChange={(event) => setStacks(event.target.value)} />
+              </label>
+              <Button variant="secondary" onClick={() => void save()}>
+                {t('Save classification')}
+              </Button>
             </div>
-          ) : null}
+            {project.workspaces?.length ? (
+              <div className="workspace-list">
+                <p className="eyebrow">{t('WORKSPACES')}</p>
+                {project.workspaces.map((workspace) => (
+                  <p key={workspace.path}>
+                    <code>{workspace.path}</code>
+                    <span className="muted"> · {workspace.stacks.join(', ')}</span>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </details>
           <div className="automation-box">
             <Zap size={20} />
             <h3>{t('Stay ready as you build')}</h3>
@@ -303,14 +318,17 @@ function ProjectDetail({
             <label className="check-label">
               <input
                 type="checkbox"
+                disabled={automationBusy}
                 checked={approved}
                 onChange={(event) => {
+                  setAutomationBusy(true);
                   void api(`automation/${apiId(project.id)}`, 'PUT', {
                     enabled: event.target.checked,
                   })
                     .then(refresh)
                     .then(() => notify('Project automation preference saved'))
-                    .catch((error) => notify(error.message, true));
+                    .catch((error) => notify(error.message, true))
+                    .finally(() => setAutomationBusy(false));
                 }}
               />
               {t('Allow trusted automatic additions')}

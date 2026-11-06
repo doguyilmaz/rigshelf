@@ -1,5 +1,11 @@
 # Security review record
 
+## Maintenance/model-selection delta · focused source review
+
+The manual check route accepts only `{}` and passes `auto: false` to the existing dependency engine. It does not expose an automatic flag, create plans or widen project authority. UI suggestions retain project identity and lead to review; history navigation does not activate content. Imported snapshot callbacks require a live source editor and the originating acquisition scope, so a delayed response cannot adopt itself into a different or abandoned kit.
+
+Model discovery targets only the fixed loopback tags endpoint, has a deadline/body/item bounds, refuses redirects and forwards neither prompts nor credentials. Exact model names remain data, reported remote routing is explicit, and host metadata is omitted from returned values. The authenticated GET returns no catalog mutation or permission. Selection/refresh are separate from generation, and cancellation suppresses late UI updates. Source review and normal fixtures are separate from qualified runtime exploitation; the earlier formal audit's scope remains unchanged.
+
 ## Rigshelf experience delta · focused source review
 
 The new setup and rebrand delta received focused read-only review of browser draft parsing/adoption, asynchronous inspection/Apply state, source acquisition, private previous-kit metadata, loopback startup/access persistence and portable export boundaries. Browser recovery contains only bounded choices; it reconstructs no approval, plan, replacement consent or automatic authority. Returning-project metadata requires private directory-bound ownership. Import-and-select remains separate from Apply and does not execute resource scripts or recipes. Technical protocol IDs, project records and schema-1 format keys retain compatibility.

@@ -2,16 +2,29 @@ import { AlertTriangle, ArrowRight, Check, FileCode2, RotateCcw } from 'lucide-r
 import { type ReactNode, useState } from 'react';
 import type { PlanView } from '../../src/core/plan-view';
 import { api, apiId, formatDate, shortPath } from '../api';
-import { Badge, Button, Empty, Modal, Notice, PageHeader } from '../components';
+import { Badge, Button, Empty, Modal, Notice, PageHeader, SearchBox } from '../components';
 import { t } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { PlanReview } from './PlanReview';
+import { ProjectSuggestions } from './ProjectSuggestions';
 
 export function Activity({ state, refresh, notify, navigate }: PageProps): ReactNode {
   const [plan, setPlan] = useState<PlanView>();
   const [rollback, setRollback] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
+  const [limit, setLimit] = useState(12);
+  const plans = state.plans
+    .filter((plan) =>
+      `${plan.projectPath} ${plan.providers.join(' ')} ${plan.status}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+    )
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  const events = state.events.filter((event) =>
+    `${event.action} ${event.detail}`.toLowerCase().includes(query.toLowerCase()),
+  );
   async function inspect(id: string): Promise<void> {
     try {
       setPlan(await api(`plans/${apiId(id)}`));
@@ -40,6 +53,18 @@ export function Activity({ state, refresh, notify, navigate }: PageProps): React
         title={t('Activity')}
         description={t('Setup plans, library changes, and a way back when you need one.')}
       />
+      <div className="activity-search">
+        <SearchBox
+          value={query}
+          onChange={(value) => {
+            setQuery(value);
+            setLimit(12);
+          }}
+          label={t('Search project history')}
+          placeholder={t('Find a project, Agent or event…')}
+        />
+      </div>
+      <ProjectSuggestions {...{ state, navigate, query }} />
       {state.recoveries?.map((recovery) => (
         <div className="recovery-notice" key={recovery.id}>
           <Notice tone="warning">
@@ -67,55 +92,57 @@ export function Activity({ state, refresh, notify, navigate }: PageProps): React
           </Notice>
         </div>
       ))}
-      {state.plans.length > 0 && (
+      {plans.length > 0 && (
         <section className="activity-plans">
           <div className="section-caption">
             <span>{t('PROJECT SETUP PLANS')}</span>
             <span>
-              {state.plans.length}
+              {plans.length}
               {t(' saved locally')}
             </span>
           </div>
-          {[...state.plans]
-            .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
-            .slice(0, 12)
-            .map((value) => (
-              <div key={value.id}>
-                <span className="entry-icon">
-                  <FileCode2 size={18} />
+          {plans.slice(0, limit).map((value) => (
+            <div key={value.id}>
+              <span className="entry-icon">
+                <FileCode2 size={18} />
+              </span>
+              <div>
+                <strong>{shortPath(value.projectPath)}</strong>
+                <span>
+                  {value.fileCount}
+                  {t(' file changes · ')}
+                  {formatDate(value.createdAt)}
                 </span>
-                <div>
-                  <strong>{shortPath(value.projectPath)}</strong>
-                  <span>
-                    {value.fileCount}
-                    {t(' file changes · ')}
-                    {formatDate(value.createdAt)}
-                  </span>
-                </div>
-                <Badge tone={value.status === 'applied' ? 'green' : 'neutral'}>
-                  {t(value.status)}
-                </Badge>
-                <Button variant="ghost" onClick={() => void inspect(value.id)}>
-                  {t('Inspect ')}
-                  <ArrowRight size={13} />
-                </Button>
-                {value.status === 'applied' && (
-                  <Button variant="ghost" onClick={() => setRollback(value.id)}>
-                    <RotateCcw size={13} />
-                    {t('Roll back')}
-                  </Button>
-                )}
               </div>
-            ))}
+              <Badge tone={value.status === 'applied' ? 'green' : 'neutral'}>
+                {t(value.status)}
+              </Badge>
+              <Button variant="ghost" onClick={() => void inspect(value.id)}>
+                {t('Inspect ')}
+                <ArrowRight size={13} />
+              </Button>
+              {value.status === 'applied' && (
+                <Button variant="ghost" onClick={() => setRollback(value.id)}>
+                  <RotateCcw size={13} />
+                  {t('Roll back')}
+                </Button>
+              )}
+            </div>
+          ))}
+          {plans.length > limit && (
+            <Button variant="secondary" onClick={() => setLimit((current) => current + 12)}>
+              {t('Show older plans')}
+            </Button>
+          )}
         </section>
       )}
       <div className="section-caption activity-label">
         <span>{t('RECENT ACTIVITY')}</span>
         <span>{t('Last 100 events · this machine')}</span>
       </div>
-      {state.events.length ? (
+      {events.length ? (
         <div className="timeline">
-          {state.events.map((event) => (
+          {events.map((event) => (
             <div key={event.id}>
               <span className="timeline-marker">
                 {/failed|unavailable/.test(event.action) ? (
@@ -134,8 +161,12 @@ export function Activity({ state, refresh, notify, navigate }: PageProps): React
         </div>
       ) : (
         <Empty
-          title={t('A fresh start.')}
-          text={t('Your first scan or project setup will appear here.')}
+          title={t(query ? 'No events match this search.' : 'A fresh start.')}
+          text={t(
+            query
+              ? 'Try a project name, folder, Agent or event.'
+              : 'Your first scan or project setup will appear here.',
+          )}
         />
       )}
       <ModalPresence>

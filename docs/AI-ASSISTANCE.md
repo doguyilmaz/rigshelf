@@ -19,6 +19,14 @@ Generation runners and project Harness adapters are separate capabilities. Kiro,
 
 Native invocation references: [Claude Code CLI](https://code.claude.com/docs/en/cli-reference), [Codex non-interactive mode](https://developers.openai.com/codex/noninteractive) and [Codex configuration](https://developers.openai.com/codex/config-reference). Installed CLI help is checked during development; supported arguments can change across versions. Windows native CLI/process acceptance remains a release check.
 
+## Choose an Ollama model
+
+The model control in AI panels and Settings can list installed model names. Opening the editor or choosing Ollama makes no model-service request. Open the model selector or choose **Refresh models** to request metadata from the fixed `http://127.0.0.1:11434/api/tags` endpoint; this neither pulls nor runs a model. Select an exact name, or use **Enter model name** for manual configuration. Empty/offline services show a recovery action and retain the chosen name. Only explicit **Generate** invokes generation.
+
+The list is bounded to 1 MiB, 1,000 models and a 2.5-second request deadline. Requests are cancelable, do not follow redirects and send no prompt, catalog data or credentials. Metadata is not stored in the catalog or exported. `remote_host`/`remote_model` reports produce a visible remote-routing label without exposing the host; absence of those fields is not a guarantee of local computation. Model routing remains controlled by the Ollama service. Sources: [model-list API](https://docs.ollama.com/api/tags), [official response schema](https://github.com/ollama/ollama/blob/main/docs/openapi.yaml).
+
+The shared TypeScript operation is `getOllamaModels({ signal? }): Promise<OllamaModel[]>`. For example, a read-only caller can await the list; a panel owns an `AbortController` and aborts on closure. An unavailable service rejects with a fixed recovery message rather than converting failure into an empty successful list. `GET /api/ai/ollama-models` uses the same operation behind the existing private HTTP boundary; POST is refused.
+
 ## Data and authority
 
 One request accepts up to 20,000 characters of notes and 50,000 characters of current fields. Matching uses a bounded set of terms and at most 80 catalog items. Nested JSON strings are decoded for credential masking while ordinary JSON formatting is preserved. Source formatting retains a supplied focused URL/command rather than replacing it with a guessed repository; an unoffered reference is rejected.

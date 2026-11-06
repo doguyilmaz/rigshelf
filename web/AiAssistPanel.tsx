@@ -8,6 +8,7 @@ import { Button, CopyButton, Notice, Spinner } from './components';
 import { useDraftGuard } from './drafts';
 import { getLocale, t } from './i18n';
 import type { PageProps } from './main';
+import { OllamaModelPicker } from './OllamaModelPicker';
 import { Select } from './Select';
 
 interface ProviderOption {
@@ -320,16 +321,24 @@ export function AiAssistPanel({
                 <label className="field-label" htmlFor={`${fieldId}-model`}>
                   {t('Model')} <span>{runner !== 'ollama' && t('Optional')}</span>
                 </label>
-                <input
-                  id={`${fieldId}-model`}
-                  value={model}
-                  onChange={(event) => setModel(event.target.value)}
-                  placeholder={
-                    runner === 'ollama' ? t('Your installed model name') : t('Provider default')
-                  }
-                  disabled={working}
-                  maxLength={100}
-                />
+                {runner === 'ollama' ? (
+                  <OllamaModelPicker
+                    id={`${fieldId}-model`}
+                    label={t('Model')}
+                    value={model}
+                    onValueChange={setModel}
+                    disabled={working}
+                  />
+                ) : (
+                  <input
+                    id={`${fieldId}-model`}
+                    value={model}
+                    onChange={(event) => setModel(event.target.value)}
+                    placeholder={t('Provider default')}
+                    disabled={working}
+                    maxLength={100}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -338,10 +347,14 @@ export function AiAssistPanel({
               ? t(
                   'Uses a draft request in your connected Rigshelf MCP session. Ask the agent to answer the pending request.',
                 )
-              : t(
-                  'Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.',
-                  { provider },
-                )}{' '}
+              : runner === 'ollama'
+                ? t(
+                    'Sends this request to your Ollama service at 127.0.0.1:11434. Model routing is controlled by that service.',
+                  )
+                : t(
+                    'Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.',
+                    { provider },
+                  )}{' '}
             {['preset', 'requirements'].includes(task) &&
               t('Includes up to 80 library names, tags and descriptions for matching suggestions.')}
           </p>

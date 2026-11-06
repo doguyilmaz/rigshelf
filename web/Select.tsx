@@ -2,6 +2,7 @@ import { Combobox } from '@base-ui/react/combobox';
 import { Select as SelectPrimitive } from '@base-ui/react/select';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { type KeyboardEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from './components';
 import { getLocale, t } from './i18n';
 
 export interface SelectOption {
@@ -19,6 +20,10 @@ interface SelectProps {
   id?: string;
   searchable?: boolean;
   disabled?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  loading?: boolean;
+  emptyText?: string;
+  placeholder?: string;
 }
 interface ControlProps extends SelectProps {
   container?: HTMLElement;
@@ -30,6 +35,10 @@ export function Select(props: SelectProps) {
   const root = useRef<HTMLDivElement>(null);
   const [container, setContainer] = useState<HTMLElement>();
   const [open, setOpen] = useState(false);
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    props.onOpenChange?.(next);
+  };
   useLayoutEffect(() => {
     setContainer(root.current?.closest('dialog') || undefined);
   }, []);
@@ -37,9 +46,9 @@ export function Select(props: SelectProps) {
     if (event.key !== 'Escape' || !open) return;
     event.preventDefault();
     event.stopPropagation();
-    setOpen(false);
+    changeOpen(false);
   };
-  const control = { ...props, container, open, onOpenChange: setOpen };
+  const control = { ...props, container, open, onOpenChange: changeOpen };
   return (
     <div ref={root} className="select-control" onKeyDownCapture={handleEscape}>
       {props.searchable ? <SearchableSelect {...control} /> : <SimpleSelect {...control} />}
@@ -47,9 +56,16 @@ export function Select(props: SelectProps) {
   );
 }
 
-function SelectionText({ value, options }: Pick<SelectProps, 'value' | 'options'>) {
+function SelectionText({
+  value,
+  options,
+  placeholder,
+}: Pick<SelectProps, 'value' | 'options' | 'placeholder'>) {
   const selected =
-    options.find((option) => option.value === value)?.label || value || t('Choose an option');
+    options.find((option) => option.value === value)?.label ||
+    value ||
+    placeholder ||
+    t('Choose an option');
   return (
     <>
       <span className="select-value" title={selected}>
@@ -70,6 +86,9 @@ function SearchableSelect({
   open,
   onOpenChange,
   onValueChange,
+  loading,
+  emptyText,
+  placeholder,
 }: ControlProps) {
   const items = useMemo(() => options.map((option) => option.value), [options]);
   const labels = useMemo(() => new Map(options.map((option) => [option.value, option])), [options]);
@@ -85,7 +104,7 @@ function SearchableSelect({
       itemToStringLabel={(item) => labels.get(item)?.label || item}
     >
       <Combobox.Trigger id={id} aria-label={label} className="select-trigger" disabled={disabled}>
-        <SelectionText value={value} options={options} />
+        <SelectionText value={value} options={options} placeholder={placeholder} />
       </Combobox.Trigger>
       <Combobox.Portal container={container}>
         <Combobox.Positioner
@@ -95,7 +114,12 @@ function SearchableSelect({
           align="start"
           positionMethod="fixed"
         >
-          <SearchableOptions label={label} labels={labels} />
+          <SearchableOptions
+            label={label}
+            labels={labels}
+            loading={loading}
+            emptyText={emptyText}
+          />
         </Combobox.Positioner>
       </Combobox.Portal>
     </Combobox.Root>
@@ -105,9 +129,13 @@ function SearchableSelect({
 function SearchableOptions({
   label,
   labels,
+  loading,
+  emptyText,
 }: {
   label: string;
   labels: Map<string, SelectOption>;
+  loading?: boolean;
+  emptyText?: string;
 }) {
   return (
     <Combobox.Popup className="select-popup">
@@ -118,7 +146,16 @@ function SearchableOptions({
           placeholder={t('Type to filter…')}
         />
       </div>
-      <Combobox.Empty className="select-empty">{t('No matching options.')}</Combobox.Empty>
+      {loading && (
+        <div className="select-loading" role="status">
+          <Spinner text={t('Loading options…')} />
+        </div>
+      )}
+      {!loading && (
+        <Combobox.Empty className="select-empty">
+          {emptyText || t('No matching options.')}
+        </Combobox.Empty>
+      )}
       <Combobox.List className="select-list">
         {(item: string) => (
           <Combobox.Item
@@ -154,6 +191,9 @@ function SimpleSelect({
   open,
   onOpenChange,
   onValueChange,
+  loading,
+  emptyText,
+  placeholder,
 }: ControlProps) {
   return (
     <SelectPrimitive.Root
@@ -171,7 +211,7 @@ function SimpleSelect({
         className="select-trigger"
         disabled={disabled}
       >
-        <SelectionText value={value} options={options} />
+        <SelectionText value={value} options={options} placeholder={placeholder} />
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal container={container}>
         <SelectPrimitive.Positioner
@@ -183,6 +223,16 @@ function SimpleSelect({
         >
           <SelectPrimitive.Popup className="select-popup">
             <SelectPrimitive.List className="select-list">
+              {loading && (
+                <div className="select-loading" role="status">
+                  <Spinner text={t('Loading options…')} />
+                </div>
+              )}
+              {!loading && !options.length && (
+                <div className="select-empty" role="status">
+                  {emptyText || t('No matching options.')}
+                </div>
+              )}
               {options.map((option) => (
                 <SelectPrimitive.Item
                   key={option.value}

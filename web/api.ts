@@ -33,13 +33,7 @@ export interface AppState {
   approvals?: { id: string; enabled: boolean }[];
   trust?: { id: string; digest: string }[];
   recoveries?: { id: string; state: string }[];
-  suggestions?: {
-    id: string;
-    project: string;
-    createdAt: string;
-    additions: unknown[];
-    autoApplied: boolean;
-  }[];
+  suggestions?: import('../src/core/watch').ProjectSuggestion[];
 }
 export async function api<T>(
   path: string,

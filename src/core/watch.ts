@@ -5,7 +5,7 @@ import { kitDrift, readKit } from './kit';
 import { assertAutomation, ownedProject } from './ownership';
 import { createPlan, executePlan } from './planner';
 import { preserveProjectInventory } from './project-inventory';
-import { recommend } from './recommend';
+import { type Recommendation, recommend } from './recommend';
 import { checkedProject, hash, now, slug } from './safety';
 import type { Store } from './store';
 
@@ -18,13 +18,22 @@ const manifests = new Set([
   'build.gradle',
   'build.gradle.kts',
 ]);
+export interface ProjectSuggestion {
+  id: string;
+  signature: string;
+  project: string;
+  createdAt: string;
+  additions: Recommendation[];
+  autoApplied: boolean;
+}
+export type ProjectCheckResult = ProjectSuggestion | { unchanged: true; project: string };
 
 export async function checkProject(
   store: Store,
   projectPath: string,
   auto = false,
   signal?: AbortSignal,
-): Promise<unknown> {
+): Promise<ProjectCheckResult> {
   signal?.throwIfAborted();
   const path = await checkedProject(projectPath);
   const owned = await ownedProject(store, path);

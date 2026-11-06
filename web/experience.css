@@ -1409,3 +1409,168 @@ textarea {
     flex-basis: calc(100% - 30px);
   }
 }
+.project-maintenance {
+  border: 1px solid #dedede;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.project-maintenance-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 22px;
+}
+.project-maintenance-heading h3 {
+  margin: 0 0 5px;
+  font-size: 18px;
+  font-weight: 560;
+}
+.project-maintenance p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #666;
+  margin: 0;
+}
+.project-observations {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0 22px 20px;
+  font-size: 13px;
+}
+.project-observations small {
+  display: block;
+  flex-basis: 100%;
+  color: #666;
+  font-size: 11px;
+}
+.project-maintenance-check {
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: #f7f7f7;
+  border-top: 1px solid #e5e5e5;
+}
+.project-maintenance-check strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.project-check-result {
+  padding: 18px 22px;
+  border-top: 1px solid #e5e5e5;
+}
+.project-check-result > div:first-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.project-check-result strong {
+  font-size: 13px;
+}
+.project-check-result small {
+  color: #666;
+  font-size: 11px;
+  margin-left: auto;
+}
+.project-suggestion-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.project-classification {
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  padding: 15px;
+}
+.project-classification > summary {
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.project-classification[open] > summary {
+  margin-bottom: 18px;
+}
+@media (max-width: 600px) {
+  .project-maintenance-heading,
+  .project-maintenance-check {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+  }
+  .project-observations,
+  .project-check-result {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+.activity-search {
+  max-width: 520px;
+  margin: 0 0 26px;
+}
+.project-pending {
+  padding: 22px;
+  border: 1px solid #dedede;
+  border-radius: 12px;
+  margin-bottom: 28px;
+  background: #fff;
+}
+.project-pending > article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid #e8e8e8;
+  padding: 18px 0;
+}
+.project-pending > article > div {
+  min-width: 0;
+}
+.project-pending strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.project-pending small {
+  color: #666;
+  font-size: 11px;
+  margin-left: 12px;
+}
+@media (max-width: 600px) {
+  .project-pending {
+    padding: 18px;
+  }
+  .project-pending > article {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+}
+.select-loading {
+  padding: 12px;
+  font-size: 12px;
+  color: #626262;
+}
+.ollama-model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 8px;
+}
+.ollama-model-actions .inline-button {
+  white-space: normal;
+  font-size: 11px;
+  text-align: left;
+}
+.ollama-model-picker .field-help {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}

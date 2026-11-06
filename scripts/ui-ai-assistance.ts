@@ -163,6 +163,8 @@ async function generate(panel: Locator, text: string) {
   await panel.getByLabel('What should AI prepare?', { exact: true }).fill(text);
   await panel.getByLabel('AI Provider', { exact: true }).click();
   await page.getByRole('option', { name: 'Ollama', exact: true }).click();
+  if (await panel.getByRole('button', { name: 'Enter model name', exact: true }).isVisible())
+    await panel.getByRole('button', { name: 'Enter model name', exact: true }).click();
   await panel.getByLabel('Model', { exact: false }).fill('fixture-model');
   await panel.getByRole('button', { name: 'Generate with Ollama', exact: true }).click();
   await expect(panel.getByText('Draft preview', { exact: true })).toBeVisible();

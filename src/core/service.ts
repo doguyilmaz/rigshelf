@@ -1,6 +1,7 @@
 import { homedir } from 'node:os';
 import { z } from 'zod';
 import type { AiDriver } from '../platform/ai-runner';
+import { getOllamaModels } from '../platform/ollama-models';
 import {
   aiDraft,
   aiDraftView,
@@ -45,6 +46,7 @@ import { reviseSkill } from './skill-revisions';
 import { addSource, editSource } from './source-library';
 import type { Store } from './store';
 import { checkSource, discoverSourceSkills, importUpstreamSkill } from './upstream';
+import { checkProject } from './watch';
 
 const CustomSchema = z.object({
   name: z.string().min(1).max(64),
@@ -91,7 +93,7 @@ export async function route(
   method: string,
   path: string,
   input: unknown,
-  options: { aiDriver?: AiDriver } = {},
+  options: { aiDriver?: AiDriver; signal?: AbortSignal } = {},
 ): Promise<unknown> {
   const segments = path.split('/').map((segment) => decodeURIComponent(segment));
   if (
@@ -103,6 +105,8 @@ export async function route(
   if (id) RecordIdSchema.parse(id);
   if (resource === 'ai') {
     if (method === 'GET' && id === 'providers' && segments.length === 2) return aiProviders();
+    if (method === 'GET' && id === 'ollama-models' && segments.length === 2)
+      return getOllamaModels({ signal: options.signal });
     if (id === 'drafts') {
       if (method === 'GET' && segments.length <= 3)
         return action
@@ -424,6 +428,12 @@ export async function route(
     store.put('project-override', { id, ...value });
     store.put('project', { ...project, ...value });
     return { ...project, ...value };
+  }
+  if (method === 'POST' && resource === 'projects' && id && action === 'check') {
+    z.object({}).strict().parse(input);
+    const project = store.get<Project>('project', id);
+    if (!project) throw new Error('Project not found');
+    return checkProject(store, project.path, false);
   }
   if (method === 'POST' && resource === 'sources' && !id) return addSource(store, input);
   if (method === 'PATCH' && resource === 'sources' && id && !action)

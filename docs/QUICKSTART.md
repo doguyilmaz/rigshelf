@@ -24,6 +24,10 @@ For new content, use **Library → Add to library → Start with AI**. Paste a l
 
 You can visit Library, Settings or another page and return to the same setup draft. Edits are bounded in current-tab `sessionStorage`: after reload, choose **Continue kit** or **Discard draft**. Continuing performs fresh inspection and restores no plan, review acknowledgment, replacement choice or permission. Closing the tab can discard this optional recovery. Browser unsaved-change protection remains enabled when applicable. Replacing an edited project requires a discard decision. Changed shared directives or presets require renewed inspection. If selected content has been removed from Library, review pauses with a visible explanation.
 
+## Revisit a project
+
+Open **Projects** and inspect a folder. **Prepare this project** returns to its kit; project name/stack editing is optional under its own disclosure. **Check for tools** compares the current dependencies with Library and records suggestions only. It does not start automation, write files or add approvals. **Activity** collects those pending suggestions with a route back to the project kit. Its local search finds project/Agent/event history, and **Show older plans** exposes plans beyond the first page.
+
 ## Continue and recover
 
 **Activity** retains setup plans and rollback actions. Later edits are protected by preconditions; rollback cannot force-overwrite them. Dependency automation is optional and requires current project approval and exact snapshot approval.

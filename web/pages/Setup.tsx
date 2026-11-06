@@ -1,4 +1,4 @@
-import { lazy, type ReactNode, Suspense, useEffect, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from 'react';
 import { Spinner } from '../components';
 import { t } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
@@ -19,12 +19,14 @@ export function Setup(props: SetupProps): ReactNode {
   const setup = useProjectSetup(props);
   const [picker, setPicker] = useState<'all' | 'skill' | 'mcp'>();
   const [inspecting, setInspecting] = useState<string>();
-  const [acquiring, setAcquiring] = useState(false);
+  const [acquiring, setAcquiring] = useState<string>();
+  const scope = useRef({ path: setup.path, active, acquiring });
+  scope.current = { path: setup.path, active, acquiring };
   useEffect(() => {
     if (!active) {
       setPicker(undefined);
       setInspecting(undefined);
-      setAcquiring(false);
+      setAcquiring(undefined);
     }
   }, [active]);
   return (
@@ -50,7 +52,7 @@ export function Setup(props: SetupProps): ReactNode {
               toggle={setup.toggleEntry}
               inspect={setInspecting}
               onClose={() => setPicker(undefined)}
-              acquire={() => setAcquiring(true)}
+              acquire={() => setAcquiring(setup.path)}
               openLibrary={() => {
                 setPicker(undefined);
                 navigate('library');
@@ -65,8 +67,15 @@ export function Setup(props: SetupProps): ReactNode {
             <AcquireTools
               {...props}
               stacks={setup.detected?.project.stacks || []}
-              onAdd={setup.addEntry}
-              onClose={() => setAcquiring(false)}
+              onAdd={(entry) => {
+                if (
+                  scope.current.path === acquiring &&
+                  scope.current.active &&
+                  scope.current.acquiring === acquiring
+                )
+                  setup.addEntry(entry);
+              }}
+              onClose={() => setAcquiring(undefined)}
             />
           </Suspense>
         )}

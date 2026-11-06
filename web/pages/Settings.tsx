@@ -11,6 +11,7 @@ import { InventoryHistory } from '../InventoryHistory';
 import { languages, setLocale, t, useLocaleState } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
+import { OllamaModelPicker } from '../OllamaModelPicker';
 import { Select } from '../Select';
 
 export function Settings({ state, refresh, notify }: PageProps): ReactNode {
@@ -247,14 +248,17 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
                 />
               </label>
               {value.aiRunner === 'ollama' && (
-                <label>
-                  {t('Ollama model')}
-                  <input
+                <div>
+                  <label className="field-label" htmlFor="settings-ollama-model">
+                    {t('Ollama model')}
+                  </label>
+                  <OllamaModelPicker
+                    id="settings-ollama-model"
+                    label={t('Ollama model')}
                     value={value.ollamaModel}
-                    onChange={(event) => update('ollamaModel', event.target.value)}
-                    placeholder={t('Your installed model name')}
+                    onValueChange={(model) => update('ollamaModel', model)}
                   />
-                </label>
+                </div>
               )}
               {['claude', 'codex'].includes(value.aiRunner) && (
                 <label>

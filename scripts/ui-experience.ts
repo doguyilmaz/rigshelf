@@ -52,8 +52,9 @@ globalThis.fetch = Object.assign(
       });
     if (url.hostname === 'raw.githubusercontent.com' && url.pathname.endsWith('/SKILL.md')) {
       downloads++;
+      const name = url.pathname.split('/').at(-2);
       return new Response(
-        '---\nname: expo-guide-44\ndescription: Use when reviewing an Expo layout.\n---\n\nRead references/layout.md when reviewing layout.\n',
+        `---\nname: ${name}\ndescription: Use when reviewing an Expo layout.\n---\n\nKeep layouts clear.\n`,
       );
     }
     if (
@@ -138,6 +139,55 @@ try {
   checks.push(
     'An empty Library leads to a stack-related source, all 45 Skills are reachable, and importing returns the exact pinned snapshot to the same kit without project writes or approval.',
   );
+  await page.getByRole('button', { name: 'Add from library', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Add from library', exact: true })
+    .getByRole('button', { name: 'Find more tools', exact: true })
+    .click();
+  await page.getByLabel('Search saved sources', { exact: true }).fill('example/experience');
+  await page.locator('.acquire-source-list button').click();
+  const pendingDetail = page.getByRole('dialog', {
+    name: 'example/experience-expo-skills',
+    exact: true,
+  });
+  await pendingDetail.getByPlaceholder('Search 45 discovered skills…').fill('expo-guide-43');
+  let releaseImport: () => void = () => undefined;
+  let importedResponse: () => void = () => undefined;
+  const importGate = new Promise<void>((resolve) => {
+    releaseImport = resolve;
+  });
+  const importReceived = new Promise<void>((resolve) => {
+    importedResponse = resolve;
+  });
+  const importSettled = page.waitForResponse((response) =>
+    response.url().endsWith(`/api/sources/${source.id}/import`),
+  );
+  await page.route(`**/api/sources/${source.id}/import`, async (request) => {
+    const response = await request.fetch();
+    importedResponse();
+    await importGate;
+    await request.fulfill({ response }).catch(() => undefined);
+  });
+  await pendingDetail.getByRole('button', { name: 'Import & add to kit', exact: true }).click();
+  await importReceived;
+  try {
+    await pendingDetail.getByRole('button', { name: 'Close dialog', exact: true }).click();
+    await page.getByRole('button', { name: 'Back to kit Library', exact: true }).click();
+    await page
+      .getByRole('dialog', { name: 'Add from library', exact: true })
+      .getByRole('button', { name: 'Done', exact: true })
+      .click();
+  } finally {
+    releaseImport();
+  }
+  await importSettled;
+  await expect(page.locator('.workspace-kit .kit-entry.selected')).toHaveCount(1);
+  expect(data.store.entries().some((entry) => entry.name === 'expo-guide-43')).toBe(true);
+  expect(data.store.planSummaries()).toHaveLength(0);
+  checks.push(
+    'Leaving an in-flight import keeps the successfully collected snapshot in Library without adopting it into the abandoned project selection.',
+  );
+  await page.unroute(`**/api/sources/${source.id}/import`);
   await page.getByRole('button', { name: 'Claude Code', exact: true }).click();
   await page
     .getByLabel('What are you making?', { exact: true })

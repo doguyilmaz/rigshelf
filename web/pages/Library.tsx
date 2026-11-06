@@ -9,7 +9,7 @@ import {
   ShieldAlert,
   SlidersHorizontal,
 } from 'lucide-react';
-import { type FormEvent, type ReactNode, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   defaultLibraryFilters,
   facetCounts,
@@ -528,6 +528,13 @@ export function AddToLibrary({
   onSourceAdded: (source: Source) => void;
   onEntryAdded?: (entry: Entry) => void;
 }): ReactNode {
+  const mounted = useRef(true);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [tab, setTab] = useState<'assist' | 'source' | 'custom' | 'local' | 'mcp'>('assist');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -568,7 +575,7 @@ export function AddToLibrary({
           recipe,
         });
         await refresh();
-        onSourceAdded(source);
+        if (mounted.current) onSourceAdded(source);
         return;
       }
       let entry: Entry | undefined;
@@ -594,8 +601,10 @@ export function AddToLibrary({
         });
       await refresh();
       notify(t('Added to your private library. Project files are unchanged.'));
-      if (entry && onEntryAdded) onEntryAdded(entry);
-      else onClose();
+      if (mounted.current) {
+        if (entry && onEntryAdded) onEntryAdded(entry);
+        else onClose();
+      }
     } catch (error) {
       notify((error as Error).message, true);
     } finally {

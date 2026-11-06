@@ -1,5 +1,5 @@
 import { Download, FileText, RefreshCw, Search, Trash2 } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Entry, Source } from '../../src/core/model';
 import { api, apiId, formatDate } from '../api';
 import {
@@ -28,6 +28,13 @@ export function SourceDetail({
   onImported?: (entry: Entry) => void;
 }): ReactNode {
   const [source, setSource] = useState(initial);
+  const mounted = useRef(true);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [skills, setSkills] = useState<{ path: string; name: string }[]>();
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(40);
@@ -100,7 +107,7 @@ export function SourceDetail({
       const entry = await api<Entry>(`sources/${apiId(source.id)}/import`, 'POST', { path });
       await refresh();
       notify(t('{{name}} imported. It is available for project setup.', { name: entry.name }));
-      onImported?.(entry);
+      if (mounted.current) onImported?.(entry);
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
