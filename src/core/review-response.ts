@@ -3,6 +3,9 @@ import { z } from 'zod';
 const MAX_REVIEW_BYTES = 1024 * 1024;
 const ReviewResponse = z.object({ response: z.string().max(50000) });
 export async function readReviewResponse(response: Response): Promise<string> {
+  return ReviewResponse.parse(await readModelJson(response)).response;
+}
+export async function readModelJson(response: Response): Promise<unknown> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('The local model returned an empty response.');
   const chunks: Uint8Array[] = [];
@@ -18,5 +21,5 @@ export async function readReviewResponse(response: Response): Promise<string> {
   } finally {
     await reader.cancel();
   }
-  return ReviewResponse.parse(JSON.parse(Buffer.concat(chunks).toString('utf8'))).response;
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }

@@ -1,7 +1,9 @@
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { AiConnection } from '../core/ai-connections';
 import type { AiRequest } from '../core/ai-drafts';
 import { readReviewResponse } from '../core/review-response';
+import { runCompatibleAi } from './compatible-ai';
 
 export const AI_TIMEOUT_MS = 120000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
@@ -10,14 +12,16 @@ export type AiDriver = (input: {
   prompt: string;
   directory: string;
   signal: AbortSignal;
+  connection?: AiConnection;
 }) => Promise<string | unknown>;
 
-export function aiProviders() {
+export function aiProviders(connections: AiConnection[] = []) {
   return [
     { id: 'claude', name: 'Claude Code', available: Boolean(Bun.which('claude')) },
     { id: 'codex', name: 'Codex', available: Boolean(Bun.which('codex')) },
     { id: 'ollama', name: 'Ollama', available: true },
     { id: 'session', name: 'Current agent · MCP', available: true },
+    { id: 'compatible', name: 'API connection', available: connections.length > 0 },
   ];
 }
 function runnerEnvironment(runner: string): Record<string, string> {
@@ -183,8 +187,12 @@ async function runProcess(
     await child.exited;
   }
 }
-export const runAi: AiDriver = async ({ request, prompt, directory, signal }) => {
+export const runAi: AiDriver = async ({ request, prompt, directory, signal, connection }) => {
   signal.throwIfAborted();
+  if (request.runner === 'compatible') {
+    if (!connection) throw new Error('Choose a saved AI connection in Settings.');
+    return runCompatibleAi({ connection, prompt, model: request.model, signal });
+  }
   if (request.runner === 'session')
     throw new Error('This request is waiting for your connected agent.');
   if (request.runner === 'ollama') {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiConnectionsSchema } from './ai-connections';
 import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import type { PluginLocation, PluginReference } from './plugin-model';
 
@@ -250,10 +251,12 @@ export const SettingsSchema = z.object({
       'antigravity',
       'grok',
       'ollama',
+      'compatible',
     ])
     .default('none'),
   ollamaModel: z.string().max(100).default(''),
   aiModel: z.string().max(100).default(''),
+  aiConnections: AiConnectionsSchema,
   discoveryDays: z.number().int().min(0).max(365).default(0),
   discoveryQueries: z.array(z.string().min(2).max(100)).max(20).default([]),
 });

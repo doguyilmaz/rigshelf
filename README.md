@@ -82,13 +82,15 @@ Rigshelf exposes a stdio MCP server and a small [integration skill](skills/kitfo
 
 This is a Claude-style example; other harnesses use their own MCP configuration. Read/plan tools are available by default. To authorize mutations, use `mcp --write --root /absolute/project/path`. Write tools reject plans outside those roots. A writable connection can also edit the private library; enable it only in a trusted session. Model selection inside T3 is separate from the underlying harness's file discovery.
 
-AI assistance uses an explicitly chosen installed Claude Code/Codex CLI, local Ollama model or a waiting draft request in a connected MCP session. Generation starts only when requested; CLI login, usage limits and billing can apply. The app does not read CLI credential stores. Review the proposal before saving. See [AI assistance](docs/AI-ASSISTANCE.md).
+AI assistance uses an explicitly chosen installed Claude Code/Codex CLI, local Ollama model, saved local/remote Chat Completions connection or a waiting draft request in a connected MCP session. Configure your own API service under **Settings → Your API connections**; credentials use server environment references and stay outside exports. Generation starts only when requested; provider usage limits and billing can apply. The app does not read CLI credential stores. Review the proposal before saving. See [AI assistance](docs/AI-ASSISTANCE.md).
 
 ## Your data
 
 The default catalog is `~/.local/share/kitfold/catalog.sqlite`; `RIGSHELF_DATA_DIR` overrides it; the legacy `KITFOLD_DATA_DIR` remains accepted. Renaming does not move or empty an existing catalog. SQLite and the data directory are private to the local user. Content snapshots, rollback preimages and project paths stay outside this source tree. There is no hosted registry, telemetry or conversation/session collection.
 
 Versioned JSON and compressed JSON archives contain library content, sources, presets and rules. Projects, access keys, session data, automation approvals and rollback preimages are excluded. Sensitive-looking records are omitted with an explicit report inside the archive. Treat custom content and source notes as private. See [data formats](docs/DATA.md) and [security](SECURITY.md).
+
+**Settings → Review backup** can compare a previous export, preview the record changes and download one complete archive. A changed catalog requires a fresh review. GitHub/S3 remote Sync is not implemented yet; its [batch/PR and conditional-publication contract](docs/BACKUP-SYNC.md) rules out per-file commits and implicit uploads.
 
 ## Verification
 

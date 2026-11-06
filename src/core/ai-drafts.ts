@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { AiModelSchema } from './ai-connections';
 import { McpSchema, ProvidersSchema, SafeName } from './model';
 import { redact, scanText } from './safety';
 import { sanitizeMcp } from './scanner';
 
-export const AiRunnerSchema = z.enum(['claude', 'codex', 'ollama', 'session']);
+export const AiRunnerSchema = z.enum(['claude', 'codex', 'ollama', 'session', 'compatible']);
 export const AiTaskSchema = z.enum([
   'library',
   'skill',
@@ -20,12 +21,8 @@ export const AiRequestSchema = z
     text: z.string().trim().min(1).max(20000),
     current: z.string().max(50000).default(''),
     runner: AiRunnerSchema,
-    model: z
-      .string()
-      .trim()
-      .max(100)
-      .regex(/^(?:[A-Za-z0-9][A-Za-z0-9._:/#-]*)?$/)
-      .default(''),
+    model: AiModelSchema.default(''),
+    connectionId: z.string().max(64).default(''),
     language: z.enum(['en', 'tr']).default('en'),
   })
   .strict();

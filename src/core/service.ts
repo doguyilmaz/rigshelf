@@ -13,6 +13,7 @@ import {
 } from './ai-assistance';
 import type { AiFileInventory } from './ai-files';
 import { exportLibrary, importLibrary } from './backup';
+import { reviewBackup } from './backup-review';
 import { connection } from './connection';
 import { contentPreview } from './content-preview';
 import {
@@ -111,7 +112,8 @@ export async function route(
   const [resource, id, action] = segments;
   if (id) RecordIdSchema.parse(id);
   if (resource === 'ai') {
-    if (method === 'GET' && id === 'providers' && segments.length === 2) return aiProviders();
+    if (method === 'GET' && id === 'providers' && segments.length === 2)
+      return aiProviders(store.settings().aiConnections);
     if (method === 'GET' && id === 'ollama-models' && segments.length === 2)
       return getOllamaModels({ signal: options.signal });
     if (id === 'drafts') {
@@ -375,6 +377,10 @@ export async function route(
     const settings = SettingsSchema.parse(input);
     store.put('settings', { id: 'main', ...settings });
     return settings;
+  }
+  if (method === 'POST' && resource === 'backup-review' && !id) {
+    z.object({}).strict().parse(input);
+    return reviewBackup(store);
   }
   if (method === 'POST' && resource === 'trust' && id && !action) {
     const entry = store.entry(id);

@@ -1657,3 +1657,42 @@ textarea {
   margin-top: 14px;
   resize: vertical;
 }
+/* Connection profiles remain compact inside Settings' existing form. */
+.editor-form .ai-connection {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.ai-connection legend {
+  padding: 0 6px;
+  overflow-wrap: anywhere;
+}
+.ai-connections {
+  margin-top: 20px;
+}
+.backup-baseline {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+.backup-change-list {
+  margin: 16px 0;
+}
+.backup-change {
+  display: flex;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: baseline;
+}
+.backup-change strong {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.backup-change code {
+  font-size: 11px;
+}

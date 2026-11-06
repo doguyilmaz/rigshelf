@@ -1,5 +1,13 @@
 # Validation record
 
+## UI stability, user-owned AI and backup review
+
+The follow-up passes 191 unit/integration tests across 31 files, strict TypeScript, formatting/lint, 1,157 matching English/Turkish messages and all nineteen UI suites. The new normal-motion suite checks editor frame geometry, page scroll and returned focus across Files tabs, closing/reopening, catalog refresh and four viewport widths (1440, 768, 390, 320). Existing layout/localization/control suites continue to cover long accepted values, nested selects, delayed content, short windows, reduced motion and English/Turkish screens. No uncaught page errors or automated accessibility violations were reported in the audited cases. This is Chromium/macOS fixture evidence, not a claim that no browser/layout defect exists.
+
+The connection flow saves a named API profile through the real Settings API, selects it in AI assistance and invokes only an injected fixture driver after Generate. The proposal saves no Skill or project plan. The backup flow compares a selected gzip archive, observes no catalog import, refuses download after a catalog change, then downloads one complete archive after a fresh review. The native input selector in the existing export/import test was made specific to the hidden Import control because the new comparison file input remains briefly mounted during dialog exit.
+
+Domain fixtures cover stable equal-score sorting, profile and URL/credential-reference validation, dummy credential forwarding to one local endpoint, malformed/incomplete responses, redirect refusal, saved-profile removal after scheduling, excluded profile export, backup fingerprint stability, metadata/resource/removal differences, stale-review refusal and tampered archive rejection. These are ordinary engineering tests, separate from qualified adversarial security reproductions. Real paid/provider calls, user's Ollama inventory, remote GitHub/S3 writes and existing project/global configuration writes were not performed. Reports are ignored under `.local/qa/connections-backup`; the full UI log is `.local/qa/experience-audit/full-ui.log`. The dependency advisory query returned an empty object on 2026-11-06.
+
 ## Final overnight checkout
 
 The final checkout passes `bun run check`, `bun run format`, `bun run verify`, `bun run lint`, 183 unit/integration tests across 29 files, 1,131-message EN/TR parity and all eighteen UI suites. The final browser run records no uncaught page errors or automated accessibility violations in its audited cases. It includes the 134-case layout pass plus focused acquisition, model, project-context and concurrent-editor flows. Reports and screenshots remain ignored private evidence.

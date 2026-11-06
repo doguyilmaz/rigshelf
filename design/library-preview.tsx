@@ -169,6 +169,7 @@ const state: AppState = {
     scanGlobals: false,
     defaultProviders: ['codex'],
     aiRunner: 'none',
+    aiConnections: [],
     ollamaModel: '',
     aiModel: '',
     discoveryDays: 0,

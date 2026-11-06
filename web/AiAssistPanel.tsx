@@ -31,7 +31,7 @@ export interface AiAssistProps {
   compact?: boolean;
 }
 const PREFERENCE_KEY = 'kitfold:ai-provider:v1';
-function remembered(): { runner?: AiRequest['runner']; model?: string } {
+function remembered(): { runner?: AiRequest['runner']; model?: string; connectionId?: string } {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(PREFERENCE_KEY) || '{}');
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -39,13 +39,17 @@ function remembered(): { runner?: AiRequest['runner']; model?: string } {
     return {
       runner: typeof item.runner === 'string' && isRunner(item.runner) ? item.runner : undefined,
       model: typeof item.model === 'string' && item.model.length <= 100 ? item.model : undefined,
+      connectionId:
+        typeof item.connectionId === 'string' && item.connectionId.length <= 64
+          ? item.connectionId
+          : undefined,
     };
   } catch {
     return {};
   }
 }
 const isRunner = (value: string): value is AiRequest['runner'] =>
-  ['claude', 'codex', 'ollama', 'session'].includes(value);
+  ['claude', 'codex', 'ollama', 'session', 'compatible'].includes(value);
 function draftText(draft: AiDraft): string {
   if (draft.kind === 'rule') return draft.content;
   if (draft.kind === 'skill') return draft.body;
@@ -82,6 +86,13 @@ export function AiAssistPanel({
         : ''),
   );
   const [job, setJob] = useState<AiDraftView>();
+  const [connectionId, setConnectionId] = useState(
+    () =>
+      settings.aiConnections.find((item) => item.id === remembered().connectionId)?.id ||
+      settings.aiConnections[0]?.id ||
+      '',
+  );
+  const connection = settings.aiConnections.find((item) => item.id === connectionId);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
   const [requestOpen, setRequestOpen] = useState(true);
@@ -89,7 +100,7 @@ export function AiAssistPanel({
   const ownedJob = useRef<string | undefined>(undefined);
   const generation = useRef(0);
   const controller = useRef<AbortController | undefined>(undefined);
-  const signature = JSON.stringify({ task, current, text, intent, runner, model });
+  const signature = JSON.stringify({ task, current, text, intent, runner, model, connection });
   const signatureRef = useRef(signature);
   signatureRef.current = signature;
   const proposal: AiProposal | undefined = job?.state === 'ready' ? job.proposal : undefined;
@@ -113,16 +124,21 @@ export function AiAssistPanel({
   const provider = providers.find((item) => item.id === runner)?.name || runner;
   const providerUnavailable =
     providers.length > 0 && !providers.some((item) => item.id === runner && item.available);
+  const hasConnections = settings.aiConnections.length > 0;
   useEffect(() => {
     let live = true;
     void api<ProviderOption[]>('ai/providers')
       .then((items) => {
         if (!live) return;
-        setProviders(items);
+        setProviders(
+          items.map((item) =>
+            item.id === 'compatible' ? { ...item, available: hasConnections } : item,
+          ),
+        );
         if (!remembered().runner && settings.aiRunner === 'none')
           setRunner(
-            items.find((item) => item.available && item.id !== 'session' && item.id !== 'ollama')
-              ?.id || 'session',
+            items.find((item) => item.available && ['claude', 'codex'].includes(item.id))?.id ||
+              'session',
           );
       })
       .catch(() => {
@@ -131,7 +147,7 @@ export function AiAssistPanel({
     return () => {
       live = false;
     };
-  }, [settings.aiRunner]);
+  }, [settings.aiRunner, hasConnections]);
   useEffect(
     () => () => {
       generation.current++;
@@ -198,6 +214,7 @@ export function AiAssistPanel({
         current,
         runner,
         model: runner === 'session' ? '' : model,
+        connectionId: runner === 'compatible' ? connectionId : '',
         language: getLocale(),
       });
       if (version !== generation.current) {
@@ -207,7 +224,7 @@ export function AiAssistPanel({
       ownedJob.current = next.id;
       setJob(next);
       try {
-        localStorage.setItem(PREFERENCE_KEY, JSON.stringify({ runner, model }));
+        localStorage.setItem(PREFERENCE_KEY, JSON.stringify({ runner, model, connectionId }));
       } catch {
         /* Optional preference. */
       }
@@ -308,7 +325,9 @@ export function AiAssistPanel({
                 options={providers.map((item) => ({
                   value: item.id,
                   label: !item.available
-                    ? t('{{provider}} · not installed', { provider: item.name })
+                    ? item.id === 'compatible'
+                      ? t('API connection · configure in Settings')
+                      : t('{{provider}} · not installed', { provider: item.name })
                     : item.id === 'session'
                       ? t('Current Agent · MCP drafts')
                       : item.name,
@@ -342,19 +361,51 @@ export function AiAssistPanel({
               </div>
             )}
           </div>
+          {runner === 'compatible' && (
+            <div className="editor-form">
+              <label htmlFor={`${fieldId}-connection`}>
+                {t('API connection')}
+                <Select
+                  id={`${fieldId}-connection`}
+                  label={t('API connection')}
+                  value={connectionId}
+                  disabled={working}
+                  onValueChange={(value) => {
+                    setConnectionId(value);
+                    setModel('');
+                  }}
+                  options={settings.aiConnections.map((item) => ({
+                    value: item.id,
+                    label: item.name,
+                  }))}
+                />
+              </label>
+              {connection && (
+                <p className="field-help">
+                  <code translate="no">{connection.baseUrl}</code>
+                  {' · '}
+                  {connection.model}
+                </p>
+              )}
+            </div>
+          )}
           <p className="field-help">
             {runner === 'session'
               ? t(
                   'Uses a draft request in your connected Rigshelf MCP session. Ask the agent to answer the pending request.',
                 )
-              : runner === 'ollama'
+              : runner === 'compatible'
                 ? t(
-                    'Sends this request to your Ollama service at 127.0.0.1:11434. Model routing is controlled by that service.',
+                    'Sends this request and the current fields to the selected API connection. The service may route models remotely. Credentials are resolved only by the local server; generation starts only when you ask.',
                   )
-                : t(
-                    'Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.',
-                    { provider },
-                  )}{' '}
+                : runner === 'ollama'
+                  ? t(
+                      'Sends this request to your Ollama service at 127.0.0.1:11434. Model routing is controlled by that service.',
+                    )
+                  : t(
+                      'Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.',
+                      { provider },
+                    )}{' '}
             {['preset', 'requirements'].includes(task) &&
               t('Includes up to 80 library names, tags and descriptions for matching suggestions.')}
           </p>
@@ -399,7 +450,8 @@ export function AiAssistPanel({
                   !providers.length ||
                   providerUnavailable ||
                   (!text.trim() && !current.trim()) ||
-                  (runner === 'ollama' && !model.trim())
+                  (runner === 'ollama' && !model.trim()) ||
+                  (runner === 'compatible' && !connection)
                 }
               >
                 <PenLine size={14} />

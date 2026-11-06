@@ -1,5 +1,13 @@
 # Data ownership and format
 
+## AI connections and reviewed exports
+
+Private Settings now have optional `aiConnections` (default empty, at most twelve distinct IDs) and the additional `compatible` AI runner. A connection contains `id`, `name`, `baseUrl`, `model` and `apiKeyEnv`, never the key value. Connection objects reject unknown fields. Credential reference names require the `RIGSHELF_AI_` prefix and have a 100-character bound. Profiles are not included in portable library exports. AI draft requests accept a bounded `connectionId`; the service resolves one saved profile before scheduling generation. Requests cannot supply or override endpoint or authentication fields. A profile's subsequent removal does not reroute its already started request. Browser preferences additionally remember the selected connection ID.
+
+`POST /api/backup-review` accepts `{}` for a full export review or a bounded gzip portable archive for comparison. Comparison uses complete import validation without applying it and hashes schema-normalized record data. Canonical record ordering and export time do not affect the review fingerprint; metadata and resource changes do. Canonicalization refuses nesting beyond 32 levels. No remote destination, ownership or permission is adopted from the baseline.
+
+`GET /api/library-export?expected=<sha256>` refuses a changed library before compressing the reviewed export. Legacy exports without `expected` remain available to existing explicit callers. The existing versioned portable archive format remains unchanged. No download is recorded as a remote backup receipt. See [backup synchronization](BACKUP-SYNC.md) for the planned remote publication contract.
+
 Private `ai-draft` records hold explicit one-shot authoring requests, offered snapshot IDs, masked prompt data and validated proposals. They are bounded to 24 retained records, expire after 24 hours and are excluded from portable library exports. Waiting connected-Agent requests expire after 15 minutes; running generations have a two-minute deadline. Completion grants no library/project write authority. The optional `aiModel` setting defaults to an empty native-model choice; older settings continue to parse. Browser storage retains only Provider/model preferences, not AI request bodies. See [AI assistance](AI-ASSISTANCE.md).
 
 The private inventory supports optional `aiFileLocations` on projects and one shared `global-ai-inventory` record. Agent, Command, Config, Hook and Plugin metadata carries canonical location/root identity; native file bodies load on request. These are optional schema-1 additions excluded from portable library exports.

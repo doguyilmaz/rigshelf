@@ -305,11 +305,17 @@ try {
     'MCP connection settings are rendered in the selected harness format with an explicit writable root.',
   );
   const downloadEvent = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export library' }).click();
+  await page.getByRole('button', { name: 'Review backup', exact: true }).click();
+  await page.getByRole('button', { name: 'Download reviewed archive', exact: true }).click();
   const download = await downloadEvent;
   const archivePath = join(directory, 'test-library.json.gz');
   await download.saveAs(archivePath);
-  await page.locator('input[type=file]').setInputFiles(archivePath);
+  await page
+    .getByRole('dialog', { name: 'Review backup', exact: true })
+    .getByRole('button', { name: 'Close dialog', exact: true })
+    .click();
+  await expect(page.getByRole('dialog', { name: 'Review backup', exact: true })).toHaveCount(0);
+  await page.locator('.settings-card input[type=file][hidden]').setInputFiles(archivePath);
   dialog = page.getByRole('dialog', { name: 'Import review' });
   await dialog.waitFor();
   await expect(dialog.getByText('No conflicting records found.')).toBeVisible();

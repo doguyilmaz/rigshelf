@@ -87,7 +87,7 @@ const FileImport = z.object({
   content: z.string().max(MAX_BUNDLE_BYTES * 2),
   executable: z.boolean(),
 });
-const BackupSchema = z.object({
+export const BackupSchema = z.object({
   format: z.literal('kitfold-library'),
   schemaVersion: z.literal(SCHEMA_VERSION),
   exportedAt: z.string(),

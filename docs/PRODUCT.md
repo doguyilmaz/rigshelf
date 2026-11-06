@@ -62,6 +62,8 @@ Each requirement retains an identifier so implementation and deferred work can b
 | R46 | Native Plugin inventory | Index actual supported native declarations, registry/cache/catalog evidence and scoped install relationships rather than only saved recipes. Preserve aliases, disabled declarations, old Snapshots and partial observations without executing packages. |
 | R47 | Explain discovery coverage | Distinguish actionable partial/unreadable locations from empty configs and deliberate exclusions. Inspect known catalog/cache paths without entering arbitrary package or generated dependency internals. Preserve earlier observations on malformed/unavailable reads. |
 | R48 | Independent daily experience | Preserve the baseline on another branch, create an independently researched working brand and rebuild first-use/returning setup around clear project tasks. Connect Library, AI, defaults, maintenance, review, handoff and recovery; a visual refresh alone does not satisfy the request. |
+| R49 | User-owned AI services | Save/select local or remote API profiles with exact models, server-side credential references, explicit generation, bounded output and separate draft adoption. Do not expose the local workbench remotely as a side effect. |
+| R50 | Reviewed batch backup | Compare library changes before one export/Sync. GitHub publication uses one commit per batch and a separate PR/merge action; S3-compatible publication uses immutable snapshots and conditional manifests. Never commit per file or treat backup imports as project authority. Local review is implemented; remote connectors remain planned. |
 
 ## Interaction design
 

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { closeAiDrafts } from './core/ai-assistance';
-import { exportArchive, importArchive } from './core/archive';
+import { compareArchive, exportArchive, importArchive } from './core/archive';
 import { Automation } from './core/automation';
 import { DefinitionConflict } from './core/definitions';
 import { inside } from './core/safety';
@@ -98,7 +98,10 @@ export function startServer(
         return new Response('Method denied', { status: 405, headers });
       if (url.pathname === '/api/library-export' && request.method === 'GET') {
         try {
-          const archive = exportArchive(store);
+          const expected = url.searchParams.get('expected') || undefined;
+          if (expected && !/^[a-f0-9]{64}$/.test(expected))
+            throw new Error('Invalid backup review fingerprint.');
+          const archive = exportArchive(store, expected);
           return new Response(new Uint8Array(archive.bytes).buffer, {
             headers: {
               ...headers,
@@ -110,6 +113,22 @@ export function startServer(
         } catch (error) {
           return Response.json(
             { error: error instanceof Error ? error.message : 'Export failed' },
+            { status: 400, headers },
+          );
+        }
+      }
+      if (
+        url.pathname === '/api/backup-review' &&
+        request.method === 'POST' &&
+        request.headers.get('content-type') === 'application/gzip'
+      ) {
+        try {
+          return Response.json(compareArchive(store, new Uint8Array(await request.arrayBuffer())), {
+            headers,
+          });
+        } catch (error) {
+          return Response.json(
+            { error: error instanceof Error ? error.message : 'Backup comparison failed' },
             { status: 400, headers },
           );
         }

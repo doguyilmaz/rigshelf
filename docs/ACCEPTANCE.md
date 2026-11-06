@@ -1,5 +1,13 @@
 # Acceptance record
 
+## UI stability, own AI and backup follow-up
+
+The Library uses explicit deterministic tie-breakers for equal names, dates and usage counts. Normal-motion browser cases check editor frames, page scroll, focus recovery and item order across tab changes, viewport changes, closing/reopening and catalog refresh. Existing English/Turkish terminology checks preserve Skills, MCP, Plugins, Agent, Harness, Preset, Snapshot, Provider and other documented technical terms.
+
+Saved local/remote Chat Completions profiles are available in Settings and authoring panels. Endpoint selection is explicit, authentication uses server-only environment references, redirects are refused, response bodies and generation lifecycle stay bounded, and proposals still require adoption/save. Protocol fixtures do not establish live vendor acceptance or guarantee local model routing.
+
+Backup review compares an earlier export, shows record changes/exclusions, refuses a stale reviewed download and emits one portable archive. It does not import its comparison baseline. GitHub PR/merge and S3-compatible remote publication remain planned under [the batch-sync contract](BACKUP-SYNC.md); the UI explicitly identifies that limit. Four additional interface locales, live provider acceptance and cross-platform acceptance remain release work.
+
 The implementation follows the [request ledger](PRODUCT.md). This record distinguishes implemented behavior from operating limits. It does not claim defect-free software or manual certification of every vendor CLI release.
 
 | Requirement | Implemented behavior and evidence |

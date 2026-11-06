@@ -1,8 +1,10 @@
-import { ArrowRight, Download, HardDrive, Save, ShieldCheck, Terminal, Upload } from 'lucide-react';
+import { ArrowRight, HardDrive, Save, ShieldCheck, Terminal, Upload } from 'lucide-react';
 import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 import type { ImportReview } from '../../src/core/backup';
 import type { Provider, Settings as SettingsValue } from '../../src/core/model';
+import { AiConnectionEditor } from '../AiConnectionEditor';
 import { accessToken, api, shortPath } from '../api';
+import { BackupReviewPanel } from '../BackupReviewPanel';
 import { Button, CopyButton, Modal, Notice, PageHeader, Spinner } from '../components';
 import { BrowseDirectoryButton, DirectoryPathInput } from '../DirectoryPathInput';
 import { useDraftGuard } from '../drafts';
@@ -54,10 +56,10 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
       setBusy(false);
     }
   }
-  async function exportData(): Promise<void> {
+  async function exportData(expected: string): Promise<void> {
     setBusy(true);
     try {
-      const response = await fetch('/api/library-export', {
+      const response = await fetch(`/api/library-export?expected=${encodeURIComponent(expected)}`, {
         headers: { 'x-kitfold-token': accessToken() },
       });
       if (!response.ok) throw new Error((await response.json()).error);
@@ -233,6 +235,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
                   options={[
                     { value: 'none', label: t('Choose in AI panels') },
                     { value: 'session', label: t('Current Agent · MCP drafts') },
+                    { value: 'compatible', label: t('API connection') },
                     ...['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok', 'ollama'].map(
                       (runner) => ({
                         value: runner,
@@ -271,6 +274,10 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
                 </label>
               )}
             </div>
+            <AiConnectionEditor
+              value={value.aiConnections}
+              onChange={(connections) => update('aiConnections', connections)}
+            />
           </section>
           <section className="settings-section">
             <h2>{t('Keep sources current')}</h2>
@@ -335,10 +342,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
             <p>{t('The catalog and snapshots live outside your project source.')}</p>
             <code>{shortPath(state.dataDirectory)}</code>
             <div className="button-row">
-              <Button variant="secondary" onClick={() => void exportData()} disabled={busy}>
-                <Download size={14} />
-                {t('Export library')}
-              </Button>
+              <BackupReviewPanel disabled={busy} onDownload={exportData} notify={notify} />
               <Button variant="secondary" onClick={() => file.current?.click()} disabled={busy}>
                 <Upload size={14} />
                 {t('Import')}

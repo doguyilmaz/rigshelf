@@ -1,5 +1,17 @@
 # Interface review and open design choices
 
+## Stability and connection follow-up
+
+| Before | After | Why |
+| --- | --- | --- |
+| Equal Library sort scores depended on inventory input order | `src/core/library.ts` adds name and stable family-key tie-breakers | Background refresh must not arbitrarily shuffle equal items. |
+| AI selection offered native runners, fixed Ollama or a connected Agent | Settings holds named local/remote API profiles; AI panels show the selected destination and default model | Let each user choose their own service without placing keys in forms or portable definitions. |
+| Export immediately downloaded a bundle | A paginated backup review compares a previous export and requires the same fingerprint at download | Make changes and exclusions visible before creating the batch. |
+
+The new normal-motion fixture covers 1440, 768, 390 and 320 px. It checks fixed editor frames across Files-tab content, unchanged page scroll on open/close, returned focus and unchanged row order after Refresh. A first test incorrectly measured scroll before Playwright finished bringing a partly obscured mobile click target into view; explicitly targeting the visible row resolved the fixture discrepancy. It did not justify changing production scroll behavior. New API-profile and backup-review screens also receive responsive and automated accessibility checks.
+
+Shared preview automation timed out twice in this session. Browser QA used the repository's isolated Playwright fixtures instead; it did not inspect or change the user's real catalog. Evidence remains in ignored `.local/qa/connections-backup`. Guidance source: [Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md). Remaining release items include linguistic review, four more complete locales, live provider/platform acceptance and remote backup connectors.
+
 Historical baseline notes. The current independent brand and implemented direction are in [the Rigshelf experience brief](EXPERIENCE.md). Baseline `main` remains unchanged.
 
 ## First use and accurate project state

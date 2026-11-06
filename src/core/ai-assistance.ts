@@ -190,6 +190,12 @@ export function startAiDraft(store: Store, raw: unknown, driver: AiDriver = runA
       'Check the request, Provider and model name. Model names cannot contain spaces or shell options.',
     );
   const parsed = validated.data;
+  const connection =
+    parsed.runner === 'compatible'
+      ? store.settings().aiConnections.find((value) => value.id === parsed.connectionId)
+      : undefined;
+  if (parsed.runner === 'compatible' && !connection)
+    throw new Error('Choose a saved AI connection in Settings.');
   const request = { ...parsed, text: maskAiText(parsed.text), current: maskAiText(parsed.current) };
   const jobs = listAiDrafts(store);
   if (jobs.filter((job) => job.state === 'running').length >= MAX_ACTIVE)
@@ -218,6 +224,7 @@ export function startAiDraft(store: Store, raw: unknown, driver: AiDriver = runA
         prompt: job.prompt,
         directory: store.directory,
         signal: controller.signal,
+        connection,
       }),
     )
     .then((output) => {
