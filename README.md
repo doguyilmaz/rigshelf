@@ -24,7 +24,7 @@ bun run rigshelf ui --port 47500
 
 Keep the access URL private. Stop with Ctrl-C. The access key survives restarts; stop existing processes before using `ui --reset-access` to rotate access for subsequent starts.
 
-For development, `bun run dev` builds the web interface once and watches server files. After editing `web/`, restart that command to rebuild the interface. See [Contributing](CONTRIBUTING.md).
+For development, `bun run dev` watches both frontend and server files. Frontend changes rebuild automatically; a workbench notice offers Reload without discarding drafts automatically. The next development start cleans old build assets. See [Contributing](CONTRIBUTING.md).
 
 English and Turkish are available in **Settings → Language**. Technical terms remain English. Four additional languages are tracked in the [localization release plan](docs/LOCALIZATION.md).
 
@@ -81,7 +81,7 @@ Fresh installs use `~/.local/share/rigshelf/catalog.sqlite`. An existing `~/.loc
 
 **Settings → Review backup** compares a previous export, previews record changes and downloads one complete library archive. Archives include sources, content, Presets and directives; they exclude project state, rollback preimages, access keys and automation approvals. An exclusion report identifies omitted sensitive-looking records. A library export is not a full workbench backup; see [data formats](docs/DATA.md).
 
-GitHub/S3/R2 remote Sync is planned, not implemented. Its [design contract](docs/BACKUP-SYNC.md) requires reviewed batch changes, PR/merge where applicable and conditional publication. It rules out implicit uploads and per-file commits.
+**Settings → Manage backups** connects an existing private GitHub repository or S3-compatible bucket (R2, S3 or MinIO). Review the changes, then Sync. GitHub creates one batch commit and PR; merge is a separate reviewed action. S3 publishes an immutable archive and manifest before conditionally updating the current pointer. History offers an integrity-checked restore preview. Credentials use selected server environment references and stay outside portable archives. No automatic uploads, per-file commits or remote pruning. See [backup setup and limits](docs/BACKUP-SYNC.md).
 
 ## Verify and contribute
 
@@ -98,6 +98,6 @@ Tests use isolated disposable projects. See [validation scope](docs/VALIDATION.m
 
 - [Harness formats and limitations](docs/COMPATIBILITY.md) · [primary-source research](docs/RESEARCH.md)
 - [Product requirements](docs/PRODUCT.md) · [architecture decisions](docs/DECISIONS.md) · [acceptance record](docs/ACCEPTANCE.md)
-- [Experience and branch comparison](docs/EXPERIENCE.md) · [Contributing](CONTRIBUTING.md)
+- [Daily-use review](docs/PRODUCT-REVIEW.md) · [Experience and branch comparison](docs/EXPERIENCE.md) · [Contributing](CONTRIBUTING.md)
 
 MIT licensed. Local fonts retain their original OFL licenses; see [third-party notices](THIRD_PARTY_NOTICES.md). Rigshelf is independent of the supported Harness vendors.

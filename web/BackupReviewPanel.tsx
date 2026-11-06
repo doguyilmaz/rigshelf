@@ -67,7 +67,7 @@ export function BackupReviewPanel({
           >
             <Notice>
               {t(
-                'This is a local export review. GitHub and S3 sync are not connected; downloading does not confirm a remote backup.',
+                'This is a local export review. Use Manage backups in Settings for GitHub or S3 Sync; downloading does not confirm a remote backup.',
               )}
             </Notice>
             <label className="backup-baseline">

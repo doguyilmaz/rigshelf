@@ -5,6 +5,7 @@ import { brand } from '../src/core/brand';
 import { AppNavigation, navigation } from './AppNavigation';
 import { type AppState, api } from './api';
 import { BrandMark } from './BrandMark';
+import { BuildUpdate } from './BuildUpdate';
 import { Button, Modal, SearchBox, Spinner } from './components';
 import { type DiscardRequest, requestDiscard } from './drafts';
 import { GettingStarted, rememberOnboarding } from './GettingStarted';
@@ -32,6 +33,9 @@ const Projects = lazy(() =>
 const Settings = lazy(() =>
   import('./pages/Settings').then((module) => ({ default: module.Settings })),
 );
+const Backups = lazy(() =>
+  import('./pages/Backups').then((module) => ({ default: module.Backups })),
+);
 
 import { Setup } from './pages/Setup';
 import './styles.css';
@@ -45,7 +49,8 @@ export type Page =
   | 'presets'
   | 'directives'
   | 'activity'
-  | 'settings';
+  | 'settings'
+  | 'backups';
 export interface PageProps {
   state: AppState;
   refresh: () => Promise<void>;
@@ -75,9 +80,16 @@ class Boundary extends React.Component<{ children: ReactNode }, { error: string 
 }
 function initialPage(): Page {
   const page = location.hash.slice(1);
-  return ['setup', 'library', 'projects', 'presets', 'directives', 'activity', 'settings'].includes(
-    page,
-  )
+  return [
+    'setup',
+    'library',
+    'projects',
+    'presets',
+    'directives',
+    'activity',
+    'settings',
+    'backups',
+  ].includes(page)
     ? (page as Page)
     : 'setup';
 }
@@ -243,6 +255,7 @@ function App(): ReactNode {
             .catch((failure) => notify(failure.message, true))
         }
       />
+      <BuildUpdate />
       <div className="main-shell">
         {state.scan.state === 'running' && (
           <div className="experience-scan" role="status">
@@ -265,7 +278,8 @@ function App(): ReactNode {
             {page === 'projects' && <Projects {...props} />}{' '}
             {page === 'presets' && <Presets {...props} />}{' '}
             {page === 'directives' && <Directives {...props} />}{' '}
-            {page === 'settings' && <Settings {...props} />}{' '}
+            {page === 'settings' && <Settings {...props} />}
+            {page === 'backups' && <Backups {...props} />}{' '}
             {page === 'activity' && <Activity {...props} />}
           </Suspense>
         </main>

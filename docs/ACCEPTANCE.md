@@ -1,5 +1,11 @@
 # Acceptance record
 
+## Remote backup and daily-flow review
+
+Settings now opens a dedicated Backups workspace with selected GitHub/S3/R2/MinIO connections, environment-reference guidance, explicit tests, searchable reviewed changes, Sync receipts, separate PR merge/closure and integrity-checked history/restore. The same engine serves HTTP, CLI and MCP. Destination authoring stays outside MCP; imports never restore project authority. Review, conflict, cancellation, uncertain outcome and frozen retry are separate states. [Backup documentation](BACKUP-SYNC.md) records current limits and provider acceptance.
+
+The daily-flow review revisits setup/returning projects, acquisition/AI drafts, large grouped libraries, filters, defaults, file reading, recovery, localization and responsive controls. The development command now watches frontend and backend, offers an explicit reload notice and preserves unsaved drafts. An isolated checkout fixture runs the actual dev command and both watchers. See [review findings](PRODUCT-REVIEW.md), [verification](VALIDATION.md) and [security scope](SECURITY-REVIEW.md).
+
 ## File reading follow-up
 
 Project inspection opens a dedicated Files workspace. File navigation and the reader have independent scroll areas; content never appears below the full inventory. Project setup, classification and automation remain reachable in a separate section. The same list/reader layout handles Skill supporting files, with search and bounded rendering.
@@ -18,7 +24,7 @@ The Library uses explicit deterministic tie-breakers for equal names, dates and 
 
 Saved local/remote Chat Completions profiles are available in Settings and authoring panels. Endpoint selection is explicit, authentication uses server-only environment references, redirects are refused, response bodies and generation lifecycle stay bounded, and proposals still require adoption/save. Protocol fixtures do not establish live vendor acceptance or guarantee local model routing.
 
-Backup review compares an earlier export, shows record changes/exclusions, refuses a stale reviewed download and emits one portable archive. It does not import its comparison baseline. GitHub PR/merge and S3-compatible remote publication remain planned under [the batch-sync contract](BACKUP-SYNC.md); the UI explicitly identifies that limit. Four additional interface locales, live provider acceptance and cross-platform acceptance remain release work.
+Backup review compares an earlier export, shows record changes/exclusions, refuses a stale reviewed download and emits one portable archive. It does not import its comparison baseline. GitHub PR/merge and S3-compatible publication are now available under [the batch-sync contract](BACKUP-SYNC.md); the remote-backup follow-up supersedes the earlier local-export-only limit. Four additional interface locales, live provider acceptance and cross-platform acceptance remain release work.
 
 The implementation follows the [request ledger](PRODUCT.md). This record distinguishes implemented behavior from operating limits. It does not claim defect-free software or manual certification of every vendor CLI release.
 

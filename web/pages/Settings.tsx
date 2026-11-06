@@ -16,7 +16,7 @@ import type { PageProps } from '../main';
 import { OllamaModelPicker } from '../OllamaModelPicker';
 import { Select } from '../Select';
 
-export function Settings({ state, refresh, notify }: PageProps): ReactNode {
+export function Settings({ state, refresh, notify, navigate }: PageProps): ReactNode {
   const localeState = useLocaleState();
   const locale = localeState.locale;
   const [value, setValue] = useState(state.settings);
@@ -349,6 +349,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
               </p>
             )}
             <div className="button-row">
+              <Button onClick={() => navigate('backups')}>{t('Manage backups')}</Button>
               <BackupReviewPanel disabled={busy} onDownload={exportData} notify={notify} />
               <Button variant="secondary" onClick={() => file.current?.click()} disabled={busy}>
                 <Upload size={14} />

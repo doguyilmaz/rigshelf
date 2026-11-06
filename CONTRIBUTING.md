@@ -2,7 +2,7 @@
 
 Use Bun 1.4.4 or newer and the checked-in lockfile. Use `bun run check` for TypeScript and `bun run format` for formatting. Run `bun run verify`, `bun run lint`, and the browser flows before proposing behavior changes. Fixtures belong under ignored `.local/tests`; never use a real development repository, global agent configuration, account token or running external MCP server as test state.
 
-`bun run dev` builds web assets once, then watches the Bun server. Restart it after frontend edits. `bun run start` serves the existing `dist`; rebuild first when changing the interface. Install Chromium explicitly with `bunx playwright install chromium` before the UI suites. Never rebuild `dist` while those suites are loading its chunks.
+`bun run dev` builds once, then watches web assets and the Bun server. A new frontend build offers an explicit Reload action in the workbench, preserving unsaved drafts until you choose. Use `bun run dev --port 47500` for an explicit port. Watch builds keep previously referenced hashed chunks until the next clean development start; the production build cleans `dist`. Ctrl-C stops both owned processes. `bun run start` serves the existing `dist`; rebuild first when changing the interface. Install Chromium explicitly with `bunx playwright install chromium` before the UI suites. Never rebuild `dist` while those suites are loading its chunks.
 
 Keep business logic in `src/core`. CLI, web and MCP should call that engine rather than implement alternate setup paths. Prefer small typed functions, explicit error states and meaningful boundary tests. A source URL or install recipe is untrusted data, never permission to execute code.
 

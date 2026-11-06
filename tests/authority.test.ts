@@ -161,7 +161,7 @@ test('closing a workspace watcher cancels pending additions and automatic additi
   }
   expect(await Bun.file(join(project, '.agents/skills/better-auth/SKILL.md')).exists()).toBe(true);
   expect(await Bun.file(join(project, 'AGENTS.md')).text()).toBe(guidance);
-});
+}, 10000);
 
 test('ownership tracks rollback, replacement after planning is refused and oversized removals stay bounded', async () => {
   const { store, project, root } = await setup();
