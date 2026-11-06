@@ -266,6 +266,13 @@ export function ProjectWorkspace({ setup, state, navigate, active, add, inspect 
   const selected = state.entries.filter((entry) => setup.selected.includes(entry.id));
   const missing = setup.selected.filter((id) => !state.entries.some((entry) => entry.id === id));
   const rules = state.rules.filter((rule) => detected.applicableRuleIds?.includes(rule.id));
+  const presetProviders = state.presets.find(
+    (item) => item.id === (setup.preset === 'auto' ? detected.presetId : setup.preset),
+  )?.providers;
+  const differentProviders =
+    presetProviders &&
+    (presetProviders.length !== setup.providers.length ||
+      presetProviders.some((provider) => !setup.providers.includes(provider)));
   const flagged = selected.find((entry) =>
     entry.findings.some((finding) => finding.level !== 'info'),
   );
@@ -334,6 +341,13 @@ export function ProjectWorkspace({ setup, state, navigate, active, add, inspect 
         )}
       </div>
       {setup.inspectionError && <Notice tone="warning">{setup.inspectionError}</Notice>}
+      {setup.recoveryUnavailable && (
+        <Notice tone="warning">
+          {t(
+            'This tab could not keep the latest draft. Keep it open until you create a setup plan.',
+          )}
+        </Notice>
+      )}
       {!current && (
         <Notice>
           {t(
@@ -459,6 +473,27 @@ export function ProjectWorkspace({ setup, state, navigate, active, add, inspect 
                 ...state.presets.map((preset) => ({ value: preset.id, label: preset.name })),
               ]}
             />
+            {differentProviders && (
+              <div className="preset-provider-defaults">
+                <p>
+                  {t('Preset Agent defaults: {{agents}}', {
+                    agents: presetProviders
+                      .map(
+                        (provider) =>
+                          state.adapters.find((agent) => agent.id === provider)?.name || provider,
+                      )
+                      .join(', '),
+                  })}
+                </p>
+                <button
+                  type="button"
+                  className="inline-button"
+                  onClick={() => setup.adoptPresetAgents(presetProviders)}
+                >
+                  {t('Use Preset Agents')}
+                </button>
+              </div>
+            )}
           </section>
           {detected.missing.length > 0 && (
             <details className="workspace-missing">

@@ -1,5 +1,13 @@
 # Security review record
 
+## Current-kit/defaults delta · focused source review
+
+Library selection context carries one explicit Snapshot/project choice, never ownership or permission. The setup consumer checks its current project and available Snapshot and consumes a request once. Dirty editor dismissal remains explicit. Apply blocks navigation until its result settles; late completion cannot clear a changed draft. Recovery parsing accepts only bounded choices, retains oversized kits for trimming under the unchanged 100-item write limit and exposes browser storage failures.
+
+New definition creation uses create-only POST with transactional ID checks. Invalid Preset inheritance rolls back with no success event. Explicit PUT remains the documented editable-definition upsert; names do not authorize replacement. Busy editors disable mutations, and completed duplicate/delete operations check the originating editor's liveness before changing parent selection. Project classification and shared guidance changes invalidate a retained inspection. None grants broader project-file authority.
+
+Read-only source review also found that the fixed Ollama generation/document-review fetches could follow HTTP redirects. Both now refuse redirects, matching model metadata discovery. An isolated normal engineering fixture exercises refusal without forwarding its dummy prompt; this is not a qualified exploit reproduction or a new formal-audit verdict. Installed Claude/Codex help was checked without generation or account-store inspection. The dated dependency advisory query returned no advisories. Vendor execution, service-controlled remote model routing and platform acceptance retain their existing limits.
+
 ## Maintenance/model-selection delta · focused source review
 
 The manual check route accepts only `{}` and passes `auto: false` to the existing dependency engine. It does not expose an automatic flag, create plans or widen project authority. UI suggestions retain project identity and lead to review; history navigation does not activate content. Imported snapshot callbacks require a live source editor and the originating acquisition scope, so a delayed response cannot adopt itself into a different or abandoned kit.

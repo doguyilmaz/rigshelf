@@ -1,5 +1,15 @@
 # Validation record
 
+## Current project context and reusable defaults
+
+The current pass completes 171 unit/integration tests across 28 files, strict TypeScript, formatting/lint, 1,115 matching EN/TR messages, the production build and all eighteen browser suites. The two new suites cover exact Library-to-kit handoff, project-bound one-shot requests, dirty dismissal, unchanged applied files, visible storage failure, Preset Agent precedence, complete pin paging, edited-field duplication and same-name/Unicode definition creation. Archived-only Library recovery and retained-classification invalidation extend existing suites. Reports remain ignored under `.local/qa/project-context` and `.local/qa/presets`.
+
+The full run caught a select/input alignment regression introduced by the editor's disabled fieldset wrapper. The styling now includes the wrapper; the existing alignment assertion and broader responsive/accessibility checks pass without relaxing their thresholds. Native fixture startup also exceeded its previous 500 ms readiness assumption once; the test now waits for the bounded fixture readiness marker and always drains its process in cleanup. The cancellation and temporary-file assertions remain unchanged.
+
+Definition fixtures verify create-only collisions preserve original content/events, invalid inheritance rolls back atomically and CLI Agent precedence follows explicit choice → explicit Preset → application defaults. Normal local HTTP fixtures verify Ollama generation and document review refuse redirects before forwarding their dummy prompts. Installed CLI help checks use no generation or account-store inspection; `bun audit --json` returns an empty advisory object at this check. These checks are not qualified security reproductions or a guarantee of vendor behavior.
+
+`bun scripts/ui-performance.ts` measures a fictional 1,284-item catalog in three cold local Chromium contexts, with no unexpected external requests, plans or approvals. This run observed initial usability in 82–87 ms, first Library navigation in 399–828 ms, exact-name search in 13–17 ms and snapshot/content inspection in 88–114 ms. Metadata serialization took about 1.6 ms for 643 KB. These unthrottled local measurements include automation overhead and concurrent development load; they are not cross-platform latency guarantees. Main client size is about 474 KB / 154 KB gzip; CSS is about 107 KB / 20 KB gzip. Detailed private measurements stay under `.local/qa/performance`.
+
 ## Project maintenance and model selection
 
 The follow-up passes 166 unit/integration tests across 27 files, strict TypeScript, formatting/lint, 1,092 matching EN/TR messages and the production build. All sixteen browser suites pass, including the maintenance, delayed-import, model-selection and existing AI-authoring flows. Reports remain ignored under `.local/qa/maintenance`, `.local/qa/models` and `.local/qa/experience`.

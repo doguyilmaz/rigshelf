@@ -68,7 +68,10 @@ async function audit(name: string) {
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('button', { name: 'Library', exact: true }).click();
-  await page.locator('.page-header').getByRole('button', { name: 'Add to library', exact: true }).click();
+  await page
+    .locator('.page-header')
+    .getByRole('button', { name: 'Add to library', exact: true })
+    .click();
   const dialog = page.getByRole('dialog', { name: 'Add something useful', exact: true });
   const panel = dialog.getByRole('region', { name: 'AI assistance', exact: true });
   await panel.getByLabel('AI Provider', { exact: true }).click();

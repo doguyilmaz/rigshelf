@@ -1,6 +1,6 @@
 # Product brief
 
-Working name: **Kitfold**. A private, local workbench for the capabilities and instructions used by coding agents. Naming is provisional; package and trademark availability have not been established.
+Working identity: **Rigshelf**. A private, local workbench for setting up coding agents per project. The independent direction and dated naming observations are recorded in [the experience brief](EXPERIENCE.md). No package/domain registration or trademark clearance is claimed. The prior interface remains on the preserved baseline branch.
 
 ## Product promise
 
@@ -59,12 +59,15 @@ Each requirement retains an identifier so implementation and deferred work can b
 | R43 | Low-friction daily setup | Start with a folder, inspect committed choices automatically, show the focused selection and disclose optional Agent/requirement/preset controls. Preserve drafts across page navigation, deliberate exclusions and exact manual pins across suggestion refreshes. A focused picker must search/filter the full library without a fixed first-page cutoff. |
 | R44 | AI-assisted everyday authoring | Accept links, commands, rough notes and intent before requiring forms. Prepare, improve, suggest and format structured drafts for sources, Skills, MCP, Presets, directives, project requirements and editable documents. Choose Provider/model; reuse native logins or an explicitly connected Agent. Preview readable fields, preserve newer edits and keep saving/activation explicit. |
 | R45 | Collections and reliable layouts | Group saved items under their source by default, with separate custom content, full-library search, matching/total counts and paginated children. Offer a remembered flat view and the same collection hierarchy in the project picker. Proactively check long accepted names, responsive pages, dialogs, nested controls and scroll/focus behavior. |
+| R46 | Native Plugin inventory | Index actual supported native declarations, registry/cache/catalog evidence and scoped install relationships rather than only saved recipes. Preserve aliases, disabled declarations, old Snapshots and partial observations without executing packages. |
+| R47 | Explain discovery coverage | Distinguish actionable partial/unreadable locations from empty configs and deliberate exclusions. Inspect known catalog/cache paths without entering arbitrary package or generated dependency internals. Preserve earlier observations on malformed/unavailable reads. |
+| R48 | Independent daily experience | Preserve the baseline on another branch, create an independently researched working brand and rebuild first-use/returning setup around clear project tasks. Connect Library, AI, defaults, maintenance, review, handoff and recovery; a visual refresh alone does not satisfy the request. |
 
 ## Interaction design
 
-Primary action: **Set up a project**. Navigation: Setup, Library, Projects, Presets, Directives, Activity, Settings. A source is a collection; a skill is a capability; a kit is the small selection activated for a project. Keep those concepts distinct in the interface. Details use focused dialogs; setup uses a reviewable sequence. Trust labels describe evidence, not decoration. Backup never leads the experience.
+Primary action: **Prepare → Set up a project**. The main navigation contains Prepare, Projects and Library. Defaults contains Presets and Directives; Activity, search, guide and Settings are utilities. A source is a collection; a Skill is a capability; a kit is the small selection activated for a project. Keep those concepts distinct in the interface. A coherent workspace holds the daily choices; a separate dialog reviews the file plan. Trust labels describe evidence, not decoration. Backup never leads the experience.
 
-Current direction: neutral white/gray surfaces, readable local typography, concrete page titles and restrained motion. The library starts with clear item types and platform/technology/task facets. Item details and advanced filters carry secondary complexity. The guided workflow itself remains an option; decorative green and purple treatments are rejected.
+Current direction: neutral white/gray surfaces, readable local typography, concrete page titles and restrained motion. Library starts with clear item types and platform/technology/task facets and retains the current project context. Item details and advanced filters carry secondary complexity. Guidance is available in context, with an optional safe practice example. Decorative green and purple treatments are rejected.
 
 ## Architectural boundaries
 

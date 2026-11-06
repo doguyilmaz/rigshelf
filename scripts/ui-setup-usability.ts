@@ -2,7 +2,7 @@ import { mkdir, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { chromium, expect } from '@playwright/test';
-import type { Rule } from '../src/core/model';
+import type { Project, Rule } from '../src/core/model';
 import { scan } from '../src/core/scanner';
 import { route } from '../src/core/service';
 import { reviseSkill } from '../src/core/skill-revisions';
@@ -209,8 +209,22 @@ try {
   await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Update kit', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeEnabled();
+  const classified = data.store
+    .list<Project>('project')
+    .find((project) => project.path === data.project)!;
+  const classifiedStacks = [...classified.stacks, 'custom-fixture'];
+  data.store.put('project', { ...classified, stacks: classifiedStacks });
+  data.store.put('project-override', {
+    id: classified.id,
+    name: classified.name,
+    stacks: classifiedStacks,
+  });
+  await page.getByRole('button', { name: 'Refresh workbench', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Update kit', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeEnabled();
   checks.push(
-    'Late plan responses cannot open after a draft change; changed shared directives require renewed inspection.',
+    'Late plan responses cannot open after a draft change; changed shared directives and project classification require renewed inspection.',
   );
 
   await page.getByRole('button', { name: 'Add from library', exact: true }).click();

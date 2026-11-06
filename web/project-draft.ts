@@ -11,7 +11,9 @@ export interface ProjectDraft {
   updatedAt: string;
 }
 const STORAGE_KEY = 'rigshelf:project-draft:v1';
-const MAX_STORED_DRAFT_BYTES = 100_000;
+const MAX_STORED_DRAFT_CHARACTERS = 1024 * 1024;
+// Oversized kits remain recoverable while the user trims them to the 100-item plan limit.
+const MAX_RECOVERY_SELECTIONS = MAX_PROJECT_KIT_ENTRIES * 10;
 const providers = new Set(['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok']);
 const strings = (value: unknown, limit: number, length: number): value is string[] =>
   Array.isArray(value) &&
@@ -20,7 +22,7 @@ const strings = (value: unknown, limit: number, length: number): value is string
 
 /** A recovery draft carries choices only. A fresh inspection must precede every plan. */
 export function parseProjectDraft(raw: string | null): ProjectDraft | undefined {
-  if (!raw || raw.length > MAX_STORED_DRAFT_BYTES) return;
+  if (!raw || raw.length > MAX_STORED_DRAFT_CHARACTERS) return;
   try {
     const value: unknown = JSON.parse(raw);
     if (!value || typeof value !== 'object' || Array.isArray(value)) return;
@@ -41,7 +43,7 @@ export function parseProjectDraft(raw: string | null): ProjectDraft | undefined 
     )
       return;
     if (
-      !strings(item.selected, MAX_PROJECT_KIT_ENTRIES, 500) ||
+      !strings(item.selected, MAX_RECOVERY_SELECTIONS, 500) ||
       !strings(item.providers, providers.size, 30) ||
       !item.providers.every((provider) => providers.has(provider))
     )
@@ -68,11 +70,19 @@ export function readProjectDraft(): ProjectDraft | undefined {
     return;
   }
 }
-export function writeProjectDraft(draft?: ProjectDraft): void {
+export function writeProjectDraft(draft?: ProjectDraft): boolean {
   try {
-    if (draft) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-    else sessionStorage.removeItem(STORAGE_KEY);
+    if (draft) {
+      const serialized = JSON.stringify(draft);
+      if (
+        serialized.length > MAX_STORED_DRAFT_CHARACTERS ||
+        draft.selected.length > MAX_RECOVERY_SELECTIONS
+      )
+        return false;
+      sessionStorage.setItem(STORAGE_KEY, serialized);
+    } else sessionStorage.removeItem(STORAGE_KEY);
+    return true;
   } catch {
-    /* Recovery is optional when browser storage is unavailable. */
+    return false;
   }
 }

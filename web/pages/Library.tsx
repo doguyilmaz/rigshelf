@@ -22,6 +22,7 @@ import type { Entry, Source } from '../../src/core/model';
 import { foldSearch } from '../../src/core/taxonomy';
 import { AiAssist } from '../AiAssist';
 import { api } from '../api';
+import { CurrentProjectBanner } from '../CurrentProjectBanner';
 import { Badge, Button, Empty, Modal, Notice, PageHeader, SearchBox, Spinner } from '../components';
 import { DirectoryPathInput } from '../DirectoryPathInput';
 import { useDraftGuard } from '../drafts';
@@ -155,6 +156,7 @@ export function Library(props: PageProps): ReactNode {
           </div>
         }
       />
+      <CurrentProjectBanner {...props} />
       <div className="library-view-switch" role="tablist" aria-label={t('Library view')}>
         <button
           type="button"
@@ -290,14 +292,23 @@ export function Library(props: PageProps): ReactNode {
                       : t('Scan this machine, add a source, or create a custom item.')
                   }
                 >
-                  <Button
-                    variant="secondary"
-                    onClick={() => changeFilters({ ...defaultLibraryFilters(), kind: 'all' })}
-                  >
-                    {t('Show all items')}
-                  </Button>
+                  {savedCount > 0 && (
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        changeFilters({ ...defaultLibraryFilters(), kind: 'all', status: 'all' })
+                      }
+                    >
+                      {t('Show all items')}
+                    </Button>
+                  )}
+                  {savedCount === 0 && (
+                    <Button variant="secondary" onClick={() => changeView('sources')}>
+                      {t('Browse saved sources')}
+                    </Button>
+                  )}
                   <Button variant="ghost" onClick={() => setAdding(true)}>
-                    {t('Add to library')}
+                    {t('Paste a link or describe a tool')}
                   </Button>
                 </Empty>
               )}

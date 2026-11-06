@@ -96,6 +96,8 @@ export function Modal({
     <dialog
       ref={dialog}
       data-exiting={presence?.exiting || undefined}
+      data-block-navigation={closeDisabled || undefined}
+      aria-busy={closeDisabled || undefined}
       inert={presence?.exiting || undefined}
       className={`modal ${wide ? 'wide' : ''}`}
       onCancel={(event) => {

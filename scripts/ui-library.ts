@@ -137,6 +137,24 @@ try {
   checks.push(
     'Expanded library filters and paginated results fit six widths without overflow or Axe findings.',
   );
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  await choose('Status', 'Active only');
+  for (const metadata of data.store.entries(true)) {
+    const entry = data.store.entry(metadata.id)!;
+    data.store.saveEntry({ ...entry, archived: true });
+  }
+  await page.getByRole('button', { name: 'Refresh workbench', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'No items match these filters', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Show all items', exact: true }).click();
+  await expect(page.getByLabel('Status', { exact: true })).toHaveText('All statuses');
+  await expect(page.locator('.entry-list-row')).toHaveCount(40);
+  expect(data.store.entries(true)).toHaveLength(520);
+  expect(data.store.entry(expo.id)?.body).toBe(originalBody);
+  checks.push(
+    'An archived-only Library is recoverable through Show all items, which restores visibility without deleting or changing Snapshot content.',
+  );
   const beforePreferences = await page.evaluate(() =>
     localStorage.getItem('agent-setup.library.v1'),
   );

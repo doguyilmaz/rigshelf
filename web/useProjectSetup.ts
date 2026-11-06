@@ -7,6 +7,7 @@ import { api } from './api';
 import { useDraftGuard } from './drafts';
 import { t } from './i18n';
 import type { PageProps } from './main';
+import type { CurrentProject, KitEntryRequest } from './project-context';
 import { readProjectDraft, writeProjectDraft } from './project-draft';
 import { rememberProject } from './recent-projects';
 import { setupSelection } from './setup-selection';
@@ -31,6 +32,8 @@ export interface SetupProps extends PageProps {
   initialPath: string;
   initialRequest?: number;
   active?: boolean;
+  onCurrentProjectChange?: (project?: CurrentProject) => void;
+  entryRequest?: KitEntryRequest;
 }
 
 export function useProjectSetup({
@@ -58,8 +61,10 @@ export function useProjectSetup({
   const [plan, setPlan] = useState<PlanView>();
   const [edited, setEdited] = useState(false);
   const [recoveryDraft, setRecoveryDraft] = useState(readProjectDraft);
+  const [recoveryUnavailable, setRecoveryUnavailable] = useState(false);
   const request = useRef<{ generation: number; controller?: AbortController }>({ generation: 0 });
   const edits = useRef(new Map<string, boolean>());
+  const providerEdited = useRef(false);
   const entries = useRef(state.entries);
   entries.current = state.entries;
   const signature = JSON.stringify({
@@ -94,22 +99,46 @@ export function useProjectSetup({
     findings: state.ruleFindings,
   });
   const previousGuidance = useRef(guidanceSignature);
+  const knownProject = state.projects.find((project) => project.id === detected?.project.id);
+  const projectClassification = JSON.stringify(
+    knownProject
+      ? {
+          path: knownProject.path,
+          name: knownProject.name,
+          stacks: knownProject.stacks,
+          dependencies: knownProject.dependencies,
+        }
+      : null,
+  );
+  const previousProject = useRef<{ id: string; classification: string } | undefined>(undefined);
   useEffect(() => {
     if (edited && path)
-      writeProjectDraft({
-        version: 1,
-        path,
-        requirements,
-        preset,
-        providers,
-        selected,
-        updatedAt: new Date().toISOString(),
-      });
+      setRecoveryUnavailable(
+        !writeProjectDraft({
+          version: 1,
+          path,
+          requirements,
+          preset,
+          providers,
+          selected,
+          updatedAt: new Date().toISOString(),
+        }),
+      );
   }, [edited, path, requirements, preset, providers, selected]);
   useEffect(() => {
     if (previousGuidance.current !== guidanceSignature && path) invalidate();
     previousGuidance.current = guidanceSignature;
   }, [guidanceSignature, path, invalidate]);
+  useEffect(() => {
+    const id = detected?.project.id;
+    if (
+      id &&
+      previousProject.current?.id === id &&
+      previousProject.current.classification !== projectClassification
+    )
+      invalidate();
+    previousProject.current = id ? { id, classification: projectClassification } : undefined;
+  }, [detected?.project.id, projectClassification, invalidate]);
 
   async function inspect(
     projectPath = path,
@@ -149,12 +178,17 @@ export function useProjectSetup({
         return;
       }
       if (restorePrevious && result.previousSetup) {
+        providerEdited.current = true;
         setProviders(result.previousSetup.providers);
         updateRequirements(result.previousSetup.requirements);
         updatePreset(result.previousSetup.presetId === result.presetId ? result.presetId : 'auto');
         edits.current = new Map(result.previousSetup.entryIds.map((id) => [id, true]));
         setSelected(result.previousSetup.entryIds);
         return;
+      }
+      if (!providerEdited.current && nextPreset !== 'auto') {
+        const defaults = state.presets.find((item) => item.id === result.presetId)?.providers;
+        if (defaults) setProviders([...defaults]);
       }
       setSelected((current) => [
         ...setupSelection(
@@ -185,6 +219,7 @@ export function useProjectSetup({
     const proceed = () => {
       writeProjectDraft();
       setRecoveryDraft(undefined);
+      setRecoveryUnavailable(false);
       invalidate();
       edits.current.clear();
       setPath(target);
@@ -192,6 +227,7 @@ export function useProjectSetup({
       updateRequirements('');
       updatePreset('auto');
       setProviders(state.settings.defaultProviders);
+      providerEdited.current = false;
       setSelected([]);
       setDetected(undefined);
       setOptionsOpen(false);
@@ -212,6 +248,7 @@ export function useProjectSetup({
     const proceed = () => {
       writeProjectDraft();
       setRecoveryDraft(undefined);
+      setRecoveryUnavailable(false);
       cancelPending();
       edits.current.clear();
       setPath('');
@@ -219,6 +256,7 @@ export function useProjectSetup({
       updateRequirements('');
       updatePreset('auto');
       setProviders(state.settings.defaultProviders);
+      providerEdited.current = false;
       setSelected([]);
       setDetected(undefined);
       setNeedsInspection(false);
@@ -245,9 +283,11 @@ export function useProjectSetup({
         : 'auto',
     );
     setProviders(draft.providers);
+    providerEdited.current = true;
     setSelected(draft.selected);
     setEdited(true);
     setRecoveryDraft(undefined);
+    setRecoveryUnavailable(false);
     void inspect(
       draft.path,
       draft.requirements,
@@ -259,6 +299,7 @@ export function useProjectSetup({
   function discardRecoveryDraft(): void {
     writeProjectDraft();
     setRecoveryDraft(undefined);
+    setRecoveryUnavailable(false);
   }
   const resetRef = useRef(startNewProject);
   resetRef.current = startNewProject;
@@ -293,10 +334,16 @@ export function useProjectSetup({
   }
   function changePreset(value: string): void {
     updatePreset(value);
+    if (!providerEdited.current)
+      setProviders([
+        ...(state.presets.find((item) => item.id === value)?.providers ||
+          state.settings.defaultProviders),
+      ]);
     setEdited(true);
     invalidate();
   }
   function toggleProvider(provider: Provider): void {
+    providerEdited.current = true;
     setEdited(true);
     setReviewed(false);
     setProviders((current) =>
@@ -304,6 +351,12 @@ export function useProjectSetup({
         ? current.filter((value) => value !== provider)
         : [...current, provider],
     );
+  }
+  function adoptPresetAgents(providers: Provider[]): void {
+    providerEdited.current = true;
+    setEdited(true);
+    setReviewed(false);
+    setProviders([...providers]);
   }
   function toggleEntry(id: string): void {
     const entry = state.entries.find((value) => value.id === id);
@@ -376,8 +429,13 @@ export function useProjectSetup({
     }
   }
   function applied(): void {
+    if (currentDraft.current !== signature) {
+      void refresh().catch((error) => notify((error as Error).message, true));
+      return;
+    }
     writeProjectDraft();
     setRecoveryDraft(undefined);
+    setRecoveryUnavailable(false);
     setSavedDraft(
       JSON.stringify({
         path,
@@ -425,9 +483,11 @@ export function useProjectSetup({
     changeRequirements,
     changePreset,
     toggleProvider,
+    adoptPresetAgents,
     toggleEntry,
     addEntry,
     recoveryDraft,
+    recoveryUnavailable,
     resumeDraft,
     discardRecoveryDraft,
     inspect,

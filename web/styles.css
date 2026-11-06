@@ -2453,7 +2453,9 @@ label {
   gap: 18px;
 }
 .editor-form > label,
-.editor-form > .form-two-columns > label {
+.editor-form > .form-two-columns > label,
+.editor-fields > label,
+.editor-fields > .form-two-columns > label {
   min-width: 0;
   font-size: 12px;
   font-weight: 500;
@@ -2465,7 +2467,9 @@ label {
   font-size: 12px;
 }
 .editor-form > label > .select-control,
-.editor-form > .form-two-columns > label > .select-control {
+.editor-form > .form-two-columns > label > .select-control,
+.editor-fields > label > .select-control,
+.editor-fields > .form-two-columns > label > .select-control {
   margin-top: 6px;
 }
 .editor-form input:not([type="checkbox"]),

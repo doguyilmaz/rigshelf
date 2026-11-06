@@ -17,11 +17,43 @@ const AcquireTools = lazy(() =>
 export function Setup(props: SetupProps): ReactNode {
   const { state, navigate, active = true } = props;
   const setup = useProjectSetup(props);
+  const project = setup.detected?.project;
+  const projectId = project?.id;
+  const projectName = state.projects.find((item) => item.id === projectId)?.name || project?.name;
+  const projectPath = project?.path;
+  const current = setup.path === setup.candidatePath.trim();
+  const publishProject = props.onCurrentProjectChange;
+  useEffect(() => {
+    publishProject?.(
+      projectId && projectName && projectPath && current
+        ? { id: projectId, name: projectName, path: projectPath, entryIds: setup.selected }
+        : undefined,
+    );
+  }, [projectId, projectName, projectPath, current, setup.selected, publishProject]);
+  const consumedEntry = useRef(0);
+  const chooseEntry = useRef(setup.addEntry);
+  chooseEntry.current = setup.addEntry;
   const [picker, setPicker] = useState<'all' | 'skill' | 'mcp'>();
   const [inspecting, setInspecting] = useState<string>();
   const [acquiring, setAcquiring] = useState<string>();
   const scope = useRef({ path: setup.path, active, acquiring });
   scope.current = { path: setup.path, active, acquiring };
+  useEffect(() => {
+    const requested = props.entryRequest;
+    if (!requested || requested.sequence === consumedEntry.current) return;
+    consumedEntry.current = requested.sequence;
+    const entry = state.entries.find((item) => item.id === requested.entryId);
+    if (!current || projectId !== requested.projectId || !entry) {
+      props.notify(
+        t('The project or Snapshot changed. Inspect the current kit before adding this item.'),
+        true,
+      );
+      return;
+    }
+    chooseEntry.current(entry);
+    setPicker(undefined);
+    setInspecting(undefined);
+  }, [props.entryRequest, props.notify, state.entries, current, projectId]);
   useEffect(() => {
     if (!active) {
       setPicker(undefined);

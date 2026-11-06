@@ -10,6 +10,7 @@ import { type DiscardRequest, requestDiscard } from './drafts';
 import { GettingStarted, rememberOnboarding } from './GettingStarted';
 import { localeReady, t, useLocale } from './i18n';
 import { ModalPresence } from './ModalPresence';
+import type { CurrentProject, KitEntryRequest } from './project-context';
 
 const Activity = lazy(() =>
   import('./pages/Activity').then((module) => ({ default: module.Activity })),
@@ -51,6 +52,8 @@ export interface PageProps {
   notify: (text: string, error?: boolean) => void;
   navigate: (page: Page, path?: string) => void;
   onLearn?: (mode: 'guide' | 'example') => void;
+  currentProject?: CurrentProject;
+  addToKit?: (entryId: string) => void;
 }
 
 class Boundary extends React.Component<{ children: ReactNode }, { error: string }> {
@@ -78,6 +81,9 @@ function initialPage(): Page {
     ? (page as Page)
     : 'setup';
 }
+function hasBlockingDialog(): boolean {
+  return document.querySelector('dialog[open][data-block-navigation="true"]') !== null;
+}
 
 function App(): ReactNode {
   const locale = useLocale();
@@ -93,6 +99,8 @@ function App(): ReactNode {
   const [query, setQuery] = useState('');
   const [projectPath, setProjectPath] = useState('');
   const [projectRequest, setProjectRequest] = useState(0);
+  const [currentProject, setCurrentProject] = useState<CurrentProject>();
+  const [entryRequest, setEntryRequest] = useState<KitEntryRequest>();
   const [discard, setDiscard] = useState<DiscardRequest>();
   const [onboarding, setOnboarding] = useState<'guide' | 'example'>();
   const dismissWelcome = () => {
@@ -129,6 +137,10 @@ function App(): ReactNode {
       const next = initialPage();
       if (next === page) return;
       history.replaceState(null, '', `#${page}`);
+      if (hasBlockingDialog()) {
+        notify(t('Please wait for the current operation to finish.'));
+        return;
+      }
       requestDiscard(() => {
         history.replaceState(null, '', `#${next}`);
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -137,11 +149,12 @@ function App(): ReactNode {
     };
     window.addEventListener('hashchange', handle);
     return () => window.removeEventListener('hashchange', handle);
-  }, [page]);
+  }, [page, notify]);
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
         event.preventDefault();
+        if (hasBlockingDialog()) return;
         setPalette((value) => !value);
       }
     };
@@ -156,7 +169,17 @@ function App(): ReactNode {
     );
     return () => clearInterval(timer);
   }, [state?.scan.state, refresh, notify]);
+  const showPage = (next: Page) => {
+    history.pushState(null, '', `#${next}`);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    setPage(next);
+    setPalette(false);
+  };
   const navigate = (next: Page, path?: string) => {
+    if (hasBlockingDialog()) {
+      notify(t('Please wait for the current operation to finish.'));
+      return;
+    }
     if (next === page && path === undefined) {
       setPalette(false);
       return;
@@ -166,10 +189,7 @@ function App(): ReactNode {
         setProjectPath(path);
         setProjectRequest((value) => value + 1);
       }
-      history.pushState(null, '', `#${next}`);
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      setPage(next);
-      setPalette(false);
+      showPage(next);
     });
   };
   if (!state)
@@ -189,7 +209,27 @@ function App(): ReactNode {
         )}
       </div>
     );
-  const props: PageProps = { state, refresh, notify, navigate, onLearn: setOnboarding };
+  const addToKit = (entryId: string) => {
+    const entry = state.entries.find((item) => item.id === entryId);
+    if (!currentProject || !entry || !['skill', 'mcp'].includes(entry.kind)) return;
+    requestDiscard(() => {
+      setEntryRequest((previous) => ({
+        sequence: (previous?.sequence || 0) + 1,
+        projectId: currentProject.id,
+        entryId,
+      }));
+      showPage('setup');
+    });
+  };
+  const props: PageProps = {
+    state,
+    refresh,
+    notify,
+    navigate,
+    onLearn: setOnboarding,
+    currentProject,
+    addToKit,
+  };
   return (
     <div className="app-shell experience-shell">
       <AppNavigation
@@ -216,6 +256,8 @@ function App(): ReactNode {
               initialPath={projectPath}
               initialRequest={projectRequest}
               active={page === 'setup'}
+              onCurrentProjectChange={setCurrentProject}
+              entryRequest={entryRequest}
             />
           </div>
           <Suspense fallback={<Spinner text={t('Loading page…')} />}>

@@ -57,6 +57,26 @@ export function EntryDetail(props: Props): ReactNode {
       onClose={() => guard(props.onClose)}
       wide
     >
+      {props.currentProject && props.addToKit && ['skill', 'mcp'].includes(metadata.kind) && (
+        <div className="entry-kit-action">
+          <div>
+            <strong>{t('Use in {{project}}', { project: props.currentProject.name })}</strong>
+            <small>
+              {t('Select this exact Snapshot. Review project changes before applying.')}
+            </small>
+          </div>
+          <Button
+            disabled={props.currentProject.entryIds.includes(selected)}
+            onClick={() => props.addToKit?.(selected)}
+          >
+            {t(
+              props.currentProject.entryIds.includes(selected)
+                ? 'Selected for the kit'
+                : 'Add to project kit',
+            )}
+          </Button>
+        </div>
+      )}
       {versions.length > 1 && (
         <label className="version-picker" htmlFor="snapshot-version">
           {t('Snapshot version')}

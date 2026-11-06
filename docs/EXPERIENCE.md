@@ -57,9 +57,9 @@ Existing repositories/global agent installations are read-only sources. All setu
 - [x] Preserve baseline, create the new branch, review requirements, screen a new brand and document this brief.
 - [x] Implement brand assets/tokens, a new application shell and a project-first entry point.
 - [x] Build a coherent project workspace with visible Harness selection, clear kit composition and contextual guidance.
-- [ ] Improve AI intake/proposals and first-run Provider setup without mandatory cloud accounts or surprise generation.
+- [x] Improve AI intake/proposals and first-run Provider setup without mandatory cloud accounts or surprise generation.
 - [x] Make returning-project defaults, draft recovery, success/handoff, compatibility and recovery understandable.
-- [ ] Connect Library/source intake, Presets, directives, memory and maintenance to the daily workflow.
+- [x] Connect Library/source intake, Presets, directives, memory and maintenance to the daily workflow.
 - [ ] Exercise realistic first-time/returning flows, large catalogs, multi-agent review/apply/rollback, empty/offline/stale states, locales, responsive behavior and motion.
 - [ ] Perform focused source/data/security review, required check/format/verify/lint/UI suites, and document limits/evidence.
 - [ ] Produce a concrete comparison/run path and a concise handoff with meaningful grouped commits.
@@ -82,4 +82,8 @@ Unfinished setup choices are optional bounded current-tab recovery, not a memory
 
 The project inspection view now begins with Prepare and an explicit dependency check. Suggestions lead back to a particular project rather than remaining raw event text. Classification is optional, history search/paging exposes older plans, and successful imports that finish after leaving their editor stay in Library without changing the abandoned kit. Ollama model selection uses explicit metadata discovery with manual fallback, empty/offline feedback and reported remote-routing information; it does not run a model on opening a form.
 
-Remaining review targets: direct Library-to-current-kit handoff, Preset Harness defaults, archived-only Library recovery, final performance/keyboard/source-boundary review and the run/comparison handoff. Multi-instance server reuse is a future reliability consideration; any implementation must verify catalog/server identity before sending or displaying a persistent access key. It must not probe another user's listener with credentials or infer ownership from a port/PID alone.
+Library now carries the current project context and can send one explicitly inspected Skill/MCP revision back to that kit. Requests bind to one project and are consumed once; dirty metadata still requires an explicit dismissal. Archived-only collections have a recoverable Show all action. Browser storage failure is visible, and oversized temporary selections can be recovered for trimming while plans remain capped at 100 items. Shared defaults and known project classification changes invalidate retained inspection.
+
+Fresh explicit Presets supply Harness defaults, while manual/recovered/reviewed choices take precedence. An explicit Use Preset Agents action changes those choices. Duplicate retains edited selectors/stack tags/pins; new same-name definitions use a distinct ID and create-only transactions preserve existing records. Preset pins page through the full matching list rather than silently stopping at 60.
+
+Remaining review targets: final performance/keyboard/source-boundary review and the run/comparison handoff. Multi-instance server reuse is a future reliability consideration; any implementation must verify catalog/server identity before sending or displaying a persistent access key. It must not probe another user's listener with credentials or infer ownership from a port/PID alone.

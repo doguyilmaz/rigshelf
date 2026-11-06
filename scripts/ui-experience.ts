@@ -234,6 +234,13 @@ try {
     await expect(review.getByRole('button', { name: 'Back to kit', exact: true })).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect(review).toBeVisible();
+    await page.keyboard.press('Meta+k');
+    await expect(page.getByRole('dialog', { name: 'Quick jump', exact: true })).toHaveCount(0);
+    await page.evaluate(() => {
+      location.hash = 'library';
+    });
+    await expect(page).toHaveURL(/#setup$/);
+    await expect(review).toBeVisible();
     expect(
       await Bun.file(join(data.project, '.agents/skills/expo-guide-44/SKILL.md')).exists(),
     ).toBe(false);

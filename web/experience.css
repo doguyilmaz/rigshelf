@@ -1574,3 +1574,80 @@ textarea {
   margin: 8px 0 0;
   overflow-wrap: anywhere;
 }
+.current-project-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin: -10px 0 24px;
+  border: 1px solid #dcdcdc;
+  border-radius: 10px;
+  background: #f3f3f3;
+}
+.current-project-banner > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.current-project-banner strong {
+  font-size: 13px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.current-project-banner small,
+.entry-kit-action small {
+  font-size: 12px;
+  color: #666;
+}
+.entry-kit-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: #f4f4f4;
+  border: 1px solid #e1e1e1;
+  border-radius: 10px;
+}
+.entry-kit-action > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.entry-kit-action strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .current-project-banner {
+    flex-wrap: wrap;
+  }
+  .current-project-banner .button {
+    flex-basis: 100%;
+  }
+  .entry-kit-action {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+.editor-fields {
+  display: contents;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.preset-provider-defaults {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #dedede;
+  font-size: 12px;
+}
+.preset-provider-defaults p {
+  font-size: 12px;
+  margin: 0 0 8px;
+  color: #626262;
+}

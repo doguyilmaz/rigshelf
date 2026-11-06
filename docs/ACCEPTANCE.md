@@ -6,7 +6,7 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | --- | --- |
 | R01 | Immutable multi-file snapshots, source families, versions, provenance and installation locations. Ingestion, library and rescan tests cover deduplication and preservation. |
 | R02 | Canonical stdio/HTTP/SSE definitions, project/global locations and sanitized environment requirements. Native adapters and the bridge are exercised with fixtures. |
-| R03 | Preset create/edit/duplicate/delete, inheritance, pins and exclusions. Explicit pins are retained beyond the small automatic recommendation limit. |
+| R03 | Preset create/edit/duplicate/delete, inheritance, pins and exclusions. Explicit pins page beyond 60, remain selected under filtering and are retained beyond the small automatic recommendation limit. Duplicate preserves edited selectors/stack tags; new same-name definitions cannot overwrite existing IDs. Fresh explicit Presets supply Agent defaults while deliberate/recovered/reviewed choices remain explicit. |
 | R04 | Seventeen presets cover the requested mobile, Apple, Android, web and backend branches, plus common CLI/JVM/Astro workflows. Classification is editable. |
 | R05 | Manifest/workspace detection, requirements, recommendation reasons, manual selections and new/existing directories. Exact technology matches precede overlapping alternatives. |
 | R06 | Six documented project Harness mappings. T3 model choice is separate from its Harness. Authoring can use native Claude Code/Codex generation, local Ollama or connected-Agent MCP proposals; other unattended runner formats remain explicit gaps. |
@@ -55,6 +55,8 @@ The implementation follows the [request ledger](PRODUCT.md). This record disting
 | R47 | Scan diagnostics distinguish incomplete/unreadable coverage from empty MCP files and deliberate exclusions, with localized explanations and optional technical details. Known cache/catalog paths avoid arbitrary package internals; Unity generated directories do not consume the authored-source discovery budget. Empty/malformed MCP sources retain earlier observations without source edits or parser-content disclosure. |
 
 | R48 | Independent branch `experience/project-first` preserves `main` at `1fad90c`. Rigshelf adds a project-first launchpad, visible Harnesses, separate Skills/MCP kit sections, applicable Directives, contextual source/AI/local intake, exact private returning choices, optional tab recovery, concrete Agent handoff and neutral local-font brand assets. A normal-motion empty-to-applied browser flow covers collection paging, immutable resource pins, reload, separate Apply and subsequent project return. Naming availability observations are dated, not registration/trademark claims. See [experience brief](EXPERIENCE.md). |
+
+Library carries the current project kit and can return an explicitly inspected Skill/MCP revision to it without replaying that choice into another project. Dirty metadata remains protected. Archived-only results have a recovery action. Browser storage failures are visible, oversized draft choices remain recoverable for trimming under the unchanged write limit, and classification/default changes invalidate retained inspection. Read-only dependency checks and pending suggestions lead back to the relevant kit; older plans remain searchable and reachable.
 
 ## Operating limits
 
