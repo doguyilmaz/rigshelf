@@ -97,10 +97,44 @@ async function repositoryMetadata(repo: string): Promise<NonNullable<Source['rep
   };
 }
 
+function currentSource(store: Store, expected: Source): Source {
+  const current = store.get<Source>('source', expected.id);
+  if (!current || current.url !== expected.url || current.type !== expected.type)
+    throw new Error('Source changed during the request. Check it again.');
+  return current;
+}
+
+function recordEvidence(
+  store: Store,
+  expected: Source,
+  startedAt: string,
+  evidence: Pick<Source, 'status'> & Partial<Pick<Source, 'latestRef' | 'repository'>>,
+  error?: string,
+): Source {
+  return store.db
+    .transaction(() => {
+      const current = currentSource(store, expected);
+      if (current.checkedAt && current.checkedAt > startedAt) return current;
+      const notes = current.notes.replace(/\nLast check:[^\n]*/g, '');
+      const updated = {
+        ...current,
+        ...evidence,
+        checkedAt: now(),
+        notes: error ? `${notes}\nLast check: ${error}` : notes,
+      };
+      store.put('source', updated);
+      return updated;
+    })
+    .immediate();
+}
+
 export async function checkSource(store: Store, id: string): Promise<Source> {
   const source = store.get<Source>('source', id);
   if (!source) throw new Error('Source not found');
   if (!source.url) throw new Error('This local/manual source has no remote URL to check.');
+  const startedAt = now();
+  const evidence: Parameters<typeof recordEvidence>[3] = { status: 'reachable' };
+  let failure: string | undefined;
   try {
     if (source.type === 'github') {
       const repo = githubRepository(source);
@@ -109,12 +143,12 @@ export async function checkSource(store: Store, id: string): Promise<Source> {
           `https://api.github.com/repos/${repo}/commits/HEAD`,
         );
         if (!/^[a-f0-9]{40}$/.test(commit.sha)) throw new Error('Invalid upstream commit');
-        source.latestRef = commit.sha;
+        evidence.latestRef = commit.sha;
       } catch {
-        source.latestRef = await publicHead(repo);
+        evidence.latestRef = await publicHead(repo);
       }
       try {
-        source.repository = await repositoryMetadata(repo);
+        evidence.repository = await repositoryMetadata(repo);
       } catch {
         /* Reachability does not depend on optional API metadata. */
       }
@@ -135,25 +169,28 @@ export async function checkSource(store: Store, id: string): Promise<Source> {
       });
       if (response.status >= 400) throw new Error(`HTTP ${response.status}`);
     }
-    source.status = 'reachable';
   } catch (error) {
-    source.status = 'unavailable';
-    source.notes =
-      source.notes.replace(/\nLast check:.*$/s, '') +
-      `\nLast check: ${error instanceof Error ? error.message : 'Failed'}`;
+    evidence.status = 'unavailable';
+    failure = error instanceof Error ? error.message : 'Failed';
   }
-  source.checkedAt = now();
-  store.put('source', source);
-  store.event('source.checked', `${source.name}: ${source.status}`);
-  return source;
+  const updated = recordEvidence(store, source, startedAt, evidence, failure);
+  store.event('source.checked', `${updated.name}: ${updated.status}`);
+  return updated;
 }
 
 export async function sourceTree(
   store: Store,
   id: string,
-): Promise<{ repo: string; ref: string; files: TreeFile[]; transport: 'api' | 'archive' }> {
+): Promise<{
+  repo: string;
+  ref: string;
+  files: TreeFile[];
+  transport: 'api' | 'archive';
+  source: Source;
+}> {
   const source = store.get<Source>('source', id);
   if (!source) throw new Error('Source not found');
+  const startedAt = now();
   const repo = githubRepository(source);
   let ref: string;
   let files: TreeFile[];
@@ -179,11 +216,8 @@ export async function sourceTree(
     files = await publicArchive(repo, ref);
     transport = 'archive';
   }
-  source.latestRef = ref;
-  source.checkedAt = now();
-  source.status = 'reachable';
-  store.put('source', source);
-  return { repo, ref, files, transport };
+  recordEvidence(store, source, startedAt, { latestRef: ref, status: 'reachable' });
+  return { repo, ref, files, transport, source };
 }
 
 export async function discoverSourceSkills(
@@ -200,25 +234,34 @@ export async function discoverSourceSkills(
       path: file.path,
       name: file.path.split('/').at(-2) || tree.repo.split('/')[1],
     }));
-  const source = store.get<Source>('source', id)!;
+  let repository: Source['repository'];
   if (tree.transport === 'api') {
     try {
-      source.repository = await repositoryMetadata(tree.repo);
+      repository = await repositoryMetadata(tree.repo);
     } catch {
       /* Optional metadata; pinning and import remain available. */
     }
   }
-  source.skillCount = skills.length;
-  source.categories = [
-    ...new Set([...(source.categories || []), ...(skills.length ? ['skills'] : [])]),
-  ];
-  if (skills.length && !source.recipe) {
-    source.recipe = `bunx skills add ${tree.repo}`;
-    source.recipeKind = 'suggested';
-  }
-  if (!skills.length && source.recipeKind === 'suggested') source.recipe = '';
-  store.put('source', source);
-  store.put('source-index', { id, ref: tree.ref, skills, checkedAt: now() });
+  store.db
+    .transaction(() => {
+      const source = currentSource(store, tree.source);
+      // A newer check may have observed a different revision while this tree was loading.
+      if (source.latestRef !== tree.ref)
+        throw new Error('Source revision changed. Check it again.');
+      if (repository) source.repository = repository;
+      source.skillCount = skills.length;
+      source.categories = [
+        ...new Set([...(source.categories || []), ...(skills.length ? ['skills'] : [])]),
+      ];
+      if (skills.length && !source.recipe) {
+        source.recipe = `bunx skills add ${tree.repo}`;
+        source.recipeKind = 'suggested';
+      }
+      if (!skills.length && source.recipeKind === 'suggested') source.recipe = '';
+      store.put('source', source);
+      store.put('source-index', { id, ref: tree.ref, skills, checkedAt: now() });
+    })
+    .immediate();
   return skills;
 }
 
@@ -231,6 +274,19 @@ export async function importUpstreamSkill(
   if (path.split('/').at(-1) !== 'SKILL.md')
     throw new Error('Select a SKILL.md from the source list.');
   const tree = await sourceTree(store, sourceId);
+  return importSkillFromTree(store, tree, path);
+}
+
+/** Reuse one immutable, bounded source tree when checking several existing Skills. */
+export async function importSkillFromTree(
+  store: Store,
+  tree: Awaited<ReturnType<typeof sourceTree>>,
+  path: string,
+): Promise<Entry> {
+  safeRelative(path);
+  if (path.split('/').at(-1) !== 'SKILL.md')
+    throw new Error('Select a SKILL.md from the source list.');
+  currentSource(store, tree.source);
   const root = path.slice(0, -'SKILL.md'.length);
   const candidates = tree.files.filter(
     (file) => file.type === 'blob' && file.path.startsWith(root),
@@ -305,13 +361,17 @@ export async function importUpstreamSkill(
   }
   const skillFile = files.find((file) => file.path === 'SKILL.md');
   if (!skillFile) throw new Error('Missing skill snapshot');
-  const entry = saveSkill(
-    store,
-    Buffer.from(skillFile.content, 'base64').toString('utf8'),
-    files,
-    store.get<Source>('source', sourceId)!,
-    { upstreamPath: root.replace(/\/$/, ''), upstreamRef: tree.ref, findings },
-  );
+  const entry = store.db
+    .transaction(() =>
+      saveSkill(
+        store,
+        Buffer.from(skillFile.content, 'base64').toString('utf8'),
+        files,
+        currentSource(store, tree.source),
+        { upstreamPath: root.replace(/\/$/, ''), upstreamRef: tree.ref, findings },
+      ),
+    )
+    .immediate();
   store.event('source.imported', `Snapshot imported: ${entry.name} @ ${tree.ref.slice(0, 8)}`);
   return entry;
 }
