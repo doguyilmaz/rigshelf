@@ -14,9 +14,12 @@ import {
   ExternalLink,
   Modal,
   Notice,
+  SearchBox,
   Spinner,
 } from '../components';
 import { useDraftGuard } from '../drafts';
+import { type FilePane, FileScrollArea, FileWorkspace } from '../FileWorkspace';
+import { PAGE_SIZE } from '../format';
 import { t } from '../i18n';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
@@ -670,7 +673,8 @@ function SnapshotFiles({
   onDirtyChange: (dirty: boolean) => void;
   guard: (action: () => void) => void;
 }): ReactNode {
-  const [selected, setSelected] = useState<number>();
+  const [fileRequest, setFileRequest] = useState<{ index: number }>();
+  const selected = fileRequest?.index;
   const [file, setFile] = useState<FileContent>();
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -679,26 +683,37 @@ function SnapshotFiles({
   const [newText, setNewText] = useState('');
   const [executable, setExecutable] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [pane, setPane] = useState<FilePane>('files');
+  const [error, setError] = useState('');
   useEffect(() => {
     onDirtyChange(adding || Boolean(file && draft !== file.text));
     return () => onDirtyChange(false);
   }, [adding, file, draft, onDirtyChange]);
   useEffect(() => {
-    if (selected === undefined) return;
-    let live = true;
+    if (!fileRequest || adding) return;
+    const controller = new AbortController();
     setFile(undefined);
-    void api<FileContent>(`entries/${apiId(detail.entry.id)}/files/${selected}`)
+    setError('');
+    void api<FileContent>(
+      `entries/${apiId(detail.entry.id)}/files/${fileRequest.index}`,
+      'GET',
+      undefined,
+      controller.signal,
+    )
       .then((value) => {
-        if (live) {
+        if (!controller.signal.aborted) {
           setFile(value);
           setDraft(value.text);
         }
       })
-      .catch((error) => notify(error.message, true));
-    return () => {
-      live = false;
-    };
-  }, [selected, detail.entry.id, notify]);
+      .catch((failure) => {
+        if (!controller.signal.aborted)
+          setError(failure instanceof Error ? failure.message : t('Could not read this file.'));
+      });
+    return () => controller.abort();
+  }, [fileRequest, detail.entry.id, adding]);
   async function save(remove = false): Promise<void> {
     if (!adding && !file) return;
     setBusy(true);
@@ -726,95 +741,143 @@ function SnapshotFiles({
     }
   }
   if (!detail.files.length) return <Notice>{t('No supporting files for this entry type.')}</Notice>;
+  const matches = detail.files
+    .map((value, index) => ({ ...value, index }))
+    .filter((value) => value.path.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  const editable = file && detail.entry.custom && !file.binary && !file.redacted && !file.truncated;
+  function choose(index: number): void {
+    if (index === selected && !adding) {
+      setPane('reader');
+      return;
+    }
+    guard(() => {
+      setFile(undefined);
+      setError('');
+      setFileRequest({ index });
+      setAdding(false);
+      setRemoving(false);
+      setPane('reader');
+    });
+  }
+  function toggleAdding(): void {
+    guard(() => {
+      setAdding(!adding);
+      setRemoving(false);
+      setNewText('');
+      setPane(adding && selected === undefined ? 'files' : 'reader');
+    });
+  }
   return (
-    <>
-      <div className="file-list">
-        {detail.files.map((value, index) => (
-          <button
-            type="button"
-            className={selected === index ? 'selected' : ''}
-            key={value.path}
-            onClick={() => guard(() => setSelected(index))}
-          >
-            <FileText size={15} />
-            <code>{value.path}</code>
-            <span>
-              {(value.bytes / 1024).toFixed(1)}
-              {t(' KB')}
-            </span>
-            {value.executable && <Badge tone="amber">{t('Executable')}</Badge>}
-          </button>
-        ))}
-      </div>
-      {detail.entry.custom && (
-        <div className="button-row">
-          <Button
-            variant="secondary"
-            onClick={() =>
-              guard(() => {
-                setAdding(!adding);
-                setRemoving(false);
-              })
-            }
-          >
-            {' '}
-            {adding ? t('Cancel new file') : t('Add supporting file')}{' '}
-          </Button>
-        </div>
-      )}
-      {adding && (
-        <div className="editor-form">
-          <label>
-            {t('Relative file path')}
-            <input value={newPath} onChange={(event) => setNewPath(event.target.value)} />
-          </label>
-          <label>
-            {t('New file content')}
-            <textarea
-              className="code-editor"
-              rows={12}
-              value={newText}
-              onChange={(event) => setNewText(event.target.value)}
-              spellCheck={false}
-            />
-          </label>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={executable}
-              onChange={(event) => setExecutable(event.target.checked)}
-            />
-            {t('Executable resource')}
-          </label>
-          <Button disabled={busy || !newPath.trim()} onClick={() => void save()}>
-            {t('Save new file')}
-          </Button>
-        </div>
-      )}
-      {selected !== undefined &&
-        !adding &&
-        (file ? (
-          <div className="file-preview">
-            <div className="code-toolbar">
-              <code>{file.path}</code>
-              <span>
-                {file.bytes.toLocaleString()}
-                {t(' bytes')}
-              </span>
+    <FileWorkspace
+      pane={pane}
+      onPaneChange={setPane}
+      selectionKey={adding ? 'new-file' : selected}
+      sidebar={
+        <>
+          <div className="file-sidebar-heading">
+            <h3>{t('Files')}</h3>
+            <span>{detail.files.length}</span>
+          </div>
+          <SearchBox
+            label={t('Search supporting files')}
+            placeholder={t('Search supporting files…')}
+            value={query}
+            onChange={(value) => {
+              setQuery(value);
+              setVisibleCount(PAGE_SIZE);
+            }}
+          />
+          <div className="file-list">
+            {matches.slice(0, visibleCount).map((value) => (
+              <button
+                type="button"
+                className={selected === value.index ? 'selected' : ''}
+                aria-pressed={!adding && selected === value.index}
+                aria-label={value.path}
+                key={value.path}
+                onClick={() => choose(value.index)}
+              >
+                <FileText size={15} />
+                <span className="snapshot-file-name">
+                  <code>{value.path}</code>
+                  <small>
+                    {(value.bytes / 1024).toFixed(1)}
+                    {t(' KB')}
+                    {value.executable ? ` · ${t('Executable')}` : ''}
+                  </small>
+                </span>
+              </button>
+            ))}
+            {!matches.length && <p className="field-help">{t('No files match this search.')}</p>}
+            {matches.length > visibleCount && (
+              <Button variant="ghost" onClick={() => setVisibleCount((value) => value + PAGE_SIZE)}>
+                {t('Show more files')}
+              </Button>
+            )}
+          </div>
+          {detail.entry.custom && (
+            <Button variant="secondary" onClick={toggleAdding}>
+              {adding ? t('Cancel new file') : t('Add supporting file')}
+            </Button>
+          )}
+        </>
+      }
+    >
+      {adding || selected !== undefined ? (
+        <>
+          <div className="file-reader-header">
+            <div>
+              <h3 className="file-reader-heading" tabIndex={-1}>
+                {adding ? t('New supporting file') : detail.files[selected!]?.path}
+              </h3>
+              {file && !adding && (
+                <small>
+                  {file.bytes.toLocaleString()}
+                  {t(' bytes')}
+                </small>
+              )}
             </div>
-            {file.binary ? (
-              <Notice>{t('Binary resource. Kept intact in its snapshot.')}</Notice>
-            ) : (
-              <>
-                {(file.redacted || file.truncated) && (
-                  <Notice tone="warning">
-                    {file.redacted ? t('Sensitive-looking text is masked. ') : ''}
-                    {file.truncated ? t('Preview is truncated. ') : ''}
-                    {t('Editing is disabled to protect the original bytes.')}
-                  </Notice>
-                )}
-                {detail.entry.custom && !file.redacted && !file.truncated ? (
-                  <>
+            {file && !adding && !file.binary && <CopyButton text={file.text} />}
+          </div>
+          <FileScrollArea className="file-reader-scroll" label={t('File reading area')}>
+            {adding ? (
+              <div className="editor-form">
+                <label>
+                  {t('Relative file path')}
+                  <input value={newPath} onChange={(event) => setNewPath(event.target.value)} />
+                </label>
+                <label>
+                  {t('New file content')}
+                  <textarea
+                    className="code-editor"
+                    rows={12}
+                    value={newText}
+                    onChange={(event) => setNewText(event.target.value)}
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={executable}
+                    onChange={(event) => setExecutable(event.target.checked)}
+                  />
+                  {t('Executable resource')}
+                </label>
+              </div>
+            ) : file ? (
+              file.binary ? (
+                <Notice>{t('Binary resource. Kept intact in its snapshot.')}</Notice>
+              ) : (
+                <>
+                  {(file.redacted || file.truncated) && (
+                    <Notice tone="warning">
+                      {file.redacted ? t('Sensitive-looking text is masked. ') : ''}
+                      {file.truncated ? t('Preview is truncated. ') : ''}
+                      {t('Editing is disabled to protect the original bytes.')}
+                    </Notice>
+                  )}
+                  {editable ? (
                     <label className="editor-form">
                       {t('File content')}
                       <textarea
@@ -825,43 +888,61 @@ function SnapshotFiles({
                         spellCheck={false}
                       />
                     </label>
-                    <Button disabled={busy || draft === file.text} onClick={() => void save()}>
-                      <Save size={14} />
-                      {t('Save file revision')}
+                  ) : (
+                    <pre className="content-preview">{file.text}</pre>
+                  )}
+                </>
+              )
+            ) : error ? (
+              <div className="file-reader-error" role="alert">
+                <p>{error}</p>
+                <Button
+                  variant="secondary"
+                  onClick={() => setFileRequest((current) => (current ? { ...current } : current))}
+                >
+                  {t('Try again')}
+                </Button>
+              </div>
+            ) : (
+              <Spinner text={t('Loading file')} />
+            )}
+          </FileScrollArea>
+          {(adding || editable) && (
+            <div className="file-reader-footer button-row">
+              <Button
+                disabled={busy || (adding ? !newPath.trim() : draft === file?.text)}
+                onClick={() => void save()}
+              >
+                <Save size={14} />
+                {adding ? t('Save new file') : t('Save file revision')}
+              </Button>
+              {!adding &&
+                file?.path !== 'SKILL.md' &&
+                (removing ? (
+                  <>
+                    <span>{t('Remove this file in a new snapshot?')}</span>
+                    <Button variant="danger" disabled={busy} onClick={() => void save(true)}>
+                      {t('Remove file')}
                     </Button>
-                    {file.path !== 'SKILL.md' && (
-                      <div className="button-row">
-                        {removing ? (
-                          <>
-                            <span>{t('Remove this file in a new snapshot?')}</span>
-                            <Button
-                              variant="danger"
-                              disabled={busy}
-                              onClick={() => void save(true)}
-                            >
-                              {t('Remove file')}
-                            </Button>
-                            <Button variant="ghost" onClick={() => setRemoving(false)}>
-                              {t('Keep file')}
-                            </Button>
-                          </>
-                        ) : (
-                          <Button variant="ghost" onClick={() => setRemoving(true)}>
-                            {t('Remove supporting file…')}
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                    <Button variant="ghost" onClick={() => setRemoving(false)}>
+                      {t('Keep file')}
+                    </Button>
                   </>
                 ) : (
-                  <pre className="content-preview">{file.text}</pre>
-                )}
-              </>
-            )}
-          </div>
-        ) : (
-          <Spinner text={t('Loading file')} />
-        ))}
-    </>
+                  <Button variant="ghost" onClick={() => setRemoving(true)}>
+                    {t('Remove supporting file…')}
+                  </Button>
+                ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="file-reader-empty">
+          <FileText size={30} strokeWidth={1.2} />
+          <h3>{t('Choose a file to read')}</h3>
+          <p>{t('Search or browse the files on the left. Selected content opens here.')}</p>
+        </div>
+      )}
+    </FileWorkspace>
   );
 }

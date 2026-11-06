@@ -1,9 +1,10 @@
-import { ArrowUpRight, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useState } from 'react';
 import { type DocumentChoice, documentChoices } from '../../src/core/document-index';
 import type { DocumentLocation, Project } from '../../src/core/model';
 import { shortPath } from '../api';
 import { Button, Notice, SearchBox } from '../components';
+import { FileScrollArea } from '../FileWorkspace';
 import { PAGE_SIZE } from '../format';
 import { t } from '../i18n';
 import { Select } from '../Select';
@@ -14,11 +15,13 @@ export function ProjectDocuments({
   onOpen,
   sharedFiles = [],
   sharedWarnings = [],
+  selectedKey,
 }: {
   project: Project;
   onOpen: (file: DocumentChoice) => void;
   sharedFiles?: DocumentLocation[];
   sharedWarnings?: string[];
+  selectedKey?: string;
 }) {
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState('all');
@@ -39,7 +42,10 @@ export function ProjectDocuments({
   ] as const;
   return (
     <>
-      <p className="eyebrow">{t('AI FILES')}</p>
+      <div className="file-sidebar-heading">
+        <h3>{t('AI FILES')}</h3>
+        <span>{files.length}</span>
+      </div>
       {files.length > 0 && (
         <div className="ai-file-filters">
           <Select
@@ -70,6 +76,7 @@ export function ProjectDocuments({
             ]}
           />
           <SearchBox
+            label={t('Search AI files')}
             value={query}
             onChange={(value) => {
               setQuery(value);
@@ -79,82 +86,84 @@ export function ProjectDocuments({
           />
         </div>
       )}
-      {groups.map((group) => {
-        const matches = filtered.filter((file) => file.scope === group.scope);
-        const visible = matches.slice(0, visibleCounts[group.scope] || PAGE_SIZE);
-        if (!matches.length) return null;
-        return (
-          <details
-            key={group.scope}
-            className="project-document-group"
-            open={group.scope !== 'global' || Boolean(query)}
-          >
-            <summary>
-              {t(group.title)} <span>{matches.length}</span>
-            </summary>
-            <div className="document-buttons">
-              {visible.map((file) => (
-                <button
-                  type="button"
-                  key={file.id || file.path}
-                  aria-label={file.path}
-                  onClick={() => onOpen(file)}
-                >
-                  <FileText size={15} aria-hidden="true" />
-                  <span>
-                    <strong>{file.path}</strong>
-                    <small>
-                      {file.scope === 'project'
-                        ? `${file.provider} · ${file.kind}`
-                        : shortPath(file.sourcePath)}
-                    </small>
-                  </span>
-                  <ArrowUpRight size={14} aria-hidden="true" />
-                </button>
-              ))}
-            </div>
-            {matches.length > visible.length && (
-              <div className="ai-files-more">
-                <small>
-                  {t('Showing {{shown}} of {{total}} files', {
-                    shown: visible.length,
-                    total: matches.length,
-                  })}
-                </small>
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    setVisibleCounts((current) => ({
-                      ...current,
-                      [group.scope]: visible.length + PAGE_SIZE,
-                    }))
-                  }
-                >
-                  {t('Show more files')}
-                </Button>
+      <FileScrollArea className="project-file-list" label={t('AI file list')}>
+        {groups.map((group) => {
+          const matches = filtered.filter((file) => file.scope === group.scope);
+          const visible = matches.slice(0, visibleCounts[group.scope] || PAGE_SIZE);
+          if (!matches.length) return null;
+          return (
+            <details
+              key={group.scope}
+              className="project-document-group"
+              open={group.scope !== 'global' || Boolean(query)}
+            >
+              <summary>
+                {t(group.title)} <span>{matches.length}</span>
+              </summary>
+              <div className="document-buttons">
+                {visible.map((file) => (
+                  <button
+                    type="button"
+                    key={file.id || file.path}
+                    aria-label={file.path}
+                    aria-pressed={selectedKey === (file.id || file.sourcePath)}
+                    onClick={() => onOpen(file)}
+                  >
+                    <FileText size={15} aria-hidden="true" />
+                    <span>
+                      <strong>{file.path}</strong>
+                      <small>
+                        {file.scope === 'project'
+                          ? `${file.provider} · ${file.kind}`
+                          : shortPath(file.sourcePath)}
+                      </small>
+                    </span>
+                  </button>
+                ))}
               </div>
+              {matches.length > visible.length && (
+                <div className="ai-files-more">
+                  <small>
+                    {t('Showing {{shown}} of {{total}} files', {
+                      shown: visible.length,
+                      total: matches.length,
+                    })}
+                  </small>
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      setVisibleCounts((current) => ({
+                        ...current,
+                        [group.scope]: visible.length + PAGE_SIZE,
+                      }))
+                    }
+                  >
+                    {t('Show more files')}
+                  </Button>
+                </div>
+              )}
+            </details>
+          );
+        })}
+        {!files.length && (
+          <Notice>
+            {t(
+              'No AI files found in the inspected locations. Scan again after adding files or changing roots.',
             )}
+          </Notice>
+        )}
+        {files.length > 0 && !filtered.length && (
+          <p className="field-help">{t('No files match this search.')}</p>
+        )}
+        {Boolean(warnings.length) && (
+          <details className="project-inventory-notes">
+            <summary>{t('Some AI locations could not be fully inspected')}</summary>
+            {warnings.map((warning) => (
+              <p key={warning}>{shortPath(warning)}</p>
+            ))}
           </details>
-        );
-      })}
-      {!files.length && (
-        <Notice>
-          {t(
-            'No AI files found in the inspected locations. Scan again after adding files or changing roots.',
-          )}
-        </Notice>
-      )}
-      {files.length > 0 && !filtered.length && (
-        <p className="field-help">{t('No files match this search.')}</p>
-      )}
-      {Boolean(warnings.length) && (
-        <details className="project-inventory-notes">
-          <summary>{t('Some AI locations could not be fully inspected')}</summary>
-          {warnings.map((warning) => (
-            <p key={warning}>{shortPath(warning)}</p>
-          ))}
-        </details>
-      )}
+        )}
+      </FileScrollArea>
     </>
   );
 }

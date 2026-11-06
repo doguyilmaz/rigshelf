@@ -63,6 +63,7 @@ export function Modal({
   onClose,
   wide = false,
   closeDisabled = false,
+  className = '',
 }: {
   title: string;
   subtitle?: string;
@@ -70,6 +71,7 @@ export function Modal({
   onClose: () => void;
   wide?: boolean;
   closeDisabled?: boolean;
+  className?: string;
 }): ReactNode {
   const dialog = useRef<HTMLDialogElement>(null);
   const presence = useModalPresence();
@@ -100,7 +102,7 @@ export function Modal({
       data-block-navigation={closeDisabled || undefined}
       aria-busy={closeDisabled || undefined}
       inert={presence?.exiting || undefined}
-      className={`modal ${wide ? 'wide' : ''}`}
+      className={`modal ${wide ? 'wide' : ''} ${className}`}
       onCancel={(event) => {
         event.preventDefault();
         requestClose();

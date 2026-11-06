@@ -1,5 +1,13 @@
 # Validation record
 
+## Independent file navigation and reading
+
+The file-reader follow-up passes 201 unit/integration tests, strict TypeScript, formatting/lint, 1,171 matching English/Turkish messages, the production build and twenty-one UI suites. The dedicated reader fixture exercises 522 project AI files and 521 supporting files; it verifies bounded rendering, matches beyond the initial page, independent list/reader scrolling, unchanged dialog bounds, explicit content requests, keyboard PageDown, delayed-response isolation, inline retry and unsaved-draft protection across file changes and closing from Project setup.
+
+Normal-motion cases cover 1440, 768, 390 and 320 px widths plus a 390×520 short window. Mobile returns preserve both scroll positions and restore focus to the selected file or reader heading. Turkish external-guidance cases run at 390/320 px and retain read-only behavior. The existing document Apply/promotion and custom supporting-file revision/add/remove flows also pass. A screenshot inspection caught a vertically stretching supporting-file search field that overflow/accessibility checks alone did not identify; its fixed height now has a geometry assertion.
+
+These are Chromium fixture results for the exercised states. They do not certify every browser or eliminate all possible layout defects. Screenshots and reports remain ignored under `.local/qa/file-reader`; disposable fixtures never use existing development repositories or global configuration.
+
 ## Integration and source-maintenance check
 
 The 2026-11-06 follow-up passes 201 unit/integration tests across 32 files, strict TypeScript, 1,157 matching English/Turkish messages, formatting/lint, production build and all twenty UI suites. New fixtures cover source edits/deletion/retargeting during network requests, immutable import attribution, native-only MCP execution/authentication diagnostics without losing valid siblings, Directive pagination and large-plan metadata pagination over actual stdio MCP. The documented tool inventory is checked against the writable server's advertised tools. The integration Skill passes the canonical Skill metadata validator; local Markdown links resolve.

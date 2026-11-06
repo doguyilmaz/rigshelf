@@ -1,5 +1,13 @@
 # Acceptance record
 
+## File reading follow-up
+
+Project inspection opens a dedicated Files workspace. File navigation and the reader have independent scroll areas; content never appears below the full inventory. Project setup, classification and automation remain reachable in a separate section. The same list/reader layout handles Skill supporting files, with search and bounded rendering.
+
+Narrow screens show one pane at a time with explicit list/reading actions. Switching panes preserves search, selection, both scroll positions and keyboard focus. Read errors have an inline retry, obsolete read responses cannot replace a newer selection, and file switching/closing preserves draft-discard checks. Viewing global or external guidance does not enable editing; project edits still require reviewed plans and supporting-file edits create new Snapshots.
+
+Normal-motion browser fixtures exercise 522 project files and 521 Skill files, desktop/mobile/short-window layouts, English/Turkish copy, keyboard scrolling, reader/list geometry, delayed reads, inline failure recovery and immutable data preservation. See [validation](VALIDATION.md) for scope and limits.
+
 ## Rebrand compatibility follow-up
 
 Fresh catalogs use the Rigshelf directory; existing legacy catalogs retain their actual path with an English/Turkish explanation. Conflicting default catalogs require explicit selection rather than an implicit merge or empty replacement. Isolated fixtures retain Snapshot/resources/recovery content and verify explicit override precedence. New connection snippets and MCP handshake labels use Rigshelf; the old executable/environment, MCP tool names, portable format keys and project ownership/recovery identifiers remain compatible. Current naming/run instructions distinguish these choices from historical candidates. See [the brand audit](BRANDING.md).

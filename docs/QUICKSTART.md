@@ -36,9 +36,11 @@ If clipboard access is unavailable, a read-only copy dialog provides **Select te
 
 ## Revisit a project
 
-Open **Projects** and inspect a folder. **Prepare this project** returns to its kit; project name/stack editing is optional under its own disclosure. **Check for tools** compares the current dependencies with Library and records suggestions only. It does not start automation, write files or add approvals. **Activity** collects those pending suggestions with a route back to the project kit. Its local search finds project/Agent/event history, and **Show older plans** exposes plans beyond the first page.
+Open **Projects** and inspect a folder. **Files** opens a searchable AI file list beside a dedicated reader. The list and selected content scroll independently; expanding a group or loading more files does not move the reader below the list. File content is loaded only after selection. On narrow screens, **Back to files** and **Return to reading** preserve both positions and the current search. **Project setup** holds dependency checks, classification and automation controls. **Prepare this project** returns to its kit; project name/stack editing remains optional under its own disclosure. **Check for tools** compares the current dependencies with Library and records suggestions only. It does not start automation, write files or add approvals. **Activity** collects those pending suggestions with a route back to the project kit. Its local search finds project/Agent/event history, and **Show older plans** exposes plans beyond the first page.
 
 ## Continue and recover
+
+Skill details use the same list/reader layout under **Files**, with supporting-file search and bounded pages. Custom edits still create immutable revisions. Unsaved document or supporting-file edits require a discard decision before switching files or closing. Failed reads offer an inline retry instead of leaving the previous file under a new selection.
 
 **Activity** retains setup plans and rollback actions. Later edits are protected by preconditions; rollback cannot force-overwrite them. Dependency automation is optional and requires current project approval and exact snapshot approval.
 

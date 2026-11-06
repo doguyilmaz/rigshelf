@@ -1155,5 +1155,19 @@
   "Download reviewed archive": "Download reviewed archive",
   "API connection · configure in Settings": "API connection · configure in Settings",
   "Library storage": "Library storage",
-  "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.": "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data."
+  "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.": "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.",
+  "Back to files": "Back to files",
+  "Return to reading": "Return to reading",
+  "Choose a file to read": "Choose a file to read",
+  "Search or browse the files on the left. Selected content opens here.": "Search or browse the files on the left. Selected content opens here.",
+  "Search AI files": "Search AI files",
+  "AI file list": "AI file list",
+  "Read-only source. The original file is preserved.": "Read-only source. The original file is preserved.",
+  "Could not read this file.": "Could not read this file.",
+  "Project automation preference saved": "Project automation preference saved",
+  "File reader": "File reader",
+  "File reading area": "File reading area",
+  "Search supporting files": "Search supporting files",
+  "Search supporting files…": "Search supporting files…",
+  "New supporting file": "New supporting file"
 }

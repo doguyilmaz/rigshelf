@@ -51,6 +51,7 @@ try {
   await page.getByRole('button', { name: 'Projects', exact: true }).click();
   await page.getByRole('button', { name: 'Inspect project', exact: true }).click();
   let detail = page.getByRole('dialog', { name: 'project', exact: true });
+  await detail.getByRole('button', { name: 'Project setup', exact: true }).click();
   await expect(
     detail.getByRole('button', { name: 'Prepare this project', exact: true }),
   ).toBeVisible();
@@ -63,7 +64,7 @@ try {
   expect(data.store.list('trust')).toEqual([]);
   await audit('project-overview');
   checks.push(
-    'Project inspection leads with preparing the folder and a read-only dependency check; the saved suggestion creates no plan, approval or project edits.',
+    'The Project setup section offers preparing the folder and a read-only dependency check; the saved suggestion creates no plan, approval or project edits.',
   );
   await detail.locator('summary').filter({ hasText: 'Project name & stack' }).click();
   await detail.getByLabel('Display name', { exact: true }).fill('Beacon API');

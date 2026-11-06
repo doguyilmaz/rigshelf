@@ -1155,5 +1155,19 @@
   "Download reviewed archive": "İncelenen arşivi indir",
   "API connection · configure in Settings": "API bağlantısı · Ayarlar’da yapılandır",
   "Library storage": "Kütüphane depolaması",
-  "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.": "Mevcut kütüphanen ve kurtarma geçmişin kullanılabilsin diye bu klasör önceki Kitfold adını koruyor. Rigshelf verilerini taşımadı veya çoğaltmadı."
+  "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.": "Mevcut kütüphanen ve kurtarma geçmişin kullanılabilsin diye bu klasör önceki Kitfold adını koruyor. Rigshelf verilerini taşımadı veya çoğaltmadı.",
+  "Back to files": "Dosyalara dön",
+  "Return to reading": "Okumaya dön",
+  "Choose a file to read": "Okumak için dosya seçin",
+  "Search or browse the files on the left. Selected content opens here.": "Dosyalar arasında arama yapın veya listeyi inceleyin. Seçtiğiniz içerik burada açılır.",
+  "Search AI files": "AI dosyalarında ara",
+  "AI file list": "AI dosya listesi",
+  "Read-only source. The original file is preserved.": "Salt okunur kaynak. Özgün dosya korunur.",
+  "Could not read this file.": "Bu dosya okunamadı.",
+  "Project automation preference saved": "Projenin otomasyon tercihi kaydedildi",
+  "File reader": "Dosya okuyucu",
+  "File reading area": "Dosya okuma alanı",
+  "Search supporting files": "Destek dosyalarında ara",
+  "Search supporting files…": "Destek dosyalarında ara…",
+  "New supporting file": "Yeni destek dosyası"
 }

@@ -1,29 +1,15 @@
 import { ArrowRight, ArrowUpRight, FolderOpen, Plus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
-import type { Project, Rule } from '../../src/core/model';
-import type { PlanView } from '../../src/core/plan-view';
-import { AiAssist } from '../AiAssist';
+import type { Project } from '../../src/core/model';
 import { api, apiId, formatDate, shortPath } from '../api';
-import {
-  Badge,
-  Button,
-  CopyButton,
-  Empty,
-  Modal,
-  Notice,
-  PageHeader,
-  SearchBox,
-  Spinner,
-} from '../components';
-import { useDraftGuard } from '../drafts';
+import { Badge, Button, Empty, Modal, Notice, PageHeader, SearchBox } from '../components';
+import { requestDiscard, useDraftGuard } from '../drafts';
 import { countText, PAGE_SIZE } from '../format';
 import { t } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
-import { RuleEditor } from './Directives';
-import { PlanReview } from './PlanReview';
-import { type DocumentChoice, ProjectDocuments } from './ProjectDocuments';
+import { ProjectFileBrowser } from './ProjectFileBrowser';
 import { ProjectMaintenance } from './ProjectMaintenance';
 
 export function Projects(props: PageProps): ReactNode {
@@ -191,22 +177,7 @@ function ProjectDetail({
   notify,
   refresh,
 }: PageProps & { project: Project; onClose: () => void }): ReactNode {
-  const [document, setDocument] = useState<{
-    path: string;
-    content: string;
-    digest: string;
-    redacted: boolean;
-    readOnly?: boolean;
-    sourcePath?: string;
-    scope?: string;
-    kind?: string;
-  }>();
-  const [draft, setDraft] = useState('');
-  const [aiDirty, setAiDirty] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [plan, setPlan] = useState<PlanView>();
-  const [rule, setRule] = useState<Rule>();
-  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<'files' | 'setup'>('files');
   const [automationBusy, setAutomationBusy] = useState(false);
   const [name, setName] = useState(project.name);
   const [stacks, setStacks] = useState(project.stacks.join(', '));
@@ -214,36 +185,11 @@ function ProjectDetail({
     name: project.name,
     stacks: project.stacks.join(', '),
   });
-  const [ruleDirty, setRuleDirty] = useState(false);
-  const guardRule = useDraftGuard(ruleDirty, t('Promoted directive'));
-  const guard = useDraftGuard(
-    aiDirty ||
-      name !== savedClassification.name ||
-      stacks !== savedClassification.stacks ||
-      Boolean(editing && document && draft !== document.content),
+  useDraftGuard(
+    name !== savedClassification.name || stacks !== savedClassification.stacks,
     t('Project details'),
   );
   const approved = state.approvals?.find((value) => value.id === project.id)?.enabled || false;
-  async function openDocument(file: DocumentChoice | string): Promise<void> {
-    setBusy(true);
-    try {
-      const value = await api<NonNullable<typeof document>>('document', 'POST', {
-        projectId: project.id,
-        ...(typeof file === 'string'
-          ? { path: file }
-          : file.id
-            ? { documentId: file.id }
-            : { path: file.path }),
-      });
-      setDocument(value);
-      setDraft(value.content);
-      setEditing(false);
-    } catch (error) {
-      notify((error as Error).message, true);
-    } finally {
-      setBusy(false);
-    }
-  }
   async function save(): Promise<void> {
     try {
       await api(`projects/${apiId(project.id)}`, 'PATCH', {
@@ -264,246 +210,112 @@ function ProjectDetail({
     <Modal
       title={project.name}
       subtitle={shortPath(project.path)}
-      onClose={() => guard(onClose)}
+      onClose={() => requestDiscard(onClose)}
       wide
+      className="project-inspector"
     >
-      <ProjectMaintenance
-        {...{ project, state, refresh, notify }}
-        onPrepare={() => navigate('setup', project.path)}
-      />
-      <div className="project-detail-layout">
-        <div>
-          <details className="project-classification">
-            <summary>{t('Project name & stack')}</summary>
-            {project.discovery === 'configuration' && (
-              <Notice>
-                {t(
-                  'Referenced by a user-level project MCP configuration. Project source files have not been scanned.',
-                )}
-              </Notice>
-            )}
-            <div className="editor-form">
-              <label>
-                {t('Display name')}
-                <input value={name} onChange={(event) => setName(event.target.value)} />
-              </label>
-              <label>
-                {t('Stack tags')}
-                <input value={stacks} onChange={(event) => setStacks(event.target.value)} />
-              </label>
-              <Button variant="secondary" onClick={() => void save()}>
-                {t('Save classification')}
-              </Button>
-            </div>
-            {project.workspaces?.length ? (
-              <div className="workspace-list">
-                <p className="eyebrow">{t('WORKSPACES')}</p>
-                {project.workspaces.map((workspace) => (
-                  <p key={workspace.path}>
-                    <code>{workspace.path}</code>
-                    <span className="muted"> · {workspace.stacks.join(', ')}</span>
-                  </p>
-                ))}
-              </div>
-            ) : null}
-          </details>
-          <div className="automation-box">
-            <Zap size={20} />
-            <h3>{t('Stay ready as you build')}</h3>
-            <p>
+      <div className="project-inspector-nav">
+        <nav className="tabs compact" aria-label={t('Project details')}>
+          <button
+            type="button"
+            aria-pressed={view === 'files'}
+            className={view === 'files' ? 'active' : ''}
+            onClick={() => setView('files')}
+          >
+            {t('Files')}
+          </button>
+          <button
+            type="button"
+            aria-pressed={view === 'setup'}
+            className={view === 'setup' ? 'active' : ''}
+            onClick={() => setView('setup')}
+          >
+            {t('Project setup')}
+          </button>
+        </nav>
+        {view === 'files' && (
+          <Button variant="secondary" onClick={() => navigate('setup', project.path)}>
+            {t('Prepare this project')}
+            <ArrowRight size={14} />
+          </Button>
+        )}
+      </div>
+      <div className="project-inspector-files" hidden={view !== 'files'}>
+        <ProjectFileBrowser {...{ state, project, refresh, notify, navigate }} />
+      </div>
+      <div className="project-inspector-overview" hidden={view !== 'setup'}>
+        <ProjectMaintenance
+          {...{ project, state, refresh, notify }}
+          onPrepare={() => navigate('setup', project.path)}
+        />
+        <details className="project-classification">
+          <summary>{t('Project name & stack')}</summary>
+          {project.discovery === 'configuration' && (
+            <Notice>
               {t(
-                'When dependencies change, add only snapshots you have explicitly approved. The project needs an applied kit first.',
+                'Referenced by a user-level project MCP configuration. Project source files have not been scanned.',
               )}
-            </p>
-            <label className="check-label">
-              <input
-                type="checkbox"
-                disabled={automationBusy}
-                checked={approved}
-                onChange={(event) => {
-                  setAutomationBusy(true);
-                  void api(`automation/${apiId(project.id)}`, 'PUT', {
-                    enabled: event.target.checked,
-                  })
-                    .then(refresh)
-                    .then(() => notify('Project automation preference saved'))
-                    .catch((error) => notify(error.message, true))
-                    .finally(() => setAutomationBusy(false));
-                }}
-              />
-              {t('Allow trusted automatic additions')}
-            </label>
-            <small>
-              {t('Active while the local workbench is running. Watcher errors appear in Activity.')}
-            </small>
-          </div>
-        </div>
-        <div>
-          <ProjectDocuments
-            project={project}
-            sharedFiles={state.globalAiFiles}
-            sharedWarnings={state.globalAiWarnings}
-            onOpen={(file) => guard(() => void openDocument(file))}
-          />
-          {busy && <Spinner text={t('Reading document')} />}
-          {document && (
-            <>
-              {document.readOnly && (
-                <Notice>
-                  {t(
-                    'This file is stored outside the editable project guidance. You can read it or create a reviewed project directive from selected guidance.',
-                  )}
-                </Notice>
-              )}
-              <div className="code-toolbar">
-                <span title={document.sourcePath}>
-                  {document.sourcePath ? shortPath(document.sourcePath) : document.path}
-                </span>
-                <CopyButton text={document.content} />
-              </div>
-              {document.redacted && (
-                <Notice tone="warning">
-                  {t(
-                    'Sensitive-looking text is masked. Editing is disabled to preserve the original.',
-                  )}
-                </Notice>
-              )}
-              {editing ? (
-                <div className="editor-form">
-                  <AiAssist
-                    onDirtyChange={setAiDirty}
-                    settings={state.settings}
-                    task="text"
-                    label={t('Improve or format with AI')}
-                    current={draft}
-                    onUse={(proposal) => {
-                      if (proposal.kind === 'text') setDraft(proposal.text);
-                    }}
-                  />
-                  <label htmlFor="project-document-content">{t('Document content')}</label>
-                  <textarea
-                    id="project-document-content"
-                    className="code-editor"
-                    rows={16}
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    spellCheck={false}
-                  />
-                </div>
-              ) : (
-                <pre className="content-preview document-preview">{document.content}</pre>
-              )}
-              <div className="button-row">
-                <Button
-                  variant="secondary"
-                  disabled={document.redacted || document.readOnly}
-                  onClick={() => {
-                    if (editing && (aiDirty || draft !== document.content))
-                      guard(() => setEditing(false));
-                    else setEditing(!editing);
-                  }}
-                >
-                  {editing ? t('Cancel editing') : t('Edit document')}
-                </Button>
-                {editing && (
-                  <Button
-                    disabled={busy || draft === document.content}
-                    onClick={() => {
-                      setBusy(true);
-                      void api<PlanView>('document-plan', 'POST', {
-                        projectId: project.id,
-                        path: document.path,
-                        digest: document.digest,
-                        content: draft,
-                      })
-                        .then(setPlan)
-                        .catch((error) => notify(error.message, true))
-                        .finally(() => setBusy(false));
-                    }}
-                  >
-                    {t('Review document changes')}
-                  </Button>
-                )}
-                {!['config', 'plugin', 'hook'].includes(document.kind || '') && (
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setRule({
-                        id: '',
-                        name: `Guidance from ${document.path}`,
-                        scope: project.id,
-                        content: draft,
-                        enabled: true,
-                        priority: 50,
-                        provenance: `Promoted from ${project.name}/${document.path}`,
-                      })
-                    }
-                  >
-                    {t('Create a reusable directive ')}
-                    <ArrowRight size={14} />
-                  </Button>
-                )}
-              </div>
-            </>
+            </Notice>
           )}
-          <p className="field-help">
+          <div className="editor-form">
+            <label>
+              {t('Display name')}
+              <input value={name} onChange={(event) => setName(event.target.value)} />
+            </label>
+            <label>
+              {t('Stack tags')}
+              <input value={stacks} onChange={(event) => setStacks(event.target.value)} />
+            </label>
+            <Button variant="secondary" onClick={() => void save()}>
+              {t('Save classification')}
+            </Button>
+          </div>
+          {!!project.workspaces?.length && (
+            <div className="workspace-list">
+              <p className="eyebrow">{t('WORKSPACES')}</p>
+              {project.workspaces.map((workspace) => (
+                <p key={workspace.path}>
+                  <code>{workspace.path}</code>
+                  <span className="muted"> · {workspace.stacks.join(', ')}</span>
+                </p>
+              ))}
+            </div>
+          )}
+        </details>
+        <div className="automation-box">
+          <Zap size={20} />
+          <h3>{t('Stay ready as you build')}</h3>
+          <p>
             {t(
-              'Files are read on request. Memory never becomes session history or automatic global guidance.',
+              'When dependencies change, add only snapshots you have explicitly approved. The project needs an applied kit first.',
             )}
           </p>
-        </div>
-      </div>
-      <ModalPresence>
-        {rule && (
-          <Modal
-            title={t('Promote selected guidance')}
-            subtitle={t(
-              'Starts scoped to this project. Review private details before choosing a broader scope.',
-            )}
-            onClose={() => guardRule(() => setRule(undefined))}
-            wide
-          >
-            <RuleEditor
-              state={state}
-              refresh={refresh}
-              notify={notify}
-              navigate={navigate}
-              rule={rule}
-              onRemove={() => setRule(undefined)}
-              onDirtyChange={setRuleDirty}
+          <label className="check-label">
+            <input
+              type="checkbox"
+              disabled={automationBusy}
+              checked={approved}
+              onChange={(event) => {
+                setAutomationBusy(true);
+                void api(`automation/${apiId(project.id)}`, 'PUT', {
+                  enabled: event.target.checked,
+                })
+                  .then(refresh)
+                  .then(() => notify(t('Project automation preference saved')))
+                  .catch((error) => notify(error.message, true))
+                  .finally(() => setAutomationBusy(false));
+              }}
             />
-          </Modal>
-        )}
-      </ModalPresence>
-      <ModalPresence>
-        {plan && (
-          <PlanReview
-            plan={plan}
-            onClose={() => setPlan(undefined)}
-            onApplied={() => {
-              setEditing(false);
-              void openDocument(document!.path);
-              void refresh();
-            }}
-            notify={notify}
-            state={state}
-            navigate={navigate}
-          />
-        )}
-      </ModalPresence>
-      <div className="modal-actions">
-        <span className="muted">
+            {t('Allow trusted automatic additions')}
+          </label>
+          <small>
+            {t('Active while the local workbench is running. Watcher errors appear in Activity.')}
+          </small>
+        </div>
+        <p className="field-help">
           {t('Detected ')}
           {formatDate(project.detectedAt)}
-        </span>
-        <Button
-          onClick={() => {
-            navigate('setup', project.path);
-          }}
-        >
-          {t('Review project setup ')}
-          <ArrowRight size={16} />
-        </Button>
+        </p>
       </div>
     </Modal>
   );
