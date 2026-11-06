@@ -27,7 +27,7 @@ export function managedBlock(before: string | null, content: string): string {
     (end >= 0 && end < start) ||
     before.indexOf(START, start + START.length) >= 0
   )
-    throw new Error('Malformed or duplicate Kitfold directive markers.');
+    throw new Error('Malformed or duplicate Rigshelf directive markers.');
   return start < 0
     ? `${before.trimEnd()}\n\n${block}\n`
     : before.slice(0, start) + block + before.slice(end + END.length);
@@ -141,7 +141,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     if (bytes && bytes.toString('base64') === content) return;
     if (bytes && !replaceManaged && !input.replaceExisting && previousHashes[path] !== beforeHash)
       throw new Error(
-        `Existing file differs: ${path}. Kitfold will not overwrite an unmanaged or locally modified skill.`,
+        `Existing file differs: ${path}. Rigshelf will not overwrite an unmanaged or locally modified skill.`,
       );
     if (bytes && !replaceManaged && input.replaceExisting && previousHashes[path] !== beforeHash)
       warnings.push(
@@ -201,7 +201,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
         );
         compatibleMcp[name] = bridgeDefinition(path);
         warnings.push(
-          `${spec.name} / ${name}: Kitfold MCP bridge required. ${reason} The kitfold command must be on your PATH.`,
+          `${spec.name} / ${name}: Rigshelf MCP bridge required. ${reason} The kitfold command must be on your PATH.`,
         );
       } else compatibleMcp[name] = definition;
     }
@@ -263,7 +263,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
       await add(
         spec.instructions,
         Buffer.from(managedBlock(before ?? null, content)).toString('base64'),
-        'Update Kitfold directive block; preserve authored text',
+        'Update Rigshelf directive block; preserve authored text',
         true,
       );
     }

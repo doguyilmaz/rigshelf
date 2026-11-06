@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import type { PluginLocation, PluginReference } from './plugin-model';
 
 export const SCHEMA_VERSION = 1;
@@ -195,7 +196,7 @@ export const SetupSchema = z.object({
   projectPath: z.string().min(1).max(4096),
   providers: ProvidersSchema,
   presetId: z.string().optional(),
-  entryIds: z.array(z.string()).max(100),
+  entryIds: z.array(z.string()).max(MAX_PROJECT_KIT_ENTRIES),
   requirements: z.string().max(10000).default(''),
   includeRules: z.boolean().default(true),
   allowReviewed: z.boolean().default(false),

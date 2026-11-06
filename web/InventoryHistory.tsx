@@ -32,7 +32,7 @@ export function InventoryHistory({ notify }: { notify: (text: string, error?: bo
       );
       const link = document.createElement('a');
       link.href = url;
-      link.download = `kitfold-inventory-${checkpoint.id}.json`;
+      link.download = `rigshelf-inventory-${checkpoint.id}.json`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {

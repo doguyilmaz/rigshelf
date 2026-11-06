@@ -9,7 +9,11 @@ import { now } from './safety';
 export class Store {
   readonly db: Database;
   readonly directory: string;
-  constructor(directory = process.env.KITFOLD_DATA_DIR || join(homedir(), '.local/share/kitfold')) {
+  constructor(
+    directory = process.env.RIGSHELF_DATA_DIR ||
+      process.env.KITFOLD_DATA_DIR ||
+      join(homedir(), '.local/share/kitfold'),
+  ) {
     this.directory = directory;
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     this.db = new Database(join(directory, 'catalog.sqlite'), { create: true, strict: true });
@@ -17,7 +21,7 @@ export class Store {
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;');
     const version = this.db.query('PRAGMA user_version').get() as { user_version: number };
     if (version.user_version > SCHEMA_VERSION)
-      throw new Error('Catalog is newer than this application. Upgrade Kitfold.');
+      throw new Error('Catalog is newer than this application. Upgrade Rigshelf.');
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS records (type TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(type,id));
       CREATE TABLE IF NOT EXISTS entries (id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, source_id TEXT NOT NULL, data TEXT NOT NULL, body TEXT NOT NULL);

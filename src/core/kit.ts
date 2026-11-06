@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { readText } from './detect';
+import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import { McpSchema, ProviderSchema } from './model';
 import { assertWritePath, hash, safeRelative } from './safety';
 
@@ -18,7 +19,7 @@ export const KitSchema = z.object({
         ref: z.string().optional(),
       }),
     )
-    .max(100),
+    .max(MAX_PROJECT_KIT_ENTRIES),
   presetId: z.string().max(100).optional(),
   requirements: z.string().max(10000).optional(),
   hashes: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)).default({}),

@@ -16,7 +16,7 @@ async function download(url: string, maximum: number): Promise<Uint8Array> {
     response = await fetch(endpoint, {
       redirect: 'manual',
       signal: AbortSignal.timeout(20000),
-      headers: { Accept: '*/*', 'User-Agent': 'Kitfold-Workbench/0.1' },
+      headers: { Accept: '*/*', 'User-Agent': 'Rigshelf-Workbench/0.1' },
     });
     if (response.status < 300 || response.status >= 400) break;
     const location = response.headers.get('location');

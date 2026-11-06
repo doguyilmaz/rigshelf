@@ -1,5 +1,7 @@
 # Interface review and open design choices
 
+Historical baseline notes. The current independent brand and implemented direction are in [the Rigshelf experience brief](EXPERIENCE.md). Baseline `main` remains unchanged.
+
 ## First use and accurate project state
 
 | Before | After | Why |

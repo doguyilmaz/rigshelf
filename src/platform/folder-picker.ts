@@ -18,7 +18,7 @@ const executeFile = promisify(execFile);
 
 const APPLE_SCRIPT = `on run argv
   try
-    set selection to choose folder with prompt "Choose a folder for Kitfold" default location (POSIX file (item 1 of argv))
+    set selection to choose folder with prompt "Choose a folder for Rigshelf" default location (POSIX file (item 1 of argv))
     return POSIX path of selection
   on error number -128
     return ""
@@ -28,7 +28,7 @@ end run`;
 const WINDOWS_SCRIPT = `Add-Type -AssemblyName System.Windows.Forms
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-$dialog.Description = 'Choose a folder for Kitfold'
+$dialog.Description = 'Choose a folder for Rigshelf'
 $dialog.SelectedPath = $env:KITFOLD_PICKER_START
 $dialog.ShowNewFolderButton = $false
 try {
@@ -80,7 +80,7 @@ function linuxDirectoryCommand(
       args: [
         '--file-selection',
         '--directory',
-        '--title=Choose a folder for Kitfold',
+        '--title=Choose a folder for Rigshelf',
         `--filename=${initialPath}${initialPath.endsWith(sep) ? '' : sep}`,
       ],
       cancelExitCode: 1,
@@ -89,7 +89,7 @@ function linuxDirectoryCommand(
   if (kdialog)
     return {
       executable: kdialog,
-      args: ['--getexistingdirectory', initialPath, '--title', 'Choose a folder for Kitfold'],
+      args: ['--getexistingdirectory', initialPath, '--title', 'Choose a folder for Rigshelf'],
       cancelExitCode: 1,
     };
   throw new Error(

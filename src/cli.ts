@@ -15,44 +15,46 @@ import { Store } from './core/store';
 import { checkProject, watchProject } from './core/watch';
 import { serveMcp } from './mcp';
 import { serveProxy } from './mcp-proxy';
-import { startServer } from './server';
+import { openWorkbenchServer } from './platform/workbench-start';
 
-const help = `Kitfold · Project setup for coding agents
+const help = `Rigshelf · Project setup for coding agents
 
-  kitfold ui [--port 47471]                    Open the local web workbench
-  kitfold scan [--root /path] [--no-global]     Import actual local files; no project edits
-  kitfold catalog [query]                      Search installed library metadata
-  kitfold detect /project [--requirements text] Suggest a focused kit
-  kitfold setup /project --preset expo [--agents claude,codex] [--apply]
-  kitfold plan /project [--entries id,id] [--agents claude,codex] [--preset expo]
+  rigshelf ui [--port 47471] [--reset-access]     Open the local web workbench
+  rigshelf scan [--root /path] [--no-global]     Import actual local files; no project edits
+  rigshelf catalog [query]                      Search installed library metadata
+  rigshelf detect /project [--requirements text] Suggest a focused kit
+  rigshelf setup /project --preset expo [--agents claude,codex] [--apply]
+  rigshelf plan /project [--entries id,id] [--agents claude,codex] [--preset expo]
     Omitted --entries uses recommendations; --entries "" selects guidance only.
     --reviewed permits inspected review flags; --replace-existing preserves replacements for rollback.
-  kitfold apply <plan-id>                      Apply a reviewed plan
-  kitfold diff <plan-id> [--file relative/path] Bounded, masked file preview
-  kitfold recover <plan-id>                    Recover a verified interrupted write
-  kitfold rollback <plan-id>                   Restore the pre-setup files
-  kitfold sources                             List saved sources and evidence
-  kitfold check-source <source-id>             Check reachability / upstream commit
-  kitfold source-skills <source-id>            Discover upstream SKILL.md paths
-  kitfold import-skill <source-id> <path>      Snapshot one skill without running scripts
-  kitfold import-local /skill-folder          Snapshot SKILL.md and supporting files
-  kitfold trust <entry-id>                     Allow this exact clean snapshot in --auto mode
-  kitfold untrust <entry-id>                   Revoke automatic snapshot installation
-  kitfold automation /project on|off          Approve or revoke project automation
-  kitfold check-project /project [--auto]      Dependency-triggered recommendations
-  kitfold watch /project [--auto]              Debounced manifest watcher; Ctrl-C to stop
-  kitfold find "public technology terms"      Search skills.sh; suggestions only
-  kitfold add-source "URL / owner/repo / command" Research and register a source
-  kitfold presets / rules                     List editable presets or directives
-  kitfold save-preset / save-rule <file.json>  Save a versioned library record
-  kitfold archive / restore <entry-id>         Manage library visibility
-  kitfold export <file.json[.gz]>                   Portable library, presets and rules
-  kitfold import <file.json[.gz]> [--apply]         Preview import; --apply writes library only
-  kitfold mcp [--write] [--root /project]      Stdio MCP; read/plan tools by default
-  kitfold doctor                              Show local paths and provider capabilities
-  kitfold connection --agents codex [--write --root /project]  Render MCP connection settings
+  rigshelf apply <plan-id>                      Apply a reviewed plan
+  rigshelf diff <plan-id> [--file relative/path] Bounded, masked file preview
+  rigshelf recover <plan-id>                    Recover a verified interrupted write
+  rigshelf rollback <plan-id>                   Restore the pre-setup files
+  rigshelf sources                             List saved sources and evidence
+  rigshelf check-source <source-id>             Check reachability / upstream commit
+  rigshelf source-skills <source-id>            Discover upstream SKILL.md paths
+  rigshelf import-skill <source-id> <path>      Snapshot one skill without running scripts
+  rigshelf import-local /skill-folder          Snapshot SKILL.md and supporting files
+  rigshelf trust <entry-id>                     Allow this exact clean snapshot in --auto mode
+  rigshelf untrust <entry-id>                   Revoke automatic snapshot installation
+  rigshelf automation /project on|off          Approve or revoke project automation
+  rigshelf check-project /project [--auto]      Dependency-triggered recommendations
+  rigshelf watch /project [--auto]              Debounced manifest watcher; Ctrl-C to stop
+  rigshelf find "public technology terms"      Search skills.sh; suggestions only
+  rigshelf add-source "URL / owner/repo / command" Research and register a source
+  rigshelf presets / rules                     List editable presets or directives
+  rigshelf save-preset / save-rule <file.json>  Save a versioned library record
+  rigshelf archive / restore <entry-id>         Manage library visibility
+  rigshelf export <file.json[.gz]>                   Portable library, presets and rules
+  rigshelf import <file.json[.gz]> [--apply]         Preview import; --apply writes library only
+  rigshelf mcp [--write] [--root /project]      Stdio MCP; read/plan tools by default
+  rigshelf doctor                              Show local paths and provider capabilities
+  rigshelf connection --agents codex [--write --root /project]  Render MCP connection settings
 
-KITFOLD_DATA_DIR overrides the private data directory. No external catalog imports or session collection.
+RIGSHELF_DATA_DIR overrides private storage; KITFOLD_DATA_DIR remains compatible.
+The default port advances when occupied. Explicit --port never moves.
+Access survives restarts. --reset-access invalidates old URLs for the next server start.
 `;
 
 async function main(): Promise<void> {
@@ -75,6 +77,7 @@ async function main(): Promise<void> {
       file: { type: 'string' },
       'replace-existing': { type: 'boolean' },
       limit: { type: 'string' },
+      'reset-access': { type: 'boolean' },
     },
   });
   if (values.help) {
@@ -92,7 +95,7 @@ async function main(): Promise<void> {
   let persistent = false;
   let result: unknown;
   const required = () => {
-    if (!subject) throw new Error(`${command} requires an argument. Run kitfold --help.`);
+    if (!subject) throw new Error(`${command} requires an argument. Run rigshelf --help.`);
     return subject;
   };
   try {
@@ -109,10 +112,14 @@ async function main(): Promise<void> {
         );
         break;
       case 'ui': {
-        const port = Number(values.port || 47471);
+        const port = values.port === undefined ? 47471 : Number(values.port);
         if (!Number.isInteger(port) || port < 1024 || port > 65535)
           throw new Error('Choose a port between 1024 and 65535.');
-        const server = startServer(store, port);
+        const { server, moved } = openWorkbenchServer(
+          store,
+          values.port === undefined ? undefined : port,
+          values['reset-access'],
+        );
         persistent = true;
         let closing = false;
         const close = () => {
@@ -129,7 +136,7 @@ async function main(): Promise<void> {
         process.once('SIGINT', close);
         process.once('SIGTERM', close);
         process.stdout.write(
-          `Kitfold is ready at ${server.accessUrl}\nPrivate data: ${store.directory}\nKeep this access URL private.\n`,
+          `${moved ? 'The default port was occupied; using another available local port.\n' : ''}Rigshelf is ready at ${server.accessUrl}\nPrivate data: ${store.directory}\nOpen this URL in your browser. Keep it private.\n`,
         );
         break;
       }
@@ -290,7 +297,7 @@ async function main(): Promise<void> {
         };
         break;
       default:
-        throw new Error(`Unknown command: ${command}. Run kitfold --help.`);
+        throw new Error(`Unknown command: ${command}. Run rigshelf --help.`);
     }
     if (result !== undefined) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } finally {
@@ -298,6 +305,6 @@ async function main(): Promise<void> {
   }
 }
 main().catch((error) => {
-  process.stderr.write(`kitfold: ${error instanceof Error ? error.message : 'Command failed'}\n`);
+  process.stderr.write(`rigshelf: ${error instanceof Error ? error.message : 'Command failed'}\n`);
   process.exitCode = 1;
 });

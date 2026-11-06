@@ -61,17 +61,19 @@ export function Modal({
   children,
   onClose,
   wide = false,
+  closeDisabled = false,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  closeDisabled?: boolean;
 }): ReactNode {
   const dialog = useRef<HTMLDialogElement>(null);
   const presence = useModalPresence();
   const requestClose = () => {
-    if (!presence?.exiting) onClose();
+    if (!presence?.exiting && !closeDisabled) onClose();
   };
   useEffect(() => {
     if (!presence?.exiting) return;
@@ -122,6 +124,7 @@ export function Modal({
           className="icon-button"
           onClick={requestClose}
           aria-label={t('Close dialog')}
+          disabled={closeDisabled}
         >
           <X size={20} />
         </button>

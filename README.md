@@ -1,4 +1,4 @@
-# Kitfold
+# Rigshelf
 
 A local workbench for setting up coding agents, one project at a time.
 
@@ -16,20 +16,20 @@ bun run build
 bun run start
 ```
 
-Open the **private access URL** printed in the terminal. The workbench listens on `127.0.0.1:47471`. The URL contains an access key; keep it private. Stop with Ctrl-C.
+Open the **private access URL** printed in the terminal. The workbench binds only to `127.0.0.1`, starting at port `47471`. If that default is occupied, it tries the next seven ports. An explicit `bun run rigshelf ui --port 47500` uses only that port and never stops another process. The URL contains an access key; keep it private. Stop with Ctrl-C. The private key survives restarts. To rotate it, stop existing workbench processes and run `bun run rigshelf ui --reset-access`; servers started afterward use the new key.
 
 Choose **Settings → Language** for English or Turkish. The choice is local to your browser and preserves current drafts. The [six-language release plan](docs/LOCALIZATION.md) tracks additional translations.
 
-To compare the proposed setup layouts while the app is running, open `/prototypes/project-setup.html?v=1`, `?v=2` or `?v=3` on the same local server. The prototypes are interactive and use fictional data. They do not apply project changes. The product name and final visual direction remain under review; see [naming](docs/NAMING.md) and [design alternatives](docs/DESIGN-REVIEW.md).
+This branch implements the [project-first Rigshelf experience](docs/EXPERIENCE.md). The former interface remains on `main` at `1fad90c`; [comparison instructions](docs/EXPERIENCE.md#run-and-compare) explain how to return to it. The new name is a working product identity, not a registered package or domain.
 
-For a global executable, run `bun link` in this checkout. This registers the `kitfold` command; it does not install global skills. Generated MCP bridges require that command on the target harness's `PATH`.
+For a global executable, run `bun link` in this checkout. It registers `rigshelf` and the compatibility command `kitfold`; it does not install global Skills. Generated MCP bridges still use `kitfold` on the target Harness's `PATH`.
 
 ## A normal day
 
-1. **Library → Scan this machine.** Read installed skills, plugin skill caches and MCP definitions directly. Scanning never edits those installations.
-2. **Set up a project.** Enter a new or existing directory and optional requirements. Pick a preset or let manifests guide the recommendation.
-3. **Choose your agents.** Inspect findings, adjust the small kit, review file previews and apply.
-4. **Keep building.** Start or reload the agent session. Enable trusted additions per project if you want dependency changes to add already approved, pinned snapshots.
+1. **Prepare → choose a folder.** Inspect an existing or empty project folder. Agents, detected stack and the focused kit appear together.
+2. **Choose the tools and Agents.** Keep the suggested Preset or adjust it. Add saved Skills/MCP; **Find more tools** lets you scan, paste a link/command, use AI or import individual Skills from a source without leaving the project.
+3. **Review → Apply.** Read the exact file changes and compatibility notes. Applying is a separate action; existing authored guidance stays protected.
+4. **Start working.** The handoff shows your Agent's project discovery paths, a starting prompt and history/recovery access. Returning to the folder restores privately reviewed exact choices. Unfinished edits can be recovered in the same tab after reload.
 
 The [library explorer](docs/LIBRARY.md) separates content type, platform, technology and task, with source/project/agent refinements, visible filter chips and saved browser views. Classification can be corrected without editing snapshot content.
 
@@ -38,17 +38,17 @@ The library groups sources and content versions, with project/tag filters, custo
 ## CLI
 
 ```sh
-bun run kitfold --help
-kitfold scan
-kitfold setup ~/Developer/my-app --preset expo --agents claude,codex
-kitfold diff <plan-id> --file AGENTS.md
-kitfold apply <plan-id>
-kitfold rollback <plan-id>
-kitfold find "SwiftUI gestures"
-kitfold add-source "bunx skills add expo/skills"
-kitfold connection --agents claude,codex
+bun run rigshelf --help
+rigshelf scan
+rigshelf setup ~/Developer/my-app --preset expo --agents claude,codex
+rigshelf diff <plan-id> --file AGENTS.md
+rigshelf apply <plan-id>
+rigshelf rollback <plan-id>
+rigshelf find "SwiftUI gestures"
+rigshelf add-source "bunx skills add expo/skills"
+rigshelf connection --agents claude,codex
 mkdir -p "$HOME/Backups"
-kitfold export "$HOME/Backups/kitfold-library.json.gz"
+rigshelf export "$HOME/Backups/kitfold-library.json.gz"
 ```
 
 `setup` prepares a plan by default; add `--apply` for an explicitly requested immediate setup. `--entries ""` produces guidance only. `--replace-existing` permits reviewed replacements of differing skill files while preserving original bytes for rollback. Project-external symlinks remain protected.
@@ -56,22 +56,22 @@ kitfold export "$HOME/Backups/kitfold-library.json.gz"
 Automatic additions need both project permission and approval of each exact clean snapshot:
 
 ```sh
-kitfold trust <entry-id>
-kitfold automation ~/Developer/my-app on
-kitfold watch ~/Developer/my-app --auto
+rigshelf trust <entry-id>
+rigshelf automation ~/Developer/my-app on
+rigshelf watch ~/Developer/my-app --auto
 ```
 
 Use `automation ... off` or `untrust <entry-id>` to revoke either permission. The workbench runs the same watcher while open. New upstream versions require a new review; existing guidance stays unchanged during automatic additions.
 
 ## In an agent session
 
-Kitfold exposes a stdio MCP server and a small [integration skill](skills/kitfold/SKILL.md).
+Rigshelf exposes a stdio MCP server and a small [integration skill](skills/kitfold/SKILL.md).
 
 ```json
 {
   "mcpServers": {
-    "kitfold": {
-      "command": "kitfold",
+    "rigshelf": {
+      "command": "rigshelf",
       "args": ["mcp"]
     }
   }
@@ -80,11 +80,11 @@ Kitfold exposes a stdio MCP server and a small [integration skill](skills/kitfol
 
 This is a Claude-style example; other harnesses use their own MCP configuration. Read/plan tools are available by default. To authorize mutations, use `mcp --write --root /absolute/project/path`. Write tools reject plans outside those roots. A writable connection can also edit the private library; enable it only in a trusted session. Model selection inside T3 is separate from the underlying harness's file discovery.
 
-For explicit AI assistance, choose a prompt handoff provider or an installed Ollama model in Settings. The app does not read CLI credential stores or launch paid models. See [compatibility](docs/COMPATIBILITY.md).
+AI assistance uses an explicitly chosen installed Claude Code/Codex CLI, local Ollama model or a waiting draft request in a connected MCP session. Generation starts only when requested; CLI login, usage limits and billing can apply. The app does not read CLI credential stores. Review the proposal before saving. See [AI assistance](docs/AI-ASSISTANCE.md).
 
 ## Your data
 
-The default catalog is `~/.local/share/kitfold/catalog.sqlite`; `KITFOLD_DATA_DIR` overrides it. SQLite and the data directory are private to the local user. Content snapshots, rollback preimages and project paths stay outside this source tree. There is no hosted registry, telemetry or conversation/session collection.
+The default catalog is `~/.local/share/kitfold/catalog.sqlite`; `RIGSHELF_DATA_DIR` overrides it; the legacy `KITFOLD_DATA_DIR` remains accepted. Renaming does not move or empty an existing catalog. SQLite and the data directory are private to the local user. Content snapshots, rollback preimages and project paths stay outside this source tree. There is no hosted registry, telemetry or conversation/session collection.
 
 Versioned JSON and compressed JSON archives contain library content, sources, presets and rules. Projects, access keys, session data, automation approvals and rollback preimages are excluded. Sensitive-looking records are omitted with an explicit report inside the archive. Treat custom content and source notes as private. See [data formats](docs/DATA.md) and [security](SECURITY.md).
 
@@ -111,4 +111,6 @@ Tests use isolated disposable projects. They do not write into existing developm
 - [Security review and evidence limits](docs/SECURITY-REVIEW.md)
 - [Contributing](CONTRIBUTING.md)
 
-MIT licensed. Kitfold is an independent project and is not affiliated with the supported harness vendors.
+UI fonts are distributed under their original OFL licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+MIT licensed. Rigshelf is an independent project and is not affiliated with the supported harness vendors.

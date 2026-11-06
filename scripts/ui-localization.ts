@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { chromium, expect } from '@playwright/test';
 import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
+import { navigateTo } from './ui-navigation';
 
 const data = await fixture();
 const skill = sampleSkill(data.store, 'Library');
@@ -79,7 +80,7 @@ try {
       'Etkinlik',
       'Ayarlar',
     ]) {
-      await page.getByRole('button', { name, exact: true }).first().click();
+      await navigateTo(page, name);
       if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
         throw new Error(`Turkish ${name} overflows at ${width}px.`);
       if ([1440, 320].includes(width)) {

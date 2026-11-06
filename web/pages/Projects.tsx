@@ -22,8 +22,8 @@ import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { Select } from '../Select';
 import { RuleEditor } from './Directives';
+import { PlanReview } from './PlanReview';
 import { type DocumentChoice, ProjectDocuments } from './ProjectDocuments';
-import { PlanReview } from './Setup';
 
 export function Projects(props: PageProps): ReactNode {
   const { state, navigate } = props;
@@ -468,6 +468,8 @@ function ProjectDetail({
               void refresh();
             }}
             notify={notify}
+            state={state}
+            navigate={navigate}
           />
         )}
       </ModalPresence>

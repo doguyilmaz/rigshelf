@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "kitfold-workbench",
+      "name": "rigshelf-workbench",
       "dependencies": {
         "@base-ui/react": "1.9.0",
         "@iarna/toml": "^2.2.5",

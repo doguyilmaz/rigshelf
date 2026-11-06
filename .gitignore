@@ -15,6 +15,8 @@ coverage/
 *.db-wal
 kitfold-library*.json
 kitfold-library*.json.gz
+rigshelf-library*.json
+rigshelf-library*.json.gz
 credentials.json
 tokens.json
 *.pem

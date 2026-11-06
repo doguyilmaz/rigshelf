@@ -7,6 +7,7 @@ import { scan } from '../src/core/scanner';
 import { startServer } from '../src/server';
 import { fixture } from '../tests/helpers';
 import { assertNeutralTheme } from './theme-check';
+import { navigateTo } from './ui-navigation';
 
 const fixtureData = await fixture();
 await mkdir(join(fixtureData.project, '.git'));
@@ -92,7 +93,7 @@ async function close(dialog: Locator): Promise<void> {
   await expect(dialog).toHaveCount(0);
 }
 async function nav(name: string): Promise<void> {
-  await page.getByRole('button', { name, exact: true }).first().click();
+  await navigateTo(page, name);
 }
 try {
   await page.goto(server.accessUrl);
@@ -220,7 +221,9 @@ try {
   await nav('Directives');
   await page.getByRole('button', { name: /Flagged example/ }).click();
   await expect(
-    page.getByText('Instructions may override safeguards or expose data.', { exact: true }),
+    page
+      .locator('form')
+      .getByText('Instructions may override safeguards or expose data.', { exact: true }),
   ).toBeVisible();
   await audit('directive-content-review');
   await page.getByRole('button', { name: 'New directive' }).click();

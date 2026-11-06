@@ -64,7 +64,7 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `kitfold-library-${new Date().toISOString().slice(0, 10)}.json.gz`;
+      link.download = `rigshelf-library-${new Date().toISOString().slice(0, 10)}.json.gz`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       const excluded = Number(response.headers.get('x-kitfold-excluded') || 0);

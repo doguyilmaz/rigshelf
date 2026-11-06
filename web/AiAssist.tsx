@@ -1,4 +1,4 @@
-import { WandSparkles } from 'lucide-react';
+import { PenLine } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import type { AiAssistProps } from './AiAssistPanel';
 import { Button, Spinner } from './components';
@@ -12,7 +12,7 @@ export function AiAssist(props: AiAssistProps) {
   if (!open)
     return (
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        <WandSparkles size={15} />
+        <PenLine size={15} />
         {props.label || t('Help me with AI')}
       </Button>
     );

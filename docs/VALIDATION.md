@@ -1,5 +1,17 @@
 # Validation record
 
+## Rigshelf project-first experience
+
+On `experience/project-first`, strict TypeScript, formatting/lint, 161 unit/integration tests across 25 files and the 1,048-message EN/TR parity check pass. All fourteen browser suites pass, including the new normal-motion source-acquisition, 45-Skill paging, exact resource/pin retention, tab-draft reload, fresh inspection, in-flight Apply retention, handoff and returning-project flow.
+
+The new flow audits desktop/tablet/320px workspace and handoff layouts with Axe and neutral-theme assertions. It observes no project writes/approval during inspection or source import, preserves authored guidance on Apply and clears optional recovery afterward. Native CLI/model generation is covered with fixtures rather than paid calls. Unit lifecycle checks additionally exercise restart-stable private access, exclusion from state/export, explicit rotation and occupied-port behavior without stopping listeners. These are development checks, not qualified exploit reproductions, independent product usability research or a defect-free guarantee. Font assets load locally with original OFL notices.
+
+The current main client is about 469 KB before gzip (153 KB gzipped); Library, authoring, source intake and management pages are separate lazy modules. The font payload is about 631 KB before HTTP compression and uses local fallback faces while loading. No new runtime dependency was added. Private screenshots/reports remain under ignored `.local/qa/experience` and `.local/qa/rebrand`.
+
+One full run under concurrent browser load hit the existing workspace-watch test's four-second timing limit; the subsequent full sequential verification passed. The watch implementation was not relaxed to conceal that result.
+
+Older sections below are dated development history. Their test counts and former in-memory-only draft behavior do not describe the current recovery contract; see [data ownership](DATA.md#local-workbench-access-and-tab-recovery).
+
 ## Source groups and layout follow-up
 
 The follow-up passes 141 unit/integration tests across 20 files, strict TypeScript, 915 matching English/Turkish messages, formatting, lint and production build. Twelve browser suites include collection browsing and a broader layout audit. Collection fixtures cover 47 Skills with multiple revisions, outer/child page boundaries, matches beyond the first child page, source details, custom groups, persisted flat/grouped display and manual relationship changes without rewriting content. The same hierarchy is exercised in the project picker, including selected counts and nested inspection without activation.

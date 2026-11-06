@@ -1,41 +1,41 @@
-import {
-  ArrowUpRight,
-  BookOpen,
-  Check,
-  FolderOpen,
-  HardDrive,
-  History,
-  Layers2,
-  LibraryBig,
-  ListFilter,
-  Plus,
-  RefreshCw,
-  Search,
-  Settings2,
-  Shapes,
-  X,
-} from 'lucide-react';
+import { ArrowUpRight, Check, FolderOpen, Settings2, X } from 'lucide-react';
 import React, { lazy, type ReactNode, Suspense, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { brand } from '../src/core/brand';
+import { AppNavigation, navigation } from './AppNavigation';
 import { type AppState, api } from './api';
+import { BrandMark } from './BrandMark';
 import { Button, Modal, SearchBox, Spinner } from './components';
 import { type DiscardRequest, requestDiscard } from './drafts';
-import { GettingStarted, onboardingSeen, rememberOnboarding, Welcome } from './GettingStarted';
+import { GettingStarted, rememberOnboarding } from './GettingStarted';
 import { localeReady, t, useLocale } from './i18n';
 import { ModalPresence } from './ModalPresence';
-import { Activity } from './pages/Activity';
-import { Directives } from './pages/Directives';
+
+const Activity = lazy(() =>
+  import('./pages/Activity').then((module) => ({ default: module.Activity })),
+);
+const Directives = lazy(() =>
+  import('./pages/Directives').then((module) => ({ default: module.Directives })),
+);
 
 const Library = lazy(() =>
   import('./pages/Library').then((module) => ({ default: module.Library })),
 );
 
-import { Presets } from './pages/Presets';
-import { Projects } from './pages/Projects';
-import { Settings } from './pages/Settings';
+const Presets = lazy(() =>
+  import('./pages/Presets').then((module) => ({ default: module.Presets })),
+);
+const Projects = lazy(() =>
+  import('./pages/Projects').then((module) => ({ default: module.Projects })),
+);
+const Settings = lazy(() =>
+  import('./pages/Settings').then((module) => ({ default: module.Settings })),
+);
+
 import { Setup } from './pages/Setup';
 import './styles.css';
 import './neutral.css';
+import './experience.css';
 
 export type Page =
   | 'setup'
@@ -50,15 +50,8 @@ export interface PageProps {
   refresh: () => Promise<void>;
   notify: (text: string, error?: boolean) => void;
   navigate: (page: Page, path?: string) => void;
+  onLearn?: (mode: 'guide' | 'example') => void;
 }
-const navigation = [
-  { id: 'setup', name: 'Set up a project', icon: Plus },
-  { id: 'library', name: 'Library', icon: LibraryBig },
-  { id: 'projects', name: 'Projects', icon: FolderOpen },
-  { id: 'presets', name: 'Presets', icon: Shapes },
-  { id: 'directives', name: 'Directives', icon: ListFilter },
-  { id: 'activity', name: 'Activity', icon: History },
-] as const;
 
 class Boundary extends React.Component<{ children: ReactNode }, { error: string }> {
   state = { error: '' };
@@ -90,7 +83,7 @@ function App(): ReactNode {
   const locale = useLocale();
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = `Kitfold — ${t('Project workbench')}`;
+    document.title = `${brand.name} — ${t('Project workbench')}`;
   }, [locale]);
   const [state, setState] = useState<AppState>();
   const [page, setPage] = useState<Page>(initialPage);
@@ -101,11 +94,9 @@ function App(): ReactNode {
   const [projectPath, setProjectPath] = useState('');
   const [projectRequest, setProjectRequest] = useState(0);
   const [discard, setDiscard] = useState<DiscardRequest>();
-  const [learned, setLearned] = useState(onboardingSeen);
   const [onboarding, setOnboarding] = useState<'guide' | 'example'>();
   const dismissWelcome = () => {
     rememberOnboarding();
-    setLearned(true);
   };
   const closeOnboarding = () => {
     dismissWelcome();
@@ -184,8 +175,8 @@ function App(): ReactNode {
   if (!state)
     return (
       <div className="boot">
-        <Layers2 size={34} />
-        <h1>{t('Kitfold')}</h1>
+        <BrandMark size={34} />
+        <h1>{brand.name}</h1>
         {error ? (
           <>
             <p role="alert">{error}</p>
@@ -198,116 +189,26 @@ function App(): ReactNode {
         )}
       </div>
     );
-  const props: PageProps = { state, refresh, notify, navigate };
+  const props: PageProps = { state, refresh, notify, navigate, onLearn: setOnboarding };
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <button
-          type="button"
-          className="brand"
-          onClick={(event) => {
-            event.preventDefault();
-            navigate('setup');
-          }}
-        >
-          <span className="brand-mark">
-            <Layers2 size={24} strokeWidth={1.6} />
-          </span>
-          <span>
-            {t('kitfold')}
-            <span className="brand-period">.</span>
-          </span>
-        </button>
-        <div className="workspace-label">
-          <span className="live-dot" />
-          {t(' YOUR WORKBENCH ')}
-          <span className="local-tag">{t('LOCAL')}</span>
-        </div>
-        <nav aria-label={t('Main navigation')}>
-          {navigation.map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              aria-label={t(item.name)}
-              className={`nav-item ${page === item.id ? 'active' : ''}`}
-              onClick={() => navigate(item.id)}
-              aria-current={page === item.id ? 'page' : undefined}
-            >
-              <item.icon size={18} strokeWidth={1.7} />
-              <span>{t(item.name)}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <button
-            type="button"
-            aria-label={t('Settings')}
-            className={`nav-item ${page === 'settings' ? 'active' : ''}`}
-            onClick={() => navigate('settings')}
-          >
-            <Settings2 size={18} />
-            <span>{t('Settings')}</span>
-          </button>
-          <button
-            type="button"
-            className="quick-search"
-            aria-label={t('Quick jump')}
-            onClick={() => setPalette(true)}
-          >
-            <Search size={15} />
-            <span>{t('Quick jump')}</span>
-            <kbd>{t('⌘ K')}</kbd>
-          </button>
-          <div className="storage-label">
-            <HardDrive size={12} />
-            <span>{t('On this machine · v0.1.0')}</span>
-            <span className="live-dot" />
-          </div>
-        </div>
-      </aside>
+    <div className="app-shell experience-shell">
+      <AppNavigation
+        page={page}
+        navigate={navigate}
+        onSearch={() => setPalette(true)}
+        onGuide={() => setOnboarding('guide')}
+        onRefresh={() =>
+          void refresh()
+            .then(() => notify('Workbench refreshed'))
+            .catch((failure) => notify(failure.message, true))
+        }
+      />
       <div className="main-shell">
-        <div className="topbar">
-          <div>
-            <span>{t('Workbench')}</span>
-            <span className="slash">/</span>
-            <span>
-              {page === 'setup'
-                ? t('Project setup')
-                : t(page.charAt(0).toUpperCase() + page.slice(1))}
-            </span>
+        {state.scan.state === 'running' && (
+          <div className="experience-scan" role="status">
+            <Spinner text={state.scan.message} />
           </div>
-          <div className="topbar-actions">
-            <button
-              type="button"
-              className="icon-button getting-started-trigger"
-              aria-label={t('Getting started')}
-              onClick={() => setOnboarding('guide')}
-            >
-              <BookOpen size={16} />
-              <span>{t('Getting started')}</span>
-            </button>
-            {state.scan.state === 'running' ? (
-              <Spinner text={state.scan.message} />
-            ) : (
-              <span className="private-indicator">
-                <span className="live-dot" />
-                {t(' Private by default')}
-              </span>
-            )}
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() =>
-                void refresh()
-                  .then(() => notify('Workbench refreshed'))
-                  .catch((failure) => notify(failure.message, true))
-              }
-              aria-label={t('Refresh workbench')}
-            >
-              <RefreshCw size={15} />
-            </button>
-          </div>
-        </div>
+        )}
         <main>
           <div hidden={page !== 'setup'}>
             <Setup
@@ -316,7 +217,6 @@ function App(): ReactNode {
               initialRequest={projectRequest}
               active={page === 'setup'}
             />
-            {!learned && <Welcome onStart={setOnboarding} onDismiss={dismissWelcome} />}
           </div>
           <Suspense fallback={<Spinner text={t('Loading page…')} />}>
             {page === 'library' && <Library {...props} />}{' '}
@@ -328,7 +228,9 @@ function App(): ReactNode {
           </Suspense>
         </main>
         <footer className="app-footer">
-          <span>{t('Local project setup')}</span>
+          <span>
+            {brand.name} · {t('On your machine')}
+          </span>
           <span>{t('Skills · MCP · Directives')}</span>
         </footer>
       </div>

@@ -71,7 +71,9 @@ async function audit(name: string) {
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
-  await expect(page.getByText('Choose a folder. We’ll suggest a focused kit.')).toBeVisible();
+  await expect(
+    page.getByText('The right Skills, MCP and guidance. Ready for the agents you use.'),
+  ).toBeVisible();
   await page.getByLabel('Project directory', { exact: true }).fill(data.project);
   await page.getByLabel('Project directory', { exact: true }).press('Escape');
   await expect(page.getByRole('button', { name: 'Build my kit', exact: true })).toBeVisible();
@@ -80,7 +82,8 @@ try {
     'Selecting a project has its own honest inspection state; setup review requires current detection.',
   );
 
-  await page.getByRole('button', { name: 'Try an example', exact: true }).click();
+  await page.getByRole('button', { name: 'Getting started', exact: true }).click();
+  await page.getByRole('button', { name: 'Practice with an example', exact: true }).click();
   let dialog = page.getByRole('dialog', { name: 'Getting started', exact: true });
   await dialog.waitFor();
   const requestCount = requests.length;
@@ -156,7 +159,6 @@ try {
   await expect(page.locator('.detection-result strong')).toHaveText('project-two');
   release();
   await expect(page.locator('.detection-result strong')).toHaveText('project-two');
-  await page.getByText('Requirements & preset', { exact: true }).click();
   await page.getByLabel('What are you making?', { exact: false }).fill('Updated requirements');
   await expect(
     page.getByText('Setup details changed. Update the kit before reviewing setup.'),

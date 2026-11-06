@@ -6,9 +6,9 @@ import { Badge, Button, Empty, Modal, Notice, PageHeader } from '../components';
 import { t } from '../i18n';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
-import { PlanReview } from './Setup';
+import { PlanReview } from './PlanReview';
 
-export function Activity({ state, refresh, notify }: PageProps): ReactNode {
+export function Activity({ state, refresh, notify, navigate }: PageProps): ReactNode {
   const [plan, setPlan] = useState<PlanView>();
   const [rollback, setRollback] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -145,6 +145,8 @@ export function Activity({ state, refresh, notify }: PageProps): ReactNode {
             onClose={() => setPlan(undefined)}
             onApplied={() => void refresh()}
             notify={notify}
+            state={state}
+            navigate={navigate}
           />
         )}
       </ModalPresence>

@@ -3,7 +3,7 @@ name: kitfold
 description: Set up a new or existing project for coding agents with a focused kit of skills, MCP servers, presets, and scoped directives. Search the local library before adding upstream sources.
 ---
 
-Use the Kitfold MCP tools in the current session, or the `kitfold` CLI.
+Use the Rigshelf MCP tools in the current session, or the `rigshelf` CLI. Existing `kitfold_*` tool names and the `kitfold` command remain compatible.
 
 1. Detect the target project and written requirements with `kitfold_recommend`.
 2. Search the private library with `kitfold_catalog`; read candidate contents and findings with `kitfold_item`.

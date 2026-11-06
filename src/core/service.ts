@@ -287,9 +287,9 @@ export async function route(
   if (method === 'POST' && resource === 'detect') {
     const value = z
       .object({
-        projectPath: z.string(),
-        requirements: z.string().default(''),
-        presetId: z.string().optional(),
+        projectPath: z.string().min(1).max(4096),
+        requirements: z.string().max(10000).default(''),
+        presetId: z.string().max(100).optional(),
         restorePrevious: z.boolean().default(false),
       })
       .parse(input);
@@ -318,10 +318,17 @@ export async function route(
     };
     const result = recommend(store, project, presetId);
     const stacks = presetChain(store, result.presetId).flatMap((preset) => preset.stacks);
-    const guidanceIssues = effectiveRules(store, project, stacks)
+    const applicableRules = effectiveRules(store, project, stacks);
+    const guidanceIssues = applicableRules
       .map((rule) => ({ id: rule.id, name: rule.name, findings: guidanceFindings(rule) }))
       .filter((rule) => rule.findings.length);
-    return { project, ...result, guidanceIssues, previousSetup };
+    return {
+      project,
+      ...result,
+      guidanceIssues,
+      previousSetup,
+      applicableRuleIds: applicableRules.map((rule) => rule.id),
+    };
   }
   if (method === 'POST' && resource === 'plans' && !id)
     return planView(await createPlan(store, input as Parameters<typeof createPlan>[1]));
@@ -460,7 +467,7 @@ async function prepareReview(store: Store, raw: unknown): Promise<unknown> {
       runner: settings.aiRunner,
       prompt,
       result: '',
-      note: 'Paste this into your selected agent, or use the Kitfold MCP server in the active session. No CLI or paid model was launched.',
+      note: 'Paste this into your selected agent, or use the Rigshelf MCP server in the active session. No CLI or paid model was launched.',
     };
   if (!settings.ollamaModel) throw new Error('Choose an Ollama model in Settings first.');
   const response = await fetch('http://127.0.0.1:11434/api/generate', {

@@ -1,8 +1,8 @@
 # Security and privacy
 
-Kitfold runs as the current OS user. Its local workbench, CLI, stdio MCP server and MCP compatibility bridge have different authority boundaries.
+Rigshelf runs as the current OS user. Its local workbench, CLI, stdio MCP server and MCP compatibility bridge have different authority boundaries.
 
-The HTTP workbench binds to loopback, checks Host and Origin, requires a random access key for every API route, and does not expose that key in public HTML. The launch URL stores its key in tab-scoped session storage after removing the fragment. Do not share the URL or run this server behind a public proxy.
+The HTTP workbench binds to loopback, checks Host and Origin, requires a random access key for every API route, and does not expose that key in public HTML. The key persists in the private catalog across restarts and is excluded from catalog API responses and portable exports. The launch URL stores its key in tab-scoped session storage after removing the fragment. To rotate future access, stop existing workbenches and run `rigshelf ui --reset-access`; an already running instance retains its key until stopped. Do not share the URL or run this server behind a public proxy.
 
 Read-only MCP connections can inspect the private catalog and prepare plans. `--write` adds private-library mutations and project writes, with project-root checks on apply/rollback/recovery. Only connect writable MCP to trusted agent sessions. A trusted local user or process with access to the same account can already access the underlying files; this is not a sandbox against that principal.
 
@@ -16,7 +16,7 @@ Static content checks look for common credentials, private keys, dangerous shell
 
 Discovery follows aliases only inside inventoried project/global roots. Skill instruction bodies share a 512 KiB byte limit across local, upstream and portable imports; supporting resources use the separate bundle bound. Portable MCP JSON rejects unknown fields, and exports report invalid legacy definitions as exclusions rather than silently copying opaque data.
 
-Exports omit projects, rollback preimages, local approvals and credentials managed by Kitfold. Sensitive-looking content is excluded with a report. Custom text, references and source notes may still be private. Imported archives are validated and rescanned; imported trust/automation permissions are never accepted.
+Exports omit projects, rollback preimages, local approvals and credentials managed by Rigshelf. Sensitive-looking content is excluded with a report. Custom text, references and source notes may still be private. Imported archives are validated and rescanned; imported trust/automation permissions are never accepted.
 
 Reusable directives are rescanned before setup. Credential-looking guidance is blocked; review-level findings require an explicit manual review. Dependency automation never rewrites guidance. Import preview shows the scope and enabled state of imported rules so that global directives are visible before adoption.
 

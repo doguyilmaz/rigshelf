@@ -10,6 +10,7 @@ import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
 import tr from '../web/locales/tr.json';
 import { assertDialogFits, assertPopupFits, assertSurfaceFits } from './layout-check';
+import { navigateTo } from './ui-navigation';
 
 const data = await fixture();
 const longLabel = 'InternationalMobilePlatformReleaseEngineeringAndAccessibilityWorkflows';
@@ -109,7 +110,7 @@ const names = {
   ].map((key) => tr[key as keyof typeof tr]),
 };
 async function nav(name: string) {
-  await page.getByRole('button', { name, exact: true }).first().click();
+  await navigateTo(page, name);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 }
 async function closeDialog() {

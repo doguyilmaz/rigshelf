@@ -1,4 +1,4 @@
-import { ArrowRight, FlaskConical } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Modal, Notice } from './components';
 import { t } from './i18n';
@@ -18,32 +18,6 @@ export function rememberOnboarding(): void {
   } catch {
     /* Optional browser preference. */
   }
-}
-
-export function Welcome({
-  onStart,
-  onDismiss,
-}: {
-  onStart: (mode: 'guide' | 'example') => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <aside className="onboarding-welcome" aria-label={t('First steps')}>
-      <div>
-        <strong>{t('Want to try it first?')}</strong>
-        <p>{t('Practice with an example without touching your files.')}</p>
-      </div>
-      <div className="button-row">
-        <Button variant="secondary" onClick={() => onStart('example')}>
-          <FlaskConical size={15} />
-          {t('Try an example')}
-        </Button>
-        <Button variant="ghost" onClick={onDismiss}>
-          {t('Dismiss')}
-        </Button>
-      </div>
-    </aside>
-  );
 }
 
 const steps = [

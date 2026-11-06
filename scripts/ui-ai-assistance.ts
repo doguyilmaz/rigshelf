@@ -7,6 +7,7 @@ import { scan } from '../src/core/scanner';
 import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
 import { assertNeutralTheme } from './theme-check';
+import { navigateTo } from './ui-navigation';
 
 const data = await fixture();
 await Bun.write(join(data.project, 'package.json'), '{"dependencies":{"expo":"56"}}');
@@ -280,7 +281,7 @@ try {
     'AI-assisted Skill and MCP edits save the adopted names, content and tags in new snapshots; originals and unsaved AI notes remain protected.',
   );
 
-  await page.getByRole('button', { name: 'Directives', exact: true }).click();
+  await navigateTo(page, 'Directives');
   await page.getByRole('button', { name: 'New directive', exact: true }).click();
   await page
     .getByRole('button', { name: 'Create, improve or format this directive', exact: true })
@@ -357,7 +358,7 @@ try {
     'Cancellation drains generation; malformed AI output leaves the editor unchanged with a useful recovery message.',
   );
 
-  await page.getByRole('button', { name: 'Presets', exact: true }).click();
+  await navigateTo(page, 'Presets');
   await page.getByRole('button', { name: 'New preset', exact: true }).click();
   dialog = page.getByRole('dialog', { name: 'A new starting point', exact: true });
   await dialog.getByRole('button', { name: 'Build this Preset with AI', exact: true }).click();
@@ -382,7 +383,6 @@ try {
   );
   await panel.getByRole('button', { name: 'Use draft', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeEnabled();
-  await page.getByText('Requirements & preset', { exact: true }).click();
   await expect(page.getByLabel('What are you making?', { exact: false })).toHaveValue(
     /clear API errors/,
   );

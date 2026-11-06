@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Finding, Project, Provider } from '../src/core/model';
+import type { Entry, Finding, Project, Provider } from '../src/core/model';
 import { slug } from '../src/core/names';
 import type { PlanView } from '../src/core/plan-view';
 import type { Recommendation } from '../src/core/recommend';
@@ -7,6 +7,8 @@ import { api } from './api';
 import { useDraftGuard } from './drafts';
 import { t } from './i18n';
 import type { PageProps } from './main';
+import { readProjectDraft, writeProjectDraft } from './project-draft';
+import { rememberProject } from './recent-projects';
 import { setupSelection } from './setup-selection';
 
 export interface SetupDetection {
@@ -16,6 +18,14 @@ export interface SetupDetection {
   missing: string[];
   warnings?: string[];
   guidanceIssues?: { id: string; name: string; findings: Finding[] }[];
+  applicableRuleIds?: string[];
+  previousSetup?: {
+    providers: Provider[];
+    entryIds: string[];
+    requirements: string;
+    presetId?: string;
+    manifestMatches: boolean;
+  };
 }
 export interface SetupProps extends PageProps {
   initialPath: string;
@@ -47,6 +57,7 @@ export function useProjectSetup({
   const [replaceExisting, setReplaceExisting] = useState(false);
   const [plan, setPlan] = useState<PlanView>();
   const [edited, setEdited] = useState(false);
+  const [recoveryDraft, setRecoveryDraft] = useState(readProjectDraft);
   const request = useRef<{ generation: number; controller?: AbortController }>({ generation: 0 });
   const edits = useRef(new Map<string, boolean>());
   const entries = useRef(state.entries);
@@ -84,6 +95,18 @@ export function useProjectSetup({
   });
   const previousGuidance = useRef(guidanceSignature);
   useEffect(() => {
+    if (edited && path)
+      writeProjectDraft({
+        version: 1,
+        path,
+        requirements,
+        preset,
+        providers,
+        selected,
+        updatedAt: new Date().toISOString(),
+      });
+  }, [edited, path, requirements, preset, providers, selected]);
+  useEffect(() => {
     if (previousGuidance.current !== guidanceSignature && path) invalidate();
     previousGuidance.current = guidanceSignature;
   }, [guidanceSignature, path, invalidate]);
@@ -92,6 +115,8 @@ export function useProjectSetup({
     projectPath = path,
     nextRequirements = requirements,
     nextPreset = preset,
+    restorePrevious = false,
+    restoredSelection?: string[],
   ): Promise<void> {
     request.current.controller?.abort();
     const controller = new AbortController();
@@ -108,12 +133,29 @@ export function useProjectSetup({
           projectPath,
           requirements: nextRequirements,
           ...(nextPreset !== 'auto' ? { presetId: nextPreset } : {}),
+          restorePrevious,
         },
         controller.signal,
       );
       if (generation !== request.current.generation || controller.signal.aborted) return;
       setDetected(result);
+      rememberProject(result.project.id);
       setNeedsInspection(false);
+      if (restoredSelection) {
+        edits.current = new Map(
+          entries.current.map((entry) => [entry.id, restoredSelection.includes(entry.id)]),
+        );
+        setSelected(restoredSelection);
+        return;
+      }
+      if (restorePrevious && result.previousSetup) {
+        setProviders(result.previousSetup.providers);
+        updateRequirements(result.previousSetup.requirements);
+        updatePreset(result.previousSetup.presetId === result.presetId ? result.presetId : 'auto');
+        edits.current = new Map(result.previousSetup.entryIds.map((id) => [id, true]));
+        setSelected(result.previousSetup.entryIds);
+        return;
+      }
       setSelected((current) => [
         ...setupSelection(
           result.recommendations.filter((item) => item.selected).map((item) => item.entry.id),
@@ -141,6 +183,8 @@ export function useProjectSetup({
       return;
     }
     const proceed = () => {
+      writeProjectDraft();
+      setRecoveryDraft(undefined);
       invalidate();
       edits.current.clear();
       setPath(target);
@@ -155,7 +199,7 @@ export function useProjectSetup({
       setEdited(false);
       setReplaceExisting(false);
       setPlan(undefined);
-      void inspect(target, '', 'auto');
+      void inspect(target, '', 'auto', true);
     };
     if (edited) {
       setCandidatePath(path);
@@ -164,9 +208,64 @@ export function useProjectSetup({
   }
   const chooseRef = useRef(chooseProject);
   chooseRef.current = chooseProject;
+  function startNewProject(): void {
+    const proceed = () => {
+      writeProjectDraft();
+      setRecoveryDraft(undefined);
+      cancelPending();
+      edits.current.clear();
+      setPath('');
+      setCandidatePath('');
+      updateRequirements('');
+      updatePreset('auto');
+      setProviders(state.settings.defaultProviders);
+      setSelected([]);
+      setDetected(undefined);
+      setNeedsInspection(false);
+      setInspectionError('');
+      setOptionsOpen(false);
+      setAgentsOpen(false);
+      setEdited(false);
+      setReplaceExisting(false);
+      setPlan(undefined);
+    };
+    if (edited) guard(proceed);
+    else proceed();
+  }
+  function resumeDraft(): void {
+    if (!recoveryDraft) return;
+    const draft = recoveryDraft;
+    cancelPending();
+    setPath(draft.path);
+    setCandidatePath(draft.path);
+    updateRequirements(draft.requirements);
+    updatePreset(
+      draft.preset === 'auto' || state.presets.some((item) => item.id === draft.preset)
+        ? draft.preset
+        : 'auto',
+    );
+    setProviders(draft.providers);
+    setSelected(draft.selected);
+    setEdited(true);
+    setRecoveryDraft(undefined);
+    void inspect(
+      draft.path,
+      draft.requirements,
+      state.presets.some((item) => item.id === draft.preset) ? draft.preset : 'auto',
+      false,
+      draft.selected,
+    );
+  }
+  function discardRecoveryDraft(): void {
+    writeProjectDraft();
+    setRecoveryDraft(undefined);
+  }
+  const resetRef = useRef(startNewProject);
+  resetRef.current = startNewProject;
   useEffect(() => {
     if (initialRequest === 0 && !initialPath) return;
     if (initialPath) chooseRef.current(initialPath);
+    else resetRef.current();
   }, [initialPath, initialRequest]);
   useEffect(
     () => () => {
@@ -228,6 +327,22 @@ export function useProjectSetup({
       return [...retained, id];
     });
   }
+  function addEntry(entry: Pick<Entry, 'id' | 'kind' | 'name'>): void {
+    if (entry.kind !== 'skill' && entry.kind !== 'mcp') return;
+    setEdited(true);
+    setReviewed(false);
+    setSelected((current) => {
+      if (current.includes(entry.id)) return current;
+      const retained = current.filter((id) => {
+        const other = entries.current.find((item) => item.id === id);
+        const conflict = other?.kind === entry.kind && slug(other.name) === slug(entry.name);
+        if (conflict) edits.current.set(id, false);
+        return !conflict;
+      });
+      edits.current.set(entry.id, true);
+      return [...retained, entry.id];
+    });
+  }
   async function prepare(): Promise<void> {
     if (
       !detected ||
@@ -261,6 +376,8 @@ export function useProjectSetup({
     }
   }
   function applied(): void {
+    writeProjectDraft();
+    setRecoveryDraft(undefined);
     setSavedDraft(
       JSON.stringify({
         path,
@@ -303,11 +420,16 @@ export function useProjectSetup({
     plan,
     setPlan,
     chooseProject,
+    startNewProject,
     changeCandidate,
     changeRequirements,
     changePreset,
     toggleProvider,
     toggleEntry,
+    addEntry,
+    recoveryDraft,
+    resumeDraft,
+    discardRecoveryDraft,
     inspect,
     prepare,
     applied,

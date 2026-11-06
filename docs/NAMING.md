@@ -1,5 +1,7 @@
 # Naming exploration
 
+Historical baseline notes. The current independent brand and implemented direction are in [the Rigshelf experience brief](EXPERIENCE.md). Baseline `main` remains unchanged.
+
 **Kitfold is a temporary working name, not an approved product name.** It now has a confirmed collision with an existing [macOS skills and agent-profile manager](https://github.com/kadaliao/kitfold). Do not publish under this name. The current command and data directory remain unchanged until a replacement is selected and its migration is reviewed.
 
 The name should describe preparing a focused project kit across agents. It must cover skills, MCP connections and guidance, rather than imply a backup service or a public marketplace.

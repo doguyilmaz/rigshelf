@@ -60,7 +60,7 @@ async function audit(name: string) {
   expect(result.violations.map((item) => item.id)).toEqual([]);
   await page.screenshot({ path: join(directory, `${name}.png`), fullPage: true });
 }
-const kit = page.locator('.setup-kit-section');
+const kit = page.locator('.workspace-kit');
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('heading', { name: 'Set up a project', exact: true }).waitFor();
@@ -86,13 +86,11 @@ try {
     has: page.getByRole('button', { name: 'Inspect react-native-best-practices', exact: true }),
   });
   await removed.locator('.capability-row').click();
-  await page.getByText('Agents', { exact: true }).click();
   await page.getByRole('button', { name: 'Kiro', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Kiro', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await page.getByText('Requirements & preset', { exact: true }).click();
   await page.getByLabel('What are you making?', { exact: false }).fill('A focused Expo companion');
   await page.getByLabel('Starting preset', { exact: true }).click();
   await page.getByLabel('Search starting preset', { exact: true }).fill('Expo');
@@ -154,12 +152,10 @@ try {
   await expect(
     kit.locator('.kit-entry.selected').filter({ hasText: 'zebra-android-review' }),
   ).toHaveCount(1);
-  await page.getByText('Agents', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Kiro', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await page.getByText('Requirements & preset', { exact: true }).click();
   await expect(page.getByLabel('What are you making?', { exact: false })).toHaveValue(
     'A focused Expo companion',
   );

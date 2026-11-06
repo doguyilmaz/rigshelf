@@ -9,6 +9,7 @@ export interface SelectOption {
   label: string;
   group?: string;
   count?: number;
+  disabled?: boolean;
 }
 interface SelectProps {
   value: string;
@@ -123,6 +124,7 @@ function SearchableOptions({
           <Combobox.Item
             key={item}
             value={item}
+            disabled={labels.get(item)?.disabled}
             className="select-option"
             aria-label={labels.get(item)?.label || item}
           >
@@ -185,6 +187,7 @@ function SimpleSelect({
                 <SelectPrimitive.Item
                   key={option.value}
                   value={option.value}
+                  disabled={option.disabled}
                   className="select-option"
                 >
                   <SelectPrimitive.ItemText className="select-option-copy" title={option.label}>

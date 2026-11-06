@@ -55,10 +55,10 @@ Existing repositories/global agent installations are read-only sources. All setu
 ## Work sequence
 
 - [x] Preserve baseline, create the new branch, review requirements, screen a new brand and document this brief.
-- [ ] Implement brand assets/tokens, a new application shell and a project-first entry point.
-- [ ] Build a coherent project workspace with visible Harness selection, clear kit composition and contextual guidance.
+- [x] Implement brand assets/tokens, a new application shell and a project-first entry point.
+- [x] Build a coherent project workspace with visible Harness selection, clear kit composition and contextual guidance.
 - [ ] Improve AI intake/proposals and first-run Provider setup without mandatory cloud accounts or surprise generation.
-- [ ] Make returning-project defaults, draft recovery, success/handoff, compatibility and recovery understandable.
+- [x] Make returning-project defaults, draft recovery, success/handoff, compatibility and recovery understandable.
 - [ ] Connect Library/source intake, Presets, directives, memory and maintenance to the daily workflow.
 - [ ] Exercise realistic first-time/returning flows, large catalogs, multi-agent review/apply/rollback, empty/offline/stale states, locales, responsive behavior and motion.
 - [ ] Perform focused source/data/security review, required check/format/verify/lint/UI suites, and document limits/evidence.
@@ -67,3 +67,15 @@ Existing repositories/global agent installations are read-only sources. All setu
 ## Requirement traceability
 
 The complete original ledger R01–R29 remains in PRODUCT.md, and subsequent requests R30–R47 remain in ACCEPTANCE.md. Every row remains applicable. This brief adds R48: a new branch, independent rebrand and coherent premium daily experience with usable first-run/returning flows. A visual refresh alone cannot satisfy R48. Unfinished items stay explicit rather than being labelled complete by a passing fixture.
+
+## Run and compare
+
+Use `bun run dev` on `experience/project-first` and open the private terminal URL. `bun run start` uses an existing build; use `bun run build` after changing the web source. Default-port collisions move to another loopback port; explicit `--port` does not move. Stop with Ctrl-C. The new command is `bun run rigshelf`; `kitfold`, `.kitfold/kit.json`, MCP tool names, portable schema-1 keys and the original private data directory remain compatibility contracts. No global configuration or data migration is performed.
+
+The baseline is preserved as `main` at `1fad90c`. After saving unrelated work, stop the server, `git switch main`, `bun run build`, then `bun run start` to use the former interface. Return with `git switch experience/project-first` and rebuild. Both use the same compatible private catalog unless `KITFOLD_DATA_DIR` is explicitly changed. Comparing screens does not authorize Apply, automation or source changes. Legacy layout-study URLs are historical prototypes; they are not the current product journey.
+
+## Current implementation notes
+
+The first-use source flow stays in the project: filtered Library selection → Find more tools → related/all saved repositories, link/AI/local/MCP intake → individual immutable Skill import → exact selected pin → review. Source detail now pages beyond 40 Skills instead of silently truncating at 100. Importing a definition never starts its MCP server or executes its supporting scripts.
+
+Unfinished setup choices are optional bounded current-tab recovery, not a memory system. Fresh inspection is required, missing selections remain visible, and no plan, reviewed flag, replacement consent, authority record or model conversation is stored in the recovery draft. Explicitly applying clears it. Returning-project choices come only from private directory-bound ownership, not a copied repository manifest.

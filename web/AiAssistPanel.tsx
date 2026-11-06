@@ -1,4 +1,4 @@
-import { WandSparkles, X } from 'lucide-react';
+import { PenLine, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { AiDraftView } from '../src/core/ai-assistance';
 import type { AiDraft, AiProposal, AiRequest } from '../src/core/ai-drafts';
@@ -25,6 +25,9 @@ export interface AiAssistProps {
   onClose?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   entries?: { id: string; name: string }[];
+  initialText?: string;
+  defaultIntent?: AiRequest['intent'];
+  compact?: boolean;
 }
 const PREFERENCE_KEY = 'kitfold:ai-provider:v1';
 function remembered(): { runner?: AiRequest['runner']; model?: string } {
@@ -57,10 +60,13 @@ export function AiAssistPanel({
   onClose,
   onDirtyChange,
   entries,
+  initialText = '',
+  defaultIntent = 'create',
+  compact = false,
 }: AiAssistProps) {
   const fieldId = useId();
-  const [text, setText] = useState('');
-  const [intent, setIntent] = useState<AiRequest['intent']>('create');
+  const [text, setText] = useState(initialText);
+  const [intent, setIntent] = useState<AiRequest['intent']>(defaultIntent);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [runner, setRunner] = useState<AiRequest['runner']>(
     () => remembered().runner || (isRunner(settings.aiRunner) ? settings.aiRunner : 'session'),
@@ -68,7 +74,11 @@ export function AiAssistPanel({
   const [model, setModel] = useState(
     () =>
       remembered().model ||
-      (settings.aiRunner === 'ollama' ? settings.ollamaModel : settings.aiModel),
+      (runner === settings.aiRunner
+        ? runner === 'ollama'
+          ? settings.ollamaModel
+          : settings.aiModel
+        : ''),
   );
   const [job, setJob] = useState<AiDraftView>();
   const [starting, setStarting] = useState(false);
@@ -100,6 +110,8 @@ export function AiAssistPanel({
     return () => onDirtyChange?.(false);
   }, [dirty, onDirtyChange]);
   const provider = providers.find((item) => item.id === runner)?.name || runner;
+  const providerUnavailable =
+    providers.length > 0 && !providers.some((item) => item.id === runner && item.available);
   useEffect(() => {
     let live = true;
     void api<ProviderOption[]>('ai/providers')
@@ -210,7 +222,13 @@ export function AiAssistPanel({
       <div className="ai-assist-heading">
         <div>
           <strong>{label}</strong>
-          <p>{t('Describe the result. AI prepares the fields; you review before saving.')}</p>
+          <p>
+            {t(
+              compact
+                ? 'Start with your rough brief. AI can clarify it and match items already in your Library.'
+                : 'Describe the result. AI prepares the fields; you review before saving.',
+            )}
+          </p>
         </div>
         {onClose && (
           <button
@@ -233,26 +251,28 @@ export function AiAssistPanel({
       >
         <summary>{t('Request & Provider')}</summary>
         <div>
-          <fieldset className="ai-intents" aria-label={t('AI action')}>
-            {(['create', 'improve', 'format', 'suggest'] as const).map((value) => (
-              <button
-                type="button"
-                key={value}
-                aria-pressed={intent === value}
-                disabled={working}
-                onClick={() => setIntent(value)}
-              >
-                {t(
-                  {
-                    create: 'Create',
-                    improve: 'Improve',
-                    format: 'Convert to format',
-                    suggest: 'Suggest',
-                  }[value],
-                )}
-              </button>
-            ))}
-          </fieldset>
+          {!compact && (
+            <fieldset className="ai-intents" aria-label={t('AI action')}>
+              {(['create', 'improve', 'format', 'suggest'] as const).map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={intent === value}
+                  disabled={working}
+                  onClick={() => setIntent(value)}
+                >
+                  {t(
+                    {
+                      create: 'Create',
+                      improve: 'Improve',
+                      format: 'Convert to format',
+                      suggest: 'Suggest',
+                    }[value],
+                  )}
+                </button>
+              ))}
+            </fieldset>
+          )}
           <label className="field-label" htmlFor={`${fieldId}-brief`}>
             {t('What should AI prepare?')}
           </label>
@@ -262,7 +282,9 @@ export function AiAssistPanel({
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder={t(
-              'Paste a link, installation command or rough notes. Or describe what you want.',
+              compact
+                ? 'An Expo app with email sign-in, a Hono API and clear error handling…'
+                : 'Paste a link, installation command or rough notes. Or describe what you want.',
             )}
             disabled={working}
           />
@@ -282,12 +304,15 @@ export function AiAssistPanel({
                     setModel(value === 'ollama' ? settings.ollamaModel : '');
                   }
                 }}
-                options={providers
-                  .filter((item) => item.available)
-                  .map((item) => ({
-                    value: item.id,
-                    label: item.id === 'session' ? t('Current Agent · MCP drafts') : item.name,
-                  }))}
+                options={providers.map((item) => ({
+                  value: item.id,
+                  label: !item.available
+                    ? t('{{provider}} · not installed', { provider: item.name })
+                    : item.id === 'session'
+                      ? t('Current Agent · MCP drafts')
+                      : item.name,
+                  disabled: !item.available,
+                }))}
               />
             </div>
             {runner !== 'session' && (
@@ -311,7 +336,7 @@ export function AiAssistPanel({
           <p className="field-help">
             {runner === 'session'
               ? t(
-                  'Uses a draft request in your connected Kitfold MCP session. Ask the agent to answer the pending request.',
+                  'Uses a draft request in your connected Rigshelf MCP session. Ask the agent to answer the pending request.',
                 )
               : t(
                   'Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.',
@@ -321,6 +346,13 @@ export function AiAssistPanel({
               t('Includes up to 80 library names, tags and descriptions for matching suggestions.')}
           </p>
           {error && <Notice tone="warning">{t(error)}</Notice>}
+          {providerUnavailable && (
+            <Notice>
+              {t(
+                'Your saved AI Provider is unavailable. Choose an available Provider to prepare this draft.',
+              )}
+            </Notice>
+          )}
           {(job?.state === 'failed' || (job?.state === 'canceled' && job.error)) && (
             <Notice tone="warning">{t(job.error || 'AI generation failed.')}</Notice>
           )}
@@ -330,7 +362,7 @@ export function AiAssistPanel({
                 'Waiting for your connected agent. Use kitfold_pending_drafts and kitfold_propose_draft in that session.',
               )}{' '}
               <CopyButton
-                text={`Prepare the pending Kitfold draft ${job.id}. Read kitfold_draft_request, follow its output schema, and submit with kitfold_propose_draft. Do not save or apply anything.`}
+                text={`Prepare the pending Rigshelf draft ${job.id}. Read kitfold_draft_request, follow its output schema, and submit with kitfold_propose_draft. Do not save or apply anything.`}
                 label={t('Copy agent request')}
               />
             </Notice>
@@ -352,11 +384,12 @@ export function AiAssistPanel({
                 onClick={() => void generate()}
                 disabled={
                   !providers.length ||
+                  providerUnavailable ||
                   (!text.trim() && !current.trim()) ||
                   (runner === 'ollama' && !model.trim())
                 }
               >
-                <WandSparkles size={14} />
+                <PenLine size={14} />
                 {runner === 'session'
                   ? t('Ask connected Agent')
                   : t('Generate with {{provider}}', { provider })}

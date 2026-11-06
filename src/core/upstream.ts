@@ -41,7 +41,7 @@ async function boundedFetch(
       ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
       : {};
   const response = await fetch(url, {
-    headers: { 'User-Agent': 'Kitfold-Workbench/0.1', Accept: accept, ...authorization },
+    headers: { 'User-Agent': 'Rigshelf-Workbench/0.1', Accept: accept, ...authorization },
     redirect: 'error',
     signal: AbortSignal.timeout(new URL(url).hostname === 'api.github.com' ? 5000 : 15000),
   });

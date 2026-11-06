@@ -120,7 +120,7 @@ export function renderMcp(mcp: Mcp, provider: Provider): Record<string, unknown>
     !['codex', 'antigravity'].includes(provider) &&
     !(provider === 'kiro' && mcp.allowedTools === undefined)
   )
-    throw new Error('This tool filter requires the Kitfold MCP bridge.');
+    throw new Error('This tool filter requires the Rigshelf MCP bridge.');
   if (mcp.cwd && provider === 'opencode')
     throw new Error(
       'OpenCode adapter cannot preserve an MCP working directory. Use a wrapper command with an explicit working directory.',

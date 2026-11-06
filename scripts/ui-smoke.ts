@@ -6,6 +6,7 @@ import { scan } from '../src/core/scanner';
 import { startServer } from '../src/server';
 import { fixture, sampleSkill } from '../tests/helpers';
 import { assertNeutralTheme } from './theme-check';
+import { navigateTo } from './ui-navigation';
 
 const data = await fixture();
 await mkdir(join(data.project, '.git'));
@@ -64,7 +65,7 @@ try {
     ['Activity', 'activity'],
     ['Settings', 'settings'],
   ] as const) {
-    await page.getByRole('button', { name: nav, exact: true }).first().click();
+    await navigateTo(page, nav);
     await page.waitForURL(`**/#${hash}`);
     await assertNeutralTheme(page, hash);
     await page.screenshot({ path: join(directory, `${hash}-desktop.png`), fullPage: true });

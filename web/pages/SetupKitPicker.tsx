@@ -28,6 +28,8 @@ export function SetupKitPicker({
   inspect,
   onClose,
   openLibrary,
+  acquire,
+  initialKind = 'all',
 }: {
   state: PageProps['state'];
   selected: string[];
@@ -35,10 +37,12 @@ export function SetupKitPicker({
   inspect: (id: string) => void;
   onClose: () => void;
   openLibrary: () => void;
+  acquire: () => void;
+  initialKind?: 'all' | 'skill' | 'mcp';
 }) {
   const [filters, setFilters] = useState<LibraryFilters>(() => ({
     ...defaultLibraryFilters(),
-    kind: 'all',
+    kind: initialKind,
   }));
   const [grouping, setGrouping] = useState<LibraryGrouping>('source');
   const [limit, setLimit] = useState(SOURCE_GROUP_PAGE_SIZE);
@@ -205,6 +209,9 @@ export function SetupKitPicker({
       <div className="modal-actions">
         <Button variant="ghost" onClick={openLibrary}>
           {t('Open full library')}
+        </Button>
+        <Button variant="secondary" onClick={acquire}>
+          {t('Find more tools')}
         </Button>
         <Button onClick={onClose}>{t('Done')}</Button>
       </div>

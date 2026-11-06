@@ -63,18 +63,20 @@ try {
   await expect(page.getByLabel('Starting preset', { exact: true })).toBeVisible();
   for (const width of [1440, 1280, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
-    const gap = await page.locator('.setup-options').evaluate((fields) => {
-      const label = fields.querySelector('label[for="preset-choice"]')!.getBoundingClientRect();
+    const gap = await page.locator('.workspace-preset').evaluate((fields) => {
+      const label = fields.querySelector('.workspace-section-title')!.getBoundingClientRect();
       const control = fields.querySelector('.select-trigger')!.getBoundingClientRect();
       return control.top - label.bottom;
     });
-    if (gap < 4 || gap > 10) throw new Error(`Misaligned preset label at ${width}px: ${gap}`);
+    if (gap < 8 || gap > 24) throw new Error(`Misaligned preset label at ${width}px: ${gap}`);
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
       throw new Error(`Setup overflows at ${width}px`);
     if (width === 1440 || width === 390)
       await page.screenshot({ path: join(directory, `setup-${width}.png`), fullPage: true });
   }
-  checks.push('Optional setup fields keep compact label spacing at six viewport widths.');
+  checks.push(
+    'The project workspace and Preset control retain compact spacing at six viewport widths.',
+  );
   await page.setViewportSize({ width: 1280, height: 800 });
   const preset = page.getByLabel('Starting preset', { exact: true });
   await preset.click();

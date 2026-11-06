@@ -1,6 +1,6 @@
-# Kitfold development
+# Rigshelf development
 
-Kitfold sets up coding agents per project. The private library is separate from activation. Backup is secondary. Keep the primary flow simple: choose a project, review a focused kit, choose harnesses, inspect the plan, apply.
+Rigshelf sets up coding agents per project. The private library is separate from activation. Backup is secondary. Keep the primary flow simple: choose a project, review a focused kit, choose harnesses, inspect the plan, apply.
 
 ## Boundaries
 

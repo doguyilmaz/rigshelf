@@ -6,7 +6,7 @@ A selection fills the current draft. In project setup, a committed known-project
 
 ## Native desktop boundary
 
-The authenticated local HTTP endpoint `POST /api/pick-directory` opens a chooser on the machine running Kitfold. It requires the existing private access key, Host/Origin checks and a JSON body. It is intentionally not a catalog MCP tool: opening desktop UI is a local interface capability, not library or project authority. Browser directory-upload controls cannot supply the host's absolute project path and are not used as a substitute.
+The authenticated local HTTP endpoint `POST /api/pick-directory` opens a chooser on the machine running Rigshelf. It requires the existing private access key, Host/Origin checks and a JSON body. It is intentionally not a catalog MCP tool: opening desktop UI is a local interface capability, not library or project authority. Browser directory-upload controls cannot supply the host's absolute project path and are not used as a substitute.
 
 The request accepts only an optional starting path. The chooser starts from its nearest existing directory and returns one existing absolute directory or `null`. It does not enumerate directory contents. Paths are bounded and reject NUL/newline characters. Fixed native programs receive the path through an argument or environment value, never through interpolated script source or a shell command. The child receives a small environment allowlist; process output is bounded to 16 KiB, and selection has a three-minute limit. Raw process diagnostics are not returned to the browser or stored in events.
 

@@ -31,18 +31,16 @@ async function readJson(request: Request): Promise<unknown> {
 export function startServer(
   store: Store,
   port = 47471,
-  options: { chooseDirectory?: DirectoryPickerDriver; aiDriver?: AiDriver } = {},
+  options: {
+    chooseDirectory?: DirectoryPickerDriver;
+    aiDriver?: AiDriver;
+    resetAccess?: boolean;
+  } = {},
 ): WorkbenchServer {
-  const token = randomBytes(32).toString('hex');
+  let token = '';
   const root = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
   const base = `http://127.0.0.1:${port}`;
-  const automation = new Automation(store);
   const directoryPicker = createDirectoryPicker(options.chooseDirectory);
-  void automation
-    .sync()
-    .catch((error) =>
-      store.event('automation.failed', error instanceof Error ? error.message : 'Startup failed'),
-    );
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
@@ -69,7 +67,7 @@ export function startServer(
           return Response.json(
             {
               error:
-                'Open the private access URL printed by kitfold ui. The access key is required for this workbench.',
+                'Open the private access URL printed by rigshelf ui. The access key is required for this workbench.',
             },
             { status: 403, headers },
           );
@@ -84,7 +82,7 @@ export function startServer(
               headers: {
                 ...headers,
                 'Content-Type': 'application/gzip',
-                'Content-Disposition': 'attachment; filename="kitfold-library.json.gz"',
+                'Content-Disposition': 'attachment; filename="rigshelf-library.json.gz"',
                 'X-Kitfold-Excluded': String(archive.excluded),
               },
             });
@@ -164,7 +162,25 @@ export function startServer(
       });
     },
   });
+  try {
+    token = store.db.transaction(() => {
+      const saved = store.get<{ id: string; token: string }>('local-ui-access', 'main');
+      if (!options.resetAccess && saved && /^[a-f0-9]{64}$/.test(saved.token)) return saved.token;
+      const next = randomBytes(32).toString('hex');
+      store.put('local-ui-access', { id: 'main', token: next });
+      return next;
+    })();
+  } catch (error) {
+    void server.stop(true);
+    throw error;
+  }
+  const automation = new Automation(store);
   const stop = server.stop.bind(server);
+  void automation
+    .sync()
+    .catch((error) =>
+      store.event('automation.failed', error instanceof Error ? error.message : 'Startup failed'),
+    );
   server.stop = async (closeActiveConnections?: boolean) => {
     await closeAiDrafts(store);
     await directoryPicker.close();
