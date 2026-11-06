@@ -27,6 +27,7 @@ export interface AppState {
   events: { id: number; createdAt: string; action: string; detail: string }[];
   discoveries?: import('../src/core/discovery').Discovery[];
   dataDirectory: string;
+  legacyDataDirectory?: boolean;
   scan: ScanProgress;
   lastScan?: ScanResult;
   plans: (Omit<Plan, 'changes'> & { fileCount: number })[];

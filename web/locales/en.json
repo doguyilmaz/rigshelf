@@ -442,7 +442,6 @@
   "Your usual agents": "Your usual agents",
   "Your way of working.": "Your way of working.",
   "Your whole library stays here. Only your selected kit goes into the project.": "Your whole library stays here. Only your selected kit goes into the project.",
-  "Yours to keep.": "Yours to keep.",
   "backend, typescript": "backend, typescript",
   "bun link": "bun link",
   "bunx skills add owner/repo": "bunx skills add owner/repo",
@@ -465,7 +464,6 @@
   "installation": "installation",
   "installations": "installations",
   "installs": "installs",
-  "kitfold": "kitfold",
   "mobile, expo": "mobile, expo",
   "my-project-workflow": "my-project-workflow",
   "preset": "preset",
@@ -1155,5 +1153,7 @@
   "Excluded from this archive": "Excluded from this archive",
   "Refresh review": "Refresh review",
   "Download reviewed archive": "Download reviewed archive",
-  "API connection · configure in Settings": "API connection · configure in Settings"
+  "API connection · configure in Settings": "API connection · configure in Settings",
+  "Library storage": "Library storage",
+  "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.": "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data."
 }

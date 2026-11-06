@@ -2,6 +2,7 @@ import { Database } from 'bun:sqlite';
 import { chmodSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { defaultDataDirectory } from './data-directory';
 import type { Entry, Installation, PackedFile, Plan, Project, Settings, Source } from './model';
 import { SCHEMA_VERSION, SettingsSchema } from './model';
 import { now } from './safety';
@@ -9,11 +10,7 @@ import { now } from './safety';
 export class Store {
   readonly db: Database;
   readonly directory: string;
-  constructor(
-    directory = process.env.RIGSHELF_DATA_DIR ||
-      process.env.KITFOLD_DATA_DIR ||
-      join(homedir(), '.local/share/kitfold'),
-  ) {
+  constructor(directory = defaultDataDirectory()) {
     this.directory = directory;
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     this.db = new Database(join(directory, 'catalog.sqlite'), { create: true, strict: true });

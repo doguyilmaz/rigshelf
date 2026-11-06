@@ -1,5 +1,9 @@
 # Acceptance record
 
+## Rebrand compatibility follow-up
+
+Fresh catalogs use the Rigshelf directory; existing legacy catalogs retain their actual path with an English/Turkish explanation. Conflicting default catalogs require explicit selection rather than an implicit merge or empty replacement. Isolated fixtures retain Snapshot/resources/recovery content and verify explicit override precedence. New connection snippets and MCP handshake labels use Rigshelf; the old executable/environment, MCP tool names, portable format keys and project ownership/recovery identifiers remain compatible. Current naming/run instructions distinguish these choices from historical candidates. See [the brand audit](BRANDING.md).
+
 ## UI stability, own AI and backup follow-up
 
 The Library uses explicit deterministic tie-breakers for equal names, dates and usage counts. Normal-motion browser cases check editor frames, page scroll, focus recovery and item order across tab changes, viewport changes, closing/reopening and catalog refresh. Existing English/Turkish terminology checks preserve Skills, MCP, Plugins, Agent, Harness, Preset, Snapshot, Provider and other documented technical terms.
@@ -72,7 +76,7 @@ Shared-definition web editors refuse stale saves/deletes and preserve drafts. CL
 
 Native discovery may require a new or reloaded agent session. Rigshelf does not inject tools into a running harness without a supported reload mechanism. The bridge covers tools/resources/prompts and documented filtering/interpolation gaps; experimental extensions, sampling and elicitation need an appropriate native integration.
 
-Automation runs while the workbench or `kitfold watch` is running. Project and snapshot permissions can be revoked independently. Portable archives grant neither permission on another machine. A copied kit must be reviewed and applied locally before automation can be enabled.
+Automation runs while the workbench or `rigshelf watch` is running. Project and snapshot permissions can be revoked independently. Portable archives grant neither permission on another machine. A copied kit must be reviewed and applied locally before automation can be enabled.
 
 Memory support covers inventoried local and user-scoped project files and global guidance, not conversation databases or restored model context. External/shared documents are read-only in a project's editor. Local model review is proposal-only. Remote billing and credential management remain in the selected agent.
 

@@ -1,5 +1,11 @@
 # Validation record
 
+## Rebrand storage and compatibility follow-up
+
+The rebrand delta passes 195 unit/integration tests across 32 files, strict TypeScript, formatting/lint and the production build. English/Turkish still have 1,157 matching messages after removing unused old brand/slogan labels and adding the storage explanation. New directory fixtures cover fresh default naming, exact legacy Snapshot/file/recovery-record retention, partial folders, two-catalog refusal, explicit environment precedence and no implicit copy or merge. Native MCP fixtures retain old tool names and legacy environment configuration while verifying the Rigshelf handshake. New connection snippets use Rigshelf across all six Harness formats.
+
+The twenty UI suites include a new real legacy-catalog fixture. It verifies the displayed actual path, the English/Turkish compatibility explanation, native Codex connection output and 1440/390/320px overflow/accessibility. The first new test used Playwright's one-page convenience context, which Axe cannot use for its analysis helper; it was corrected to an explicit browser context without changing production behavior. Evidence remains ignored under `.local/qa/branding`, with full logs `.local/qa/rebrand-followup-ui.log` and `.local/qa/rebrand-followup-verify.log`. Real user catalogs, global links and external project setups were not moved, renamed or rewritten.
+
 ## UI stability, user-owned AI and backup review
 
 The follow-up passes 191 unit/integration tests across 31 files, strict TypeScript, formatting/lint, 1,157 matching English/Turkish messages and all nineteen UI suites. The new normal-motion suite checks editor frame geometry, page scroll and returned focus across Files tabs, closing/reopening, catalog refresh and four viewport widths (1440, 768, 390, 320). Existing layout/localization/control suites continue to cover long accepted values, nested selects, delayed content, short windows, reduced motion and English/Turkish screens. No uncaught page errors or automated accessibility violations were reported in the audited cases. This is Chromium/macOS fixture evidence, not a claim that no browser/layout defect exists.

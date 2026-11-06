@@ -16,7 +16,7 @@ Checked 2026-11-05. Links describe evidence, not permanent compatibility guarant
 
 - [Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) distinguishes `env_vars`, `env_http_headers`, and `bearer_token_env_var`. Literal `${VAR}` strings are not equivalent to those options.
 - [OpenCode variables](https://opencode.ai/docs/config/) use `{env:VAR}`. Adapters translate canonical placeholders rather than copying another harness's strings.
-- [Antigravity MCP](https://antigravity.google/docs/mcp) documents cwd and tool allow/deny fields, but the checked page does not establish `${VAR}` interpolation. Authenticated definitions that need it use a Kitfold bridge rather than a guessed schema.
+- [Antigravity MCP](https://antigravity.google/docs/mcp) documents cwd and tool allow/deny fields, but the checked page does not establish `${VAR}` interpolation. Authenticated definitions that need it use a Rigshelf bridge rather than a guessed schema.
 - The optional MCP bridge preserves stdio/HTTP/SSE, resolves declared environment references, and enforces tool allow/deny lists. Native formats remain the first choice. Sampling, elicitation, and arbitrary experimental MCP capabilities are outside the bridge contract; preserve a native integration when those are needed.
 - Claude manual-only skill invocation is preserved where documented. Conversion refuses a manual-only skill when the target's equivalent policy cannot be established; it does not silently make it automatically invocable.
 

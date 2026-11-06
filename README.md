@@ -48,7 +48,7 @@ rigshelf find "SwiftUI gestures"
 rigshelf add-source "bunx skills add expo/skills"
 rigshelf connection --agents claude,codex
 mkdir -p "$HOME/Backups"
-rigshelf export "$HOME/Backups/kitfold-library.json.gz"
+rigshelf export "$HOME/Backups/rigshelf-library.json.gz"
 ```
 
 `setup` prepares a plan by default; add `--apply` for an explicitly requested immediate setup. `--entries ""` produces guidance only. `--replace-existing` permits reviewed replacements of differing skill files while preserving original bytes for rollback. Project-external symlinks remain protected.
@@ -86,7 +86,7 @@ AI assistance uses an explicitly chosen installed Claude Code/Codex CLI, local O
 
 ## Your data
 
-The default catalog is `~/.local/share/kitfold/catalog.sqlite`; `RIGSHELF_DATA_DIR` overrides it; the legacy `KITFOLD_DATA_DIR` remains accepted. Renaming does not move or empty an existing catalog. SQLite and the data directory are private to the local user. Content snapshots, rollback preimages and project paths stay outside this source tree. There is no hosted registry, telemetry or conversation/session collection.
+Fresh installs use `~/.local/share/rigshelf/catalog.sqlite`. An existing `~/.local/share/kitfold` catalog stays in use, with an explanation in Settings. If both default catalogs exist, choose explicitly with `RIGSHELF_DATA_DIR`; the app never merges or moves them. `RIGSHELF_DATA_DIR` overrides storage, and legacy `KITFOLD_DATA_DIR` remains accepted. See [brand and compatibility decisions](docs/BRANDING.md). SQLite and the data directory are private to the local user. Content snapshots, rollback preimages and project paths stay outside this source tree. There is no hosted registry, telemetry or conversation/session collection.
 
 Versioned JSON and compressed JSON archives contain library content, sources, presets and rules. Projects, access keys, session data, automation approvals and rollback preimages are excluded. Sensitive-looking records are omitted with an explicit report inside the archive. Treat custom content and source notes as private. See [data formats](docs/DATA.md) and [security](SECURITY.md).
 

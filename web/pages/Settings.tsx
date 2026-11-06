@@ -338,9 +338,16 @@ export function Settings({ state, refresh, notify }: PageProps): ReactNode {
         <aside className="settings-aside">
           <section className="settings-card">
             <HardDrive size={22} />
-            <h3>{t('Yours to keep.')}</h3>
+            <h3>{t('Library storage')}</h3>
             <p>{t('The catalog and snapshots live outside your project source.')}</p>
             <code>{shortPath(state.dataDirectory)}</code>
+            {state.legacyDataDirectory && (
+              <p className="storage-compatibility-note">
+                {t(
+                  'This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.',
+                )}
+              </p>
+            )}
             <div className="button-row">
               <BackupReviewPanel disabled={busy} onDownload={exportData} notify={notify} />
               <Button variant="secondary" onClick={() => file.current?.click()} disabled={busy}>

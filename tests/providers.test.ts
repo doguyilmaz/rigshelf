@@ -68,7 +68,8 @@ test('TOML round trips remain idempotent when the serializer changes object key 
 test('connection snippets use each harness format and writable mode requires an explicit project scope', async () => {
   for (const provider of ['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok']) {
     const result = await connection({ provider });
-    expect(result.content).toContain('kitfold');
+    expect(result.content).toContain('rigshelf');
+    expect(result.content).not.toContain('kitfold');
     expect(result.content).not.toContain('--write');
     expect(result.file).toBeTruthy();
   }

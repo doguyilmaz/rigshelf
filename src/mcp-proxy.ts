@@ -16,6 +16,7 @@ import {
   McpError,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { brand } from './core/brand';
 import { readText } from './core/detect';
 import { referencedEnvironment, resolveDefinition } from './core/mcp-compat';
 import { type Mcp, McpSchema } from './core/model';
@@ -93,11 +94,11 @@ export async function serveProxy(path: string): Promise<void> {
         : new StreamableHTTPClientTransport(new URL(expanded.url!), {
             requestInit: { headers: expanded.headers },
           });
-  const client = new Client({ name: 'kitfold-mcp-bridge', version: '0.1.0' });
+  const client = new Client({ name: `${brand.slug}-mcp-bridge`, version: '0.1.0' });
   await client.connect(transport);
   const capabilities = client.getServerCapabilities() || {};
   const server = new Server(
-    { name: 'kitfold-mcp-bridge', version: '0.1.0' },
+    { name: `${brand.slug}-mcp-bridge`, version: '0.1.0' },
     {
       capabilities: {
         ...(capabilities.tools ? { tools: {} } : {}),

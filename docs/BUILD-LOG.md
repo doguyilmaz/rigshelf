@@ -1,11 +1,11 @@
 # Build log
 
-This is a working engineering record, not a release-completion claim.
+This is a working engineering record, not a release-completion claim. The current working identity is Rigshelf; older implementation entries are historical. Current storage and retained identifiers are documented in [the brand audit](BRANDING.md).
 
 ## Established
 
 - The product is an independent implementation; no third-party catalog seeds it. Discovery reads actual files.
-- Working name changed from Strata to Kitfold. UI, CLI, MCP names, and file markers use Kitfold.
+- The initial working name changed from Strata to Kitfold; the later independent experience uses Rigshelf. Old format/ownership identifiers remain under an explicit compatibility policy.
 - English product and documentation; Turkish conversation.
 - Automation: only explicitly permitted projects and approved immutable snapshots.
 - Grok: official CLI adapter, with a separate explanation for model selection inside T3.

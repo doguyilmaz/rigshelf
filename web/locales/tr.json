@@ -427,7 +427,6 @@
   "Your usual agents": "Sık kullandığınız agent’lar",
   "Your way of working.": "Sizin çalışma tarzınız.",
   "Your whole library stays here. Only your selected kit goes into the project.": "Tüm kütüphaneniz burada kalır. Projeye yalnızca seçtiğiniz kit eklenir.",
-  "Yours to keep.": "Verileriniz sizde kalır.",
   "backend, typescript": "backend, typescript",
   "bun link": "bun link",
   "bunx skills add owner/repo": "bunx skills add owner/repo",
@@ -442,7 +441,6 @@
   "in this checkout. Preserve existing settings when merging. Writable connections can also edit your private library.": "ile bu proje klasöründe kaydedin. Birleştirirken mevcut ayarları koruyun. Yazma izni olan bağlantılar özel kütüphanenizi de düzenleyebilir.",
   "in this export.": "bu dışa aktarmada bulunuyor.",
   "installs": "kurulum",
-  "kitfold": "kitfold",
   "mobile, expo": "mobile, expo",
   "my-project-workflow": "my-project-workflow",
   "react-native-best-practices": "react-native-best-practices",
@@ -1155,5 +1153,7 @@
   "Excluded from this archive": "Bu arşive alınmayanlar",
   "Refresh review": "İncelemeyi yenile",
   "Download reviewed archive": "İncelenen arşivi indir",
-  "API connection · configure in Settings": "API bağlantısı · Ayarlar’da yapılandır"
+  "API connection · configure in Settings": "API bağlantısı · Ayarlar’da yapılandır",
+  "Library storage": "Kütüphane depolaması",
+  "This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.": "Mevcut kütüphanen ve kurtarma geçmişin kullanılabilsin diye bu klasör önceki Kitfold adını koruyor. Rigshelf verilerini taşımadı veya çoğaltmadı."
 }

@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { aiDraft, completeAiDraft, listAiDrafts } from './core/ai-assistance';
 import type { AiFileInventory } from './core/ai-files';
+import { brand } from './core/brand';
 import { documentChoices } from './core/document-index';
 import {
   type Plan,
@@ -30,7 +31,7 @@ export async function serveMcp(
         'Plan is outside this MCP session’s allowed project roots. Connect from the target project or explicitly configure --root.',
       );
   };
-  const server = new McpServer({ name: 'kitfold', version: '0.1.0' });
+  const server = new McpServer({ name: brand.slug, version: '0.1.0' });
   const output = (result: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(result) }],
   });

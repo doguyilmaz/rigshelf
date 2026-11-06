@@ -1,8 +1,8 @@
 # Naming exploration
 
-Historical baseline notes. The current independent brand and implemented direction are in [the Rigshelf experience brief](EXPERIENCE.md). Baseline `main` remains unchanged.
+The current working identity is **Rigshelf**. It remains unregistered and subject to final naming approval. Current brand/storage behavior is recorded in [the compatibility audit](BRANDING.md); [the experience brief](EXPERIENCE.md) records the product direction. Baseline `main` remains unchanged. The candidate research below is historical, dated 2026-11-05, and is not a current availability check.
 
-**Kitfold is a temporary working name, not an approved product name.** It now has a confirmed collision with an existing [macOS skills and agent-profile manager](https://github.com/kadaliao/kitfold). Do not publish under this name. The current command and data directory remain unchanged until a replacement is selected and its migration is reviewed.
+**Kitfold was an earlier temporary working name and was rejected for publication.** The dated research found a collision with an existing [macOS skills and agent-profile manager](https://github.com/kadaliao/kitfold). Do not publish under this name. The primary command is now `rigshelf`. Existing data and protocol identifiers are retained under the explicit compatibility policy; fresh storage uses the current name.
 
 The name should describe preparing a focused project kit across agents. It must cover skills, MCP connections and guidance, rather than imply a backup service or a public marketplace.
 
@@ -17,7 +17,7 @@ Checked 2026-11-05. These are proposals, not selected or reserved names.
 | Kitlatch | Attach a stable, pinned kit to a project | Short; suggests deliberate binding and reliability | Harder pronunciation; mechanical latch-part search noise | No overlapping software product found in this search; repository search 0, npm 404, `.dev` RDAP 404 |
 | Scopeparcel | A portable bundle with an explicit project scope | Distinctive; covers all capability types | Longer CLI name and less immediately familiar | No exact product found in this search; repository search 0, npm 404, `.dev` RDAP 404 |
 
-Kitferry is the leading proposal for clarity and everyday CLI use. This is a recommendation, not a naming decision.
+Kitferry was the leading proposal at this earlier exploration stage. It is not the current product identity or a new naming decision.
 
 ## Earlier candidates retained for comparison
 

@@ -17,7 +17,9 @@ const sources = [
     records.filter((source) => source.type === 'github').map((source) => [source.id, source]),
   ).values(),
 ];
-const store = new Store(process.env.KITFOLD_DATA_DIR || '.local/development');
+const store = new Store(
+  process.env.RIGSHELF_DATA_DIR || process.env.KITFOLD_DATA_DIR || '.local/development',
+);
 const results: unknown[] = [];
 try {
   for (let offset = 0; offset < sources.length; offset += 2) {

@@ -16,6 +16,8 @@ Immutable `scan-baseline` records contain a versioned gzip/base64 project/file i
 
 The OS data directory contains `catalog.sqlite` and SQLite's WAL companions. Directories are created with mode 0700 and the database with mode 0600. Use `RIGSHELF_DATA_DIR` (or legacy `KITFOLD_DATA_DIR`) to choose a different private location. Do not point it at a public checkout or shared web directory.
 
+Fresh default storage is `~/.local/share/rigshelf`. An existing legacy `~/.local/share/kitfold` catalog remains in place; a partial legacy folder is not silently abandoned. If both default catalog files exist, an explicit directory override is required before opening either. No copy, rename, merge or automatic migration occurs. The HTTP state's additive `legacyDataDirectory` boolean only controls the explanation beside the actual storage path; it grants no authority. See [the brand audit](BRANDING.md).
+
 SQLite `user_version` and archive `schemaVersion` are 1. A newer database is refused. Future database changes require explicit migrations; future portable formats must retain an importer for schema 1 or provide an explicit migration. Record IDs are opaque and must not be inferred from display names.
 
 An entry is a content-addressed snapshot with metadata, provenance receipts and supporting files. SHA-256 covers sorted file paths, exact base64 bytes and executable intent. A custom edit creates a revision with lineage; it does not mutate the upstream snapshot or installed pins. Archiving hides a snapshot from ordinary suggestions. Permanent deletion requires an archived record without installations or active plan references.
@@ -42,7 +44,7 @@ Imports validate schema, canonical base64, exact digests, relative paths, unique
 
 Current bounds: 16 MiB and 2,000 files per skill; 128 MiB / 10,000 changed files per setup plan; 128 MiB compressed archive input; 512 MiB archive JSON; 256 MiB decoded imported resources. Source archives have separate 32 MiB compressed / 128 MiB decompressed / 20,000 repository-file bounds. Larger source collections can be imported as individual local skill folders. Ordinary JSON API requests are limited to 32 MiB. These limits are checked independently.
 
-`.kitfold/kit.json` in a project contains only the selected providers, entry pins, requirements, preset and managed hashes/MCP definitions. Private rollback preimages stay in the local catalog. Apply writes an exclusive lock and journal, verifies preconditions and atomically replaces each file. A failure compensates earlier writes. After an interrupted process, `kitfold recover <plan-id>` restores the state before that operation only when every file matches a known state. Do not manually delete an unfamiliar write lock.
+`.kitfold/kit.json` in a project contains only the selected providers, entry pins, requirements, preset and managed hashes/MCP definitions. Private rollback preimages stay in the local catalog. Apply writes an exclusive lock and journal, verifies preconditions and atomically replaces each file. A failure compensates earlier writes. After an interrupted process, `rigshelf recover <plan-id>` restores the state before that operation only when every file matches a known state. Do not manually delete an unfamiliar write lock.
 
 Global installations are observed, not removed. To reduce global context, first set up and verify project kits, then review global cleanup separately in the owning harness. Export/import does not automatically migrate credentials, global agent settings or conversations.
 

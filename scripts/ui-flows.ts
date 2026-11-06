@@ -298,7 +298,7 @@ try {
   await page.getByLabel('Allowed project root', { exact: true }).fill(fixtureData.project);
   await page.getByRole('button', { name: 'Prepare connection', exact: true }).click();
   await expect(
-    page.locator('.settings-aside pre').filter({ hasText: 'mcp_servers.kitfold' }),
+    page.locator('.settings-aside pre').filter({ hasText: 'mcp_servers.rigshelf' }),
   ).toBeVisible();
   await audit('connection-settings');
   checks.push(

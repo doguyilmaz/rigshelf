@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { brand } from './brand';
 import { McpSchema, ProviderSchema } from './model';
 import { adapter, mergeMcp } from './providers';
 import { checkedProject } from './safety';
@@ -15,13 +16,13 @@ export async function connection(raw: unknown) {
   const project = input.writable ? await checkedProject(input.projectPath) : undefined;
   const definition = McpSchema.parse({
     transport: 'stdio',
-    command: 'kitfold',
+    command: brand.command,
     args: ['mcp', ...(project ? ['--write', '--root', project] : [])],
   });
   const spec = adapter(input.provider);
   return {
     file: spec.mcpFile,
-    content: mergeMcp(null, input.provider, { kitfold: definition }),
+    content: mergeMcp(null, input.provider, { [brand.slug]: definition }),
     writable: input.writable,
     note: spec.note,
   };
