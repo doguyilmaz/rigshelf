@@ -1,6 +1,6 @@
 # Build log
 
-This is a working engineering record, not a release-completion claim. The current working identity is Rigshelf; older implementation entries are historical. Current storage and retained identifiers are documented in [the brand audit](BRANDING.md).
+This is a working engineering record, not a release-completion claim. The confirmed product identity is Rigshelf; older implementation entries are historical. Current storage and retained identifiers are documented in [the brand audit](BRANDING.md).
 
 ## Established
 

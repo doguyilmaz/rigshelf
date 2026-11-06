@@ -77,7 +77,7 @@ Automatic additions are optional. They require both current project approval and
 
 ## Data and backup
 
-Fresh installs use `~/.local/share/rigshelf/catalog.sqlite`. An existing `~/.local/share/kitfold` location stays in use. If both default catalogs exist, choose explicitly with `RIGSHELF_DATA_DIR`; Rigshelf does not merge or move them. Legacy `KITFOLD_DATA_DIR` remains accepted. [Brand compatibility](docs/BRANDING.md) explains retained storage and protocol names. Rigshelf is a working identity, not a registered public package or domain.
+Fresh installs use `~/.local/share/rigshelf/catalog.sqlite`. An existing `~/.local/share/kitfold` location stays in use. If both default catalogs exist, choose explicitly with `RIGSHELF_DATA_DIR`; Rigshelf does not merge or move them. Legacy `KITFOLD_DATA_DIR` remains accepted. [Brand compatibility](docs/BRANDING.md) explains retained storage and protocol names. Rigshelf is the confirmed product name; no public package or domain registration is claimed.
 
 **Settings → Review backup** compares a previous export, previews record changes and downloads one complete library archive. Archives include sources, content, Presets and directives; they exclude project state, rollback preimages, access keys and automation approvals. An exclusion report identifies omitted sensitive-looking records. A library export is not a full workbench backup; see [data formats](docs/DATA.md).
 

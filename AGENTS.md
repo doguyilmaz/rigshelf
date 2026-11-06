@@ -2,6 +2,8 @@
 
 Rigshelf sets up coding agents per project. The private library is separate from activation. Backup is secondary. Keep the primary flow simple: choose a project, review a focused kit, choose harnesses, inspect the plan, apply.
 
+The user approved the Rigshelf name and existing visual identity on 2026-11-07. Preserve this branding unless the user requests a change; see `docs/BRANDING.md`.
+
 ## Boundaries
 
 - Share domain behavior between CLI, HTTP and MCP. Provider adapters own documented native formats and explicit compatibility gaps.

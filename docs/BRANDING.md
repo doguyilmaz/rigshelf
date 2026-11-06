@@ -1,6 +1,8 @@
 # Brand and compatibility audit
 
-Rigshelf is the current working product identity. It is not an approved public release, registered package/domain or trademark clearance. The repository's original directory name is not a public product name. Historical naming proposals are retained as history, not competing current recommendations.
+**Rigshelf is the confirmed product name. The user approved the name and existing visual identity on 2026-11-07.** Preserve the current branding in future development unless the user requests a change. Historical naming proposals are retained as history, not competing current recommendations.
+
+Brand approval does not imply public-release approval, package/domain registration or trademark clearance. The repository's original directory name is not a public product name.
 
 The rebrand review found three omissions: fresh installs still defaulted to the old data folder, newly rendered MCP connection snippets used the old command/server label, and historical naming/run documentation contained contradictory present-tense instructions. These are now corrected. Existing user data was not moved or renamed.
 
@@ -16,7 +18,7 @@ Storage directory names are explicit compatibility keys, independent of the muta
 
 | Surface | Current behavior | Compatibility decision |
 | --- | --- | --- |
-| Product name, web title, navigation, icon, CLI help, download filenames | Rigshelf / `rigshelf` | Current working identity. |
+| Product name, web title, navigation, icon, CLI help, download filenames | Rigshelf / `rigshelf` | Confirmed name and approved visual identity. |
 | Package metadata and primary executable | `rigshelf-workbench`, `rigshelf` | Private package; no external registration. |
 | New catalog connection snippets and MCP handshake metadata | `rigshelf` | Existing named connections are not rewritten. |
 | Default storage for a fresh installation | `.local/share/rigshelf` | Existing legacy storage is reused and explained. |

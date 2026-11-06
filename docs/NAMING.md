@@ -1,12 +1,12 @@
 # Naming exploration
 
-The current working identity is **Rigshelf**. It remains unregistered and subject to final naming approval. Current brand/storage behavior is recorded in [the compatibility audit](BRANDING.md); [the experience brief](EXPERIENCE.md) records the product direction. Baseline `main` remains unchanged. The candidate research below is historical, dated 2026-11-05, and is not a current availability check.
+**Rigshelf is the confirmed product name. The user approved the name and existing branding on 2026-11-07.** Current brand/storage behavior is recorded in [the compatibility audit](BRANDING.md); [the experience brief](EXPERIENCE.md) records the product direction. Baseline `main` remains unchanged. The candidate research below is historical, dated 2026-11-05, and is not a current availability check or a proposal to rename the product. No package/domain registration or trademark clearance is claimed.
 
 **Kitfold was an earlier temporary working name and was rejected for publication.** The dated research found a collision with an existing [macOS skills and agent-profile manager](https://github.com/kadaliao/kitfold). Do not publish under this name. The primary command is now `rigshelf`. Existing data and protocol identifiers are retained under the explicit compatibility policy; fresh storage uses the current name.
 
 The name should describe preparing a focused project kit across agents. It must cover skills, MCP connections and guidance, rather than imply a backup service or a public marketplace.
 
-## New candidates compared with the working name
+## Historical candidates compared with the earlier working name
 
 Checked 2026-11-05. These are proposals, not selected or reserved names.
 

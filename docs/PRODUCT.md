@@ -1,6 +1,6 @@
 # Product brief
 
-Working identity: **Rigshelf**. A private, local workbench for setting up coding agents per project. The independent direction and dated naming observations are recorded in [the experience brief](EXPERIENCE.md). No package/domain registration or trademark clearance is claimed. The prior interface remains on the preserved baseline branch.
+Confirmed product identity: **Rigshelf**. The user approved the name and existing branding on 2026-11-07. A private, local workbench for setting up coding agents per project. The independent direction and dated naming observations are recorded in [the experience brief](EXPERIENCE.md). No package/domain registration or trademark clearance is claimed. The prior interface remains on the preserved baseline branch.
 
 ## Product promise
 
