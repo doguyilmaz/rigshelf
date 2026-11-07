@@ -1,0 +1,143 @@
+---
+import Module from './Module.astro';
+---
+
+<section class="workbench-section wrap" id="workbench" aria-labelledby="workbench-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">02 / THE WORKING PART</p>
+      <h2 id="workbench-title">
+        A new project.
+        <br />
+        <em>A familiar starting point.</em>
+      </h2>
+    </div>
+    <p>
+      Switch the project. Keep your library.
+      <br />
+      Choose only what belongs in this one.
+    </p>
+  </div>
+  <div class="workbench" data-workbench>
+    <div class="bench-bar">
+      <span>
+        <span class="window-pips" aria-hidden="true">
+          ● ● ●
+        </span>{' '}
+        rigshelf / example workspace
+      </span>
+      <span class="bench-example">INTERACTIVE EXAMPLE</span>
+    </div>
+    <div class="bench-projects" role="group" aria-label="Example project">
+      <span class="bench-label">I’m building</span>
+      <button type="button" data-project="expo" aria-pressed="true">
+        Expo app <span>01</span>
+      </button>
+      <button type="button" data-project="web" aria-pressed="false">
+        Web app <span>02</span>
+      </button>
+      <button type="button" data-project="api" aria-pressed="false">
+        API service <span>03</span>
+      </button>
+    </div>
+    <div class="bench-content">
+      <div class="bench-scope">
+        <span class="bench-label">YOUR PROJECT KIT</span>
+        <h3 data-project-name>Fieldnotes</h3>
+        <p data-project-stack>Expo · React Native · TypeScript</p>
+        <div class="bench-mini">
+          <Module kind="skill" />
+          <Module kind="mcp" />
+        </div>
+        <span class="scope-stamp">
+          PROJECT SCOPE
+          <br />
+          <strong>4 selected capabilities</strong>
+        </span>
+      </div>
+      <div class="bench-kit">
+        <div class="bench-column-heading">
+          <span>Selected from Library</span>
+          <span>04</span>
+        </div>
+        <ul data-kit-list>
+          <li>
+            <span class="kit-kind">S</span>
+            <div>
+              <strong>React Native practices</strong>
+              <small>Skill · pinned Snapshot</small>
+            </div>
+            <span class="kit-tick" aria-label="Selected">
+              ✓
+            </span>
+          </li>
+          <li>
+            <span class="kit-kind">S</span>
+            <div>
+              <strong>Native UI patterns</strong>
+              <small>Skill · pinned Snapshot</small>
+            </div>
+            <span class="kit-tick" aria-label="Selected">
+              ✓
+            </span>
+          </li>
+          <li>
+            <span class="kit-kind">M</span>
+            <div>
+              <strong>Project docs</strong>
+              <small>MCP · environment references</small>
+            </div>
+            <span class="kit-tick" aria-label="Selected">
+              ✓
+            </span>
+          </li>
+          <li>
+            <span class="kit-kind">≡</span>
+            <div>
+              <strong>Your mobile conventions</strong>
+              <small>Directive · mobile scope</small>
+            </div>
+            <span class="kit-tick" aria-label="Selected">
+              ✓
+            </span>
+          </li>
+        </ul>
+        <p class="kit-footnote">The rest of your library stays on the shelf.</p>
+      </div>
+      <div class="bench-output">
+        <div class="bench-column-heading">
+          <span>Choose a Harness</span>
+          <div role="group" aria-label="Example Harness">
+            <button type="button" data-harness="claude" aria-pressed="true">
+              Claude
+            </button>
+            <button type="button" data-harness="codex" aria-pressed="false">
+              Codex
+            </button>
+          </div>
+        </div>
+        <div class="file-tab" data-file-name>
+          .mcp.json
+        </div>
+        <pre aria-label="Illustrative native configuration"><code data-file-code>{'{\n  "mcpServers": {\n    "project-docs": {\n      "type": "http",\n      "url": "https://example.test/mcp"\n    }\n  }\n}'}</code></pre>
+        <div class="file-receipt">
+          <span aria-hidden="true">↗</span>
+          <span data-skill-path>.claude/skills/</span>
+          <small>Skills keep their resources.</small>
+        </div>
+      </div>
+    </div>
+    <div class="bench-bottom">
+      <span data-example-status role="status">
+        Fieldnotes → Claude. Review the exact files before Apply.
+      </span>
+      <a href="/docs/start/">
+        See the real workflow <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </div>
+  <p class="example-note">
+    Illustrative data only. This example does not inspect files, install tools or connect to an MCP
+    server.
+  </p>
+</section>

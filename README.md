@@ -28,6 +28,8 @@ For development, `bun run dev` watches both frontend and server files. Frontend 
 
 For installation without a source checkout, build a portable archive with `bun run package`, or include a standalone executable with `bun run package:native`. Both retain the local browser UI, CLI and MCP engine. See [delivery options and installation](docs/DISTRIBUTION.md); local artifacts do not publish themselves.
 
+The separate Astro landing page and documentation site live in `site/`. From a source checkout, install with `bun install --cwd site --frozen-lockfile --backend=copyfile`, then run `bun run site:dev` (normally port `4321`). See [website development and hosting](docs/WEBSITE.md).
+
 English and Turkish are available in **Settings → Language**. Technical terms remain English. Four additional languages are tracked in the [localization release plan](docs/LOCALIZATION.md).
 
 ## Prepare your first project

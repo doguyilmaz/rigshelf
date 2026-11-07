@@ -9,7 +9,12 @@
       "design/**/*.tsx",
       "*.json",
       "vite.config.ts",
-      "!web/public"
+      "!web/public",
+      "site/src/**/*.ts",
+      "site/src/**/*.css",
+      "site/scripts/**/*.ts",
+      "site/*.json",
+      "site/*.mjs"
     ]
   },
   "formatter": {

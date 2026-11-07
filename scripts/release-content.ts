@@ -29,6 +29,7 @@ const documents = [
   'RESEARCH',
   'SECURITY-REVIEW',
   'VALIDATION',
+  'WEBSITE',
 ];
 const publicFiles = [
   'LICENSE',

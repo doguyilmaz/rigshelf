@@ -12,4 +12,6 @@ Public changes must not contain real catalog files, project names, local paths, 
 
 Write change descriptions around the resulting behavior, its reason, validation, and material limitations. Avoid adding infrastructure, background model loops or public registry features without a concrete product need.
 
+The separate Astro website has its own dependencies and check/format scripts. See [website development](docs/WEBSITE.md) for the static content pipeline, browser verification and hosting policy. Never copy private application state into a public site fixture.
+
 When changing an integration contract, update [MCP documentation](docs/MCP.md), [compatibility](docs/COMPATIBILITY.md) and the [integration Skill](skills/kitfold/SKILL.md) where relevant. See [maintenance](docs/MAINTENANCE.md) for source checks and immutable revision handling. Public docs describe available behavior and explicit limitations; do not publish private inventory counts, source receipts or QA evidence.

@@ -1,0 +1,22 @@
+---
+interface Props {
+  small?: boolean;
+}
+const { small = false } = Astro.props;
+---
+
+<a href="/" class:list={['wordmark', { compact: small }]} aria-label="Rigshelf home">
+  <svg viewBox="0 0 32 32" aria-hidden="true">
+    <rect width="32" height="32" rx="8" fill="currentColor" />
+    <path
+      d="M9 25V8h10a4 4 0 0 1 0 8h-6m5 0 5 9M13 20h4"
+      fill="none"
+      stroke="var(--paper)"
+      stroke-width="2.7"
+      stroke-linejoin="round"
+    />
+  </svg>
+  <span>
+    rigshelf<span class="wordmark-period">.</span>
+  </span>
+</a>

@@ -1,0 +1,25 @@
+<dialog id="doc-search" class="search-dialog" aria-labelledby="search-heading">
+  <div class="search-dialog-head">
+    <h2 id="search-heading">Find your way.</h2>
+    <button type="button" data-search-close aria-label="Close search">
+      ×
+    </button>
+  </div>
+  <label class="sr-only" for="doc-query">
+    Search documentation
+  </label>
+  <input
+    id="doc-query"
+    type="search"
+    placeholder="Try “MCP”, “backup” or “first project”…"
+    autocomplete="off"
+  />
+  <p class="search-status" role="status">
+    Search the guides. Everything stays in this tab.
+  </p>
+  <div class="search-results"></div>
+  <div class="search-foot">
+    <span>Rigshelf documentation</span>
+    <kbd>esc to close</kbd>
+  </div>
+</dialog>

@@ -1,0 +1,96 @@
+---
+import Base from '../../layouts/Base.astro';
+import Module from '../../components/Module.astro';
+import { guides } from '../../docs';
+import '../../styles/docs.css';
+const start = guides.filter((guide) =>
+  ['start', 'installation', 'library', 'ai', 'harnesses', 'backup'].includes(guide.slug),
+);
+---
+
+<Base
+  title="Documentation — Rigshelf"
+  description="Learn Rigshelf: your first project kit, a private library, Harness compatibility, AI assistance and reviewed backups."
+>
+  <main id="main" class="docs-index wrap">
+    <div class="docs-index-hero">
+      <div>
+        <p class="eyebrow">THE FIELD GUIDE / RIGSHELF</p>
+        <h1>
+          A place to
+          <br />
+          <em>get your bearings.</em>
+        </h1>
+        <p>
+          Start with one project. Understand the pieces.
+          <br />
+          Build a setup you can come back to.
+        </p>
+        <button class="docs-search-button" type="button" data-search-open>
+          Search the documentation <kbd>⌘ K</kbd>
+        </button>
+      </div>
+      <div class="docs-book" aria-hidden="true">
+        <div class="book-spine">RIGSHELF / FIELD GUIDE</div>
+        <div class="book-cover">
+          <span>R / 01</span>
+          <Module kind="rule" />
+          <strong>
+            The project
+            <br />
+            setup handbook.
+          </strong>
+          <small>SKILLS · MCP · PLUGINS · DIRECTIVES</small>
+        </div>
+      </div>
+    </div>
+    <div class="docs-index-intro">
+      <h2>Find your starting point.</h2>
+      <span>{guides.length} guides · maintained with the application</span>
+    </div>
+    <div class="guide-grid">
+      {start.map((guide, index) => (
+        <a href={`/docs/${guide.slug}/`}>
+          <span class="guide-no">
+            0{index + 1} / {guide.group.toUpperCase()}
+          </span>
+          <h3>
+            {guide.title} <span aria-hidden="true">↗</span>
+          </h3>
+          <p>{guide.description}</p>
+        </a>
+      ))}
+    </div>
+    <div class="docs-principles">
+      <h2>Three things to know.</h2>
+      <ol>
+        <li>
+          <strong>Library is storage.</strong>
+          <span>Saving a Skill does not activate it in every Agent session.</span>
+        </li>
+        <li>
+          <strong>A plan comes first.</strong>
+          <span>Choosing a folder or generating a draft grants no write permission.</span>
+        </li>
+        <li>
+          <strong>Your Harness has a say.</strong>
+          <span>Native discovery paths and approval semantics still apply.</span>
+        </li>
+      </ol>
+    </div>
+    <div class="reference-heading">
+      <p class="eyebrow">KEEP GOING</p>
+      <h2>Under the surface.</h2>
+    </div>
+    <div class="reference-links">
+      {guides
+        .filter((guide) => !start.some((item) => item.slug === guide.slug))
+        .map((guide) => (
+          <a href={`/docs/${guide.slug}/`}>
+            <span>{guide.title}</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+        ))}
+    </div>
+  </main>
+</Base>
