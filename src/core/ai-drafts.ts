@@ -97,42 +97,46 @@ export type AiProposal = z.infer<typeof AiProposalSchema> & { warnings: string[]
 const MAX_MASK_DEPTH = 8;
 /** Decode structured/escaped form fields before masking values for an external model. */
 export function maskAiText(input: string): string {
-  const visit = (value: unknown, depth: number): unknown => {
-    if (depth > MAX_MASK_DEPTH) return '[Nested data omitted]';
+  let changes = 0;
+  const changed = (value: string): string => {
+    changes++;
+    return value;
+  };
+  const visit = (value: unknown, depth: number, sensitive = false): unknown => {
+    if (depth > MAX_MASK_DEPTH) return changed('[Nested data omitted]');
     if (typeof value === 'string') {
       const masked = redact(value);
+      if (masked !== value) changes++;
       try {
         const parsed: unknown = JSON.parse(masked);
         if (
           (parsed && typeof parsed === 'object') ||
           (typeof parsed === 'string' && parsed !== value)
         ) {
-          const safe = visit(parsed, depth + 1);
-          return JSON.stringify(safe) === JSON.stringify(parsed) ? masked : JSON.stringify(safe);
+          const before = changes;
+          const safe = visit(parsed, depth + 1, sensitive);
+          return changes === before ? masked : JSON.stringify(safe);
         }
       } catch {
         /* Ordinary authored text. */
       }
-      return masked;
+      return sensitive && !/^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(masked)
+        ? changed('${KITFOLD_SECRET}')
+        : masked;
     }
-    if (Array.isArray(value)) return value.map((item) => visit(item, depth + 1));
+    if (Array.isArray(value)) return value.map((item) => visit(item, depth + 1, sensitive));
     if (value && typeof value === 'object')
       return Object.fromEntries(
         Object.entries(value).map(([key, field]) => {
-          const sensitive =
-            /api.?key|token$|client.?secret|password|authorization|cookie|private.?key|secret/i.test(
+          const fieldIsSensitive =
+            sensitive ||
+            /api.?key|token$|client.?secret|password|authorization|cookie|private.?key|secret|credentials?/i.test(
               key,
             );
-          if (
-            sensitive &&
-            typeof field === 'string' &&
-            !/^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(field)
-          )
-            return [key, '${KITFOLD_SECRET}'];
-          return [key, visit(field, depth + 1)];
+          return [key, visit(field, depth + 1, fieldIsSensitive)];
         }),
       );
-    return value;
+    return sensitive && typeof value === 'number' ? changed('${KITFOLD_SECRET}') : value;
   };
   return String(visit(input, 0));
 }

@@ -9,7 +9,7 @@ import {
   listAiDrafts,
   startAiDraft,
 } from '../src/core/ai-assistance';
-import { AiRequestSchema, parseAiProposal } from '../src/core/ai-drafts';
+import { AiRequestSchema, maskAiText, parseAiProposal } from '../src/core/ai-drafts';
 import { route } from '../src/core/service';
 import { aiCommand, runAi } from '../src/platform/ai-runner';
 import { fixture, sampleSkill } from './helpers';
@@ -216,6 +216,61 @@ test('prompts mask known credential formats and bound catalog context without co
     startAiDraft(data.store, { ...request, runner: 'session' });
   expect(listAiDrafts(data.store)).toHaveLength(24);
 });
+test('deep AI context stays bounded without falling back to unmasked input', async () => {
+  const data = await setup();
+  const current = `${'['.repeat(8000)}{"apiKey":{"value":"deep-fixture-private-value"}}${']'.repeat(8000)}`;
+  const job = startAiDraft(data.store, { ...request, runner: 'session', current });
+  expect(job.prompt).not.toContain('deep-fixture-private-value');
+  expect(job.prompt).toContain('[Nested data omitted]');
+  expect(job.request.current).not.toContain('deep-fixture-private-value');
+});
+
+test('accepted AI context masks nested credential values and rejects them in proposals', async () => {
+  const data = await setup();
+  const privateValues = {
+    apiKey: { value: 'object-fixture-private-value' },
+    credentials: ['array-fixture-private-value'],
+    password: 987321,
+    hasToken: true,
+    token: '${KEPT_TOKEN}',
+  };
+  const job = startAiDraft(data.store, {
+    ...request,
+    runner: 'session',
+    current: JSON.stringify(privateValues),
+  });
+  expect(job.prompt).not.toContain('object-fixture-private-value');
+  expect(job.prompt).not.toContain('array-fixture-private-value');
+  expect(job.prompt).not.toContain('987321');
+  expect(job.prompt).toContain('${KEPT_TOKEN}');
+  expect(job.prompt).toContain('hasToken');
+  const referenceOnly = JSON.stringify({
+    credentials: { apiKey: '${KEPT_TOKEN}', sessions: ['Bearer ${SESSION}'], enabled: true },
+  });
+  expect(maskAiText(referenceOnly)).toBe(referenceOnly);
+  expect(
+    parseAiProposal(
+      JSON.stringify({
+        summary: 'Use references.',
+        questions: [],
+        draft: { kind: 'text', text: referenceOnly },
+      }),
+      'text',
+      new Set(),
+    ).draft,
+  ).toHaveProperty('text', referenceOnly);
+  expect(() =>
+    parseAiProposal(
+      JSON.stringify({
+        summary: 'A structured draft.',
+        questions: [],
+        draft: { kind: 'text', text: JSON.stringify(privateValues) },
+      }),
+      'text',
+      new Set(),
+    ),
+  ).toThrow('credential');
+});
 test('an interrupted old run cannot block generation indefinitely', async () => {
   const data = await setup();
   const job = startAiDraft(data.store, { ...request, runner: 'session' });
@@ -355,3 +410,42 @@ test('CLI runners use isolated fixed arguments, stdin, bounded output and a mini
     delete process.env.KITFOLD_UNRELATED_DUMMY;
   }
 });
+
+for (const kind of ['symlink', 'hardlink']) {
+  test(`Codex final output rejects a ${kind} and drains its temporary directory`, async () => {
+    const data = await setup();
+    const binaries = join(data.root, 'bin');
+    await mkdir(binaries);
+    const privateFile = join(data.root, 'outside-draft.json');
+    const privateBody = '{"summary":"Private outside-fixture draft."}';
+    await Bun.write(privateFile, privateBody);
+    const executable = join(binaries, 'codex');
+    const operation = kind === 'symlink' ? 'symlink' : 'link';
+    await Bun.write(
+      executable,
+      `#!${process.execPath}
+import { ${operation} } from 'node:fs/promises';
+await new Response(Bun.stdin.stream()).text();
+const output = process.argv[process.argv.indexOf('--output-last-message') + 1];
+await ${operation}(${JSON.stringify(privateFile)}, output);
+`,
+    );
+    await chmod(executable, 0o700);
+    const originalPath = process.env.PATH;
+    process.env.PATH = `${binaries}:${originalPath}`;
+    try {
+      await expect(
+        runAi({
+          request: AiRequestSchema.parse({ ...request, runner: 'codex' }),
+          prompt: 'Prepare a bounded dummy draft.',
+          directory: data.store.directory,
+          signal: new AbortController().signal,
+        }),
+      ).rejects.toThrow('Codex did not return a bounded final draft.');
+      expect(await Bun.file(privateFile).text()).toBe(privateBody);
+      expect(await readdir(join(data.store.directory, 'ai-work'))).toEqual([]);
+    } finally {
+      process.env.PATH = originalPath;
+    }
+  });
+}

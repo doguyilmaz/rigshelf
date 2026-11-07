@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AiConnection } from '../core/ai-connections';
 import type { AiRequest } from '../core/ai-drafts';
+import { readLocalBytes } from '../core/local-files';
 import { readReviewResponse } from '../core/review-response';
 import { runCompatibleAi } from './compatible-ai';
 
@@ -224,10 +225,11 @@ export const runAi: AiDriver = async ({ request, prompt, directory, signal, conn
       signal,
     );
     if (request.runner === 'codex') {
-      const file = Bun.file(output);
-      if (!(await file.exists()) || file.size > MAX_OUTPUT_BYTES)
+      try {
+        return (await readLocalBytes(output, MAX_OUTPUT_BYTES)).toString('utf8');
+      } catch {
         throw new Error('Codex did not return a bounded final draft.');
-      return file.text();
+      }
     }
     const envelope: unknown = JSON.parse(result);
     if (
