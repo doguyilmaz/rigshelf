@@ -1,5 +1,7 @@
 import { writeFile } from 'node:fs/promises';
+import { satteri } from '@astrojs/markdown-satteri';
 import { defineConfig } from 'astro/config';
+import markdownLayout from './scripts/markdown-layout.ts';
 import { guides } from './src/docs.ts';
 
 const origin = process.env.RIGSHELF_SITE_URL;
@@ -26,7 +28,10 @@ export default defineConfig({
   devToolbar: { enabled: false },
   compressHTML: true,
   build: { inlineStylesheets: 'never' },
-  markdown: { shikiConfig: { theme: 'github-light' } },
+  markdown: {
+    processor: satteri({ hastPlugins: [markdownLayout] }),
+    shikiConfig: { theme: 'github-light' },
+  },
   vite: { build: { assetsInlineLimit: 0 } },
   server: { port: 4321, host: '127.0.0.1' },
   integrations: [

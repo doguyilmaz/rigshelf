@@ -252,11 +252,15 @@ function bindPointer(canvas: HTMLCanvasElement, motion: RigMotion): () => void {
   canvas.addEventListener('pointermove', move);
   canvas.addEventListener('pointerup', up);
   canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('lostpointercapture', up);
+  window.addEventListener('blur', up);
   return () => {
     canvas.removeEventListener('pointerdown', down);
     canvas.removeEventListener('pointermove', move);
     canvas.removeEventListener('pointerup', up);
     canvas.removeEventListener('pointercancel', up);
+    canvas.removeEventListener('lostpointercapture', up);
+    window.removeEventListener('blur', up);
   };
 }
 

@@ -52,16 +52,14 @@
   border-color: #57554d;
 }
 .studio-page .search-dialog {
-  --paper: #f7f7f2;
-  --ink: #252525;
-  --muted: #666660;
-  --line: #deded6;
-  color: #252525;
-  color-scheme: light;
-}
-.studio-page .search-dialog input,
-.studio-page .search-results a {
-  color: #252525;
+  --search-paper: #211f1c;
+  --search-ink: #f3ede2;
+  --search-muted: #bfb4a0;
+  --search-line: #575043;
+  --search-field: #171614;
+  --search-hover: #30291f;
+  --search-ring: #e78758;
+  color-scheme: dark;
 }
 .studio-hero {
   width: min(1600px, 100%);
@@ -137,7 +135,8 @@
     background-color 160ms ease,
     transform 160ms var(--ease-out);
 }
-.studio-button > span {
+.studio-button > span,
+.studio-button > .icon {
   font-size: 22px;
   line-height: 1;
 }
@@ -202,6 +201,7 @@
 }
 .rig-stage canvas {
   opacity: 0;
+  pointer-events: none;
   transition: opacity 200ms ease;
   cursor: grab;
 }
@@ -209,12 +209,15 @@
   cursor: grabbing;
 }
 .rig-stage[data-renderer="webgl"] canvas {
+  pointer-events: auto;
   opacity: 1;
 }
 .rig-stage[data-renderer="webgl"] .stage-fallback {
   opacity: 0;
 }
 .stage-fallback {
+  pointer-events: none;
+  user-select: none;
   transition: opacity 200ms ease;
 }
 .stage-reticle {
@@ -750,7 +753,7 @@
   font: 12px / 1.6 monospace;
   color: #b5a78c;
 }
-.native-agent-rail button > span:last-child {
+.native-agent-rail button > .icon {
   margin-left: auto;
   visibility: hidden;
   font-size: 20px;
@@ -855,7 +858,7 @@
   color: #fff0d4;
   overflow-wrap: anywhere;
 }
-.native-file > span:last-child {
+.native-file > .icon {
   margin-left: auto;
   color: #c1a776;
   font-size: 18px;
@@ -1297,15 +1300,14 @@
 .studio-faq summary::-webkit-details-marker {
   display: none;
 }
-.studio-faq summary::after {
-  content: "+";
+.studio-faq summary > .faq-toggle {
   color: #e3b274;
   font-size: 22px;
   line-height: 1.2;
   flex-shrink: 0;
 }
-.studio-faq details[open] summary::after {
-  content: "−";
+.studio-faq details[open] .icon-plus-stem {
+  opacity: 0;
 }
 .studio-faq p {
   font-size: 16px;
@@ -1876,7 +1878,7 @@
   .native-file code {
     font-size: 14px;
   }
-  .native-file > span:last-child {
+  .native-file > .icon {
     display: none;
   }
   .file-type {
@@ -2049,4 +2051,73 @@
   .studio-button:active {
     transform: none;
   }
+}
+
+.source-chip-mark svg {
+  width: 30px;
+  height: 30px;
+}
+.orbit-center svg {
+  width: 58px;
+  height: 58px;
+}
+.studio-hero-actions > a .icon,
+.studio-inline-link .icon,
+.context-explainer a .icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+.rig-footnote > span:last-child {
+  min-height: 3.2em;
+}
+.rig-view-controls button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.rig-view-controls button[aria-busy="true"] {
+  color: var(--signal);
+}
+.icon-plus-stem {
+  transition: opacity 160ms ease;
+}
+@supports (interpolate-size: allow-keywords) {
+  .studio-faq details {
+    interpolate-size: allow-keywords;
+  }
+  .studio-faq details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 220ms var(--ease-out),
+      content-visibility 220ms allow-discrete;
+  }
+  .studio-faq details[open]::details-content {
+    block-size: auto;
+  }
+  .studio-faq details:has(summary:focus-visible)::details-content {
+    transition: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-faq details::details-content,
+  .icon-plus-stem,
+  .nav-disclosure summary span {
+    transition: none;
+  }
+}
+
+.local-columns a,
+.studio-faq details > a,
+.ending-docs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.studio-ending .ending-docs {
+  display: flex;
+}
+.mini-receipt > span > .icon {
+  width: 28px;
+  height: 28px;
 }

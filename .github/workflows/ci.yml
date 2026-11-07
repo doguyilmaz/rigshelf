@@ -37,6 +37,7 @@ jobs:
       - run: bun install --cwd site --frozen-lockfile --backend=copyfile
       - run: bun run site:check
       - run: bun run --cwd site lint
+      - run: bun run --cwd site test
       - run: bun run site:build
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:site

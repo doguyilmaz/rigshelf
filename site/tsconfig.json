@@ -2,5 +2,8 @@
   "extends": "astro/tsconfigs/strict",
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist", "node_modules"],
-  "compilerOptions": { "types": ["astro/client"], "noUncheckedIndexedAccess": true }
+  "compilerOptions": {
+    "types": ["astro/client", "bun"],
+    "noUncheckedIndexedAccess": true
+  }
 }

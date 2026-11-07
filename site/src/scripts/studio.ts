@@ -3,14 +3,28 @@ import { type HarnessKey, harnesses, library, type ProjectKey, projects } from '
 
 const stage = document.querySelector<HTMLElement>('[data-rig-stage]')!;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-let controller: RigController | undefined,
-  loading: Promise<void> | undefined,
-  failed = false,
-  destroyed = false;
-let selected: ProjectKey = 'expo',
-  expanded = false,
+const rotateButton = document.querySelector<HTMLButtonElement>('[data-rig-rotate]')!;
+const searchDialog = document.querySelector<HTMLDialogElement>('#doc-search')!;
+let controller: RigController | undefined, loading: Promise<void> | undefined;
+let failed = false,
+  destroyed = false,
+  selected: ProjectKey = 'expo';
+let expanded = false,
   visible = true,
-  fallbackTurn = 0;
+  obscured = searchDialog.open;
+let rotationSteps = 0,
+  rotationRequested = false;
+let commandPending = false;
+const canDraw = (): boolean => visible && !document.hidden && !obscured;
+
+function refreshCaption(): void {
+  document.querySelector('[data-rig-motion-label]')!.textContent =
+    commandPending && !failed
+      ? 'Preparing the 3D view…'
+      : expanded
+        ? `Layers separated for ${projects[selected].name}`
+        : `Assembled for ${projects[selected].name}`;
+}
 
 function animateFallback(animate: boolean): void {
   for (const [index, part] of [
@@ -19,94 +33,119 @@ function animateFallback(animate: boolean): void {
     const previous = getComputedStyle(part).transform;
     for (const animation of part.getAnimations()) animation.cancel();
     const transform = expanded ? `translateY(${-25 - index * 8}px)` : 'translateY(0px)';
-    if (animate && !reduced.matches)
+    if (animate && !reduced.matches && canDraw())
       part.animate([{ transform: previous }, { transform }], {
-        duration: 900,
+        duration: 700,
         easing: 'cubic-bezier(.23,1,.32,1)',
       });
     part.style.transform = transform;
   }
 }
 
-async function loadRig(): Promise<void> {
-  if (controller || failed || destroyed) return;
-  if (!loading)
-    loading = (async () => {
-      const canvas = stage.querySelector<HTMLCanvasElement>('canvas')!;
-      try {
-        const context = canvas.getContext('webgl2', {
-          alpha: true,
-          antialias: true,
-          powerPreference: 'low-power',
-        });
-        if (!context) {
-          failed = true;
-          return;
-        }
-        const { createRig } = await import('./rig-renderer');
-        await document.fonts.ready;
-        const rig = await createRig(canvas, stage, () => reduced.matches);
-        if (destroyed) {
-          rig.destroy();
-          return;
-        }
-        controller = rig;
-        stage.dataset.renderer = 'webgl';
-        rig.project(selected, false);
-        rig.explode(expanded, false);
-        rig.visible(visible);
-        document.querySelector('[data-rig-instruction]')!.textContent = matchMedia(
-          '(hover: hover) and (pointer: fine)',
-        ).matches
-          ? 'Drag the rig or use the controls.'
-          : 'Use the controls to explore the rig.';
-      } catch {
-        failed = true;
-        stage.dataset.renderer = 'static';
-      }
-    })();
+function unavailable(): void {
+  failed = true;
+  rotateButton.removeAttribute('aria-busy');
+  rotateButton.disabled = true;
+  rotateButton.title = '3D rotation is unavailable in this browser';
+  document.querySelector('[data-rig-instruction]')!.textContent =
+    '3D rotation is unavailable here.';
+  animateFallback(false);
+}
+
+async function prepareRig(): Promise<void> {
+  const canvas = stage.querySelector<HTMLCanvasElement>('canvas')!;
+  try {
+    if (
+      !canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'low-power' })
+    ) {
+      unavailable();
+      return;
+    }
+    const { createRig } = await import('./rig-renderer');
+    await document.fonts.ready;
+    if (destroyed || obscured) return;
+    const rig = await createRig(canvas, stage, () => reduced.matches);
+    if (destroyed || failed) {
+      rig.destroy();
+      return;
+    }
+    rig.visible(false);
+    rig.project(selected, false);
+    rig.explode(expanded, false);
+    for (let step = 0; step < rotationSteps; step++) rig.rotate(false);
+    controller = rig;
+    rig.visible(canDraw());
+    stage.dataset.renderer = 'webgl';
+    document.querySelector('[data-rig-instruction]')!.textContent = matchMedia(
+      '(hover: hover) and (pointer: fine)',
+    ).matches
+      ? 'Drag the rig or use the controls.'
+      : 'Use the controls to explore the rig.';
+  } catch {
+    stage.dataset.renderer = 'static';
+    unavailable();
+  }
+}
+
+async function loadRig(explicit = false): Promise<void> {
+  if (controller || failed || destroyed || obscured) return;
+  if (!explicit && (!visible || (reduced.matches && !rotationRequested))) return;
+  if (explicit) {
+    commandPending = true;
+    refreshCaption();
+  }
+  if (!loading) {
+    rotateButton.setAttribute('aria-busy', 'true');
+    loading = prepareRig().finally(() => {
+      loading = undefined;
+      commandPending = false;
+      refreshCaption();
+      rotateButton.removeAttribute('aria-busy');
+    });
+  }
   await loading;
 }
 
-function updateProject(key: ProjectKey, animate: boolean): void {
+async function updateProject(key: ProjectKey, animate: boolean): Promise<void> {
   selected = key;
   expanded = false;
+  rotationSteps = 0;
   document.querySelectorAll<HTMLButtonElement>('[data-rig-project]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.rigProject === key));
   });
-  document.querySelector('[data-rig-motion-label]')!.textContent =
-    `Assembled for ${projects[key].name}`;
+  refreshCaption();
   document.querySelector('[data-rig-split]')!.setAttribute('aria-pressed', 'false');
   stage.dataset.exploded = 'false';
   if (controller) controller.project(key, animate);
-  else animateFallback(animate);
+  else {
+    if (!reduced.matches) await loadRig(true);
+    if (!controller) animateFallback(animate);
+  }
 }
 
 for (const button of document.querySelectorAll<HTMLButtonElement>('[data-rig-project]'))
   button.addEventListener('click', (event) => {
     const key = button.dataset.rigProject;
     if (key && Object.hasOwn(projects, key))
-      updateProject(key as ProjectKey, event.detail > 0 && !reduced.matches);
+      void updateProject(key as ProjectKey, event.detail > 0 && !reduced.matches);
   });
-document.querySelector('[data-rig-split]')?.addEventListener('click', (event) => {
+document.querySelector('[data-rig-split]')!.addEventListener('click', async (event) => {
   expanded = !expanded;
   stage.dataset.exploded = String(expanded);
-  document.querySelector('[data-rig-motion-label]')!.textContent = expanded
-    ? `Layers separated for ${projects[selected].name}`
-    : `Assembled for ${projects[selected].name}`;
+  refreshCaption();
   document.querySelector('[data-rig-split]')!.setAttribute('aria-pressed', String(expanded));
-  if (controller) controller.explode(expanded, (event as MouseEvent).detail > 0);
-  else animateFallback((event as MouseEvent).detail > 0);
-  if (!reduced.matches) void loadRig();
-});
-document.querySelector('[data-rig-rotate]')?.addEventListener('click', async (event) => {
-  if (!reduced.matches) await loadRig();
-  if (controller) controller.rotate((event as MouseEvent).detail > 0);
+  const animate = (event as MouseEvent).detail > 0;
+  if (controller) controller.explode(expanded, animate);
   else {
-    fallbackTurn = fallbackTurn ? 0 : 12;
-    stage.querySelector<SVGElement>('.stage-fallback')!.style.transform =
-      `perspective(900px) rotateY(${fallbackTurn}deg)`;
+    if (!reduced.matches) await loadRig(true);
+    if (!controller) animateFallback(animate);
   }
+});
+rotateButton.addEventListener('click', async (event) => {
+  rotationRequested = true;
+  rotationSteps = (rotationSteps + 1) % 4;
+  if (controller) controller.rotate(event.detail > 0);
+  else await loadRig(true);
 });
 
 function contextProject(key: ProjectKey): void {
@@ -153,31 +192,38 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-native-
       `${harness.name} selected. Example paths only; nothing is installed.`;
   });
 
+function syncVisibility(): void {
+  controller?.visible(canDraw());
+  if (canDraw()) void loadRig();
+}
 const observer = new IntersectionObserver(
   (entries) => {
     visible = entries.some((entry) => entry.isIntersecting);
-    controller?.visible(visible && !document.hidden);
-    if (visible && !reduced.matches) void loadRig();
+    syncVisibility();
   },
   { threshold: 0.08 },
 );
 observer.observe(stage);
+const overlayObserver = new MutationObserver(() => {
+  obscured = searchDialog.open;
+  syncVisibility();
+});
+overlayObserver.observe(searchDialog, { attributes: true, attributeFilter: ['open'] });
 reduced.addEventListener('change', () => {
   if (reduced.matches) {
     controller?.stopMotion();
     for (const animation of stage.getAnimations({ subtree: true })) animation.cancel();
-  } else if (visible) void loadRig();
+    if (!controller) animateFallback(false);
+  } else syncVisibility();
 });
-document.addEventListener('visibilitychange', () =>
-  controller?.visible(visible && !document.hidden),
-);
-stage.querySelector('canvas')?.addEventListener('webglcontextlost', (event) => {
+document.addEventListener('visibilitychange', syncVisibility);
+stage.querySelector('canvas')!.addEventListener('webglcontextlost', (event) => {
   event.preventDefault();
   controller?.destroy();
   controller = undefined;
-  failed = true;
   stage.dataset.renderer = 'static';
   stage.dataset.moving = 'false';
+  unavailable();
 });
 window.addEventListener('pagehide', (event) => {
   if (event.persisted) {
@@ -186,6 +232,7 @@ window.addEventListener('pagehide', (event) => {
   }
   destroyed = true;
   observer.disconnect();
+  overlayObserver.disconnect();
   controller?.destroy();
 });
-window.addEventListener('pageshow', () => controller?.visible(visible && !document.hidden));
+window.addEventListener('pageshow', syncVisibility);

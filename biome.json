@@ -13,6 +13,7 @@
       "site/src/**/*.ts",
       "site/src/**/*.css",
       "site/scripts/**/*.ts",
+      "site/tests/**/*.ts",
       "site/*.json",
       "site/*.mjs"
     ]

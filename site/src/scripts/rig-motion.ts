@@ -21,6 +21,8 @@ function easeOut(progress: number): number {
 
 export class RigMotion {
   private frame = 0;
+  private drawFrame = 0;
+  private pausedAt = 0;
   private startTime = 0;
   private moving = false;
   private destroyed = false;
@@ -34,7 +36,7 @@ export class RigMotion {
   constructor(
     private rig: Group,
     private modules: Group[],
-    private host: HTMLElement,
+    private host: Pick<HTMLElement, 'dataset'>,
     private draw: () => void,
     private reduced: () => boolean,
     private slots: readonly (readonly [number, number, number])[],
@@ -80,6 +82,8 @@ export class RigMotion {
 
   private transition(animate: boolean): void {
     cancelAnimationFrame(this.frame);
+    cancelAnimationFrame(this.drawFrame);
+    this.drawFrame = 0;
     this.starts = this.modules.map((module) => module.position.clone());
     this.startYaw = this.rig.rotation.y;
     if (!animate || this.reduced()) {
@@ -88,12 +92,13 @@ export class RigMotion {
     }
     this.moving = true;
     this.host.dataset.moving = 'true';
-    this.startTime = performance.now();
+    this.startTime = this.pausedAt = performance.now();
     if (this.isVisible) this.frame = requestAnimationFrame(this.tick);
   }
 
   project(key: ProjectKey, animate: boolean): void {
-    this.yaw = PROJECT_ANGLES[key];
+    const delta = PROJECT_ANGLES[key] - this.rig.rotation.y;
+    this.yaw = this.rig.rotation.y + Math.atan2(Math.sin(delta), Math.cos(delta));
     this.expanded = false;
     this.updateTargets();
     this.transition(animate);
@@ -114,26 +119,40 @@ export class RigMotion {
     this.yaw += delta;
     this.startYaw += delta;
     this.rig.rotation.y += delta;
-    this.draw();
+    if (!this.isVisible || this.frame || this.drawFrame) return;
+    this.drawFrame = requestAnimationFrame(() => {
+      this.drawFrame = 0;
+      this.draw();
+    });
   }
 
   visible(value: boolean): void {
+    if (value === this.isVisible) return;
     this.isVisible = value;
     cancelAnimationFrame(this.frame);
-    if (value) {
-      if (this.moving) this.transition(!this.reduced());
-      else this.draw();
+    cancelAnimationFrame(this.drawFrame);
+    this.frame = this.drawFrame = 0;
+    if (!value) {
+      this.pausedAt = performance.now();
+      return;
     }
+    if (this.moving) {
+      this.startTime += performance.now() - this.pausedAt;
+      this.frame = requestAnimationFrame(this.tick);
+    } else this.draw();
   }
 
   stop(): void {
     cancelAnimationFrame(this.frame);
+    cancelAnimationFrame(this.drawFrame);
+    this.frame = this.drawFrame = 0;
     this.finish();
   }
 
   destroy(): void {
     this.destroyed = true;
     cancelAnimationFrame(this.frame);
+    cancelAnimationFrame(this.drawFrame);
     this.host.dataset.moving = 'false';
   }
 }

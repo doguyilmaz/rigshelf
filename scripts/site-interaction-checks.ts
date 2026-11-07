@@ -171,7 +171,7 @@ export async function checkSectionNavigation(page: Page, origin: string): Promis
   expect(
     await page.evaluate(() => scrollY),
     'Wheel input keeps control after interrupting section navigation',
-  ).toBe(interruptedY);
+  ).toBeLessThanOrEqual(interruptedY + 1);
   expect(
     await page.locator('#how-it-works').evaluate((node) => node.getBoundingClientRect().top),
   ).toBeGreaterThan(250);

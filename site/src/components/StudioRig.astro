@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 import { projects } from '../scripts/studio-data';
 const modules = [
   { x: 350, y: 210, symbol: 'S', top: 'url(#studio-metal)', side: '#777d7e', ink: '#202421' },
@@ -149,19 +150,15 @@ const modules = [
         aria-label="Explode rig"
         title="Separate the rig layers"
       >
-        <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor">
-          <path d="m3 6 7-4 7 4-7 4zM3 10l7 4 7-4M3 14l7 4 7-4" />
-        </svg>
+        <Icon name="layers" />
       </button>
       <button type="button" data-rig-rotate aria-label="Rotate rig" title="Rotate the rig">
-        <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor">
-          <path d="M15 5A7 7 0 1 0 17 10M15 2v4h-4" />
-        </svg>
+        <Icon name="rotate" />
       </button>
     </div>
   </div>
   <p class="rig-footnote">
     <span>Illustrative rig. No tools are installed.</span>
-    <span data-rig-instruction>Choose a project or explore the layers ↗</span>
+    <span data-rig-instruction>Choose a project or explore the layers.</span>
   </p>
 </div>

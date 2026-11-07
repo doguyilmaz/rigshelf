@@ -3,11 +3,18 @@ import { extname, join, resolve, sep } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { type Browser, type BrowserContext, chromium, expect, type Page } from '@playwright/test';
 import { guides } from '../site/src/docs';
+import { checkDocsCommands, checkDocsReadability } from './site-docs-checks';
 import {
   checkLandingReadability,
   checkSectionNavigation,
   checkSelectionStability,
 } from './site-interaction-checks';
+import {
+  checkDisclosures,
+  checkLateRigBoot,
+  checkSearchLifecycle,
+  checkSearchViewports,
+} from './site-search-checks';
 
 const root = resolve('site/dist');
 const evidence = resolve('.local/qa/site');
@@ -66,6 +73,7 @@ captureErrors(page);
 await localRequests(context);
 const targets = new Set<string>();
 let layoutCases = 0;
+let docsReadabilityCases = 0;
 async function fits(label: string) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
   expect(overflow, label).toBe(false);
@@ -95,6 +103,10 @@ try {
         path: join(evidence, path === '/' ? 'home-viewport.png' : 'previous-viewport.png'),
       });
     await fits(path);
+    if (path.startsWith('/docs/') && path !== '/docs/') {
+      await checkDocsReadability(page, path);
+      docsReadabilityCases++;
+    }
     const hrefs = await page
       .locator('a[href]')
       .evaluateAll((links) => links.map((link) => (link as HTMLAnchorElement).href));
@@ -118,20 +130,24 @@ try {
   checks.push(
     'All internal documentation links and referenced fragments resolve to the generated canonical pages.',
   );
-  for (const width of [1440, 1024, 768, 390, 320]) {
+  for (const width of [1440, 1280, 1024, 1000, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ['/', '/docs/', '/docs/data/']) {
+    for (const path of ['/', '/docs/', '/docs/data/', '/docs/installation/']) {
       await page.goto(`${origin}${path}`);
       await fits(`${path} at ${width}`);
       if (path === '/') {
         await checkLandingReadability(page, width);
         await checkSelectionStability(page);
       }
+      if (path === '/docs/data/' || path === '/docs/installation/') {
+        await checkDocsReadability(page, `${path} at ${width}`);
+        docsReadabilityCases++;
+      }
       await page.evaluate(() => document.fonts.ready);
       await page.screenshot({
         path: join(
           evidence,
-          `${path === '/' ? 'home' : path.includes('data') ? 'doc' : 'guides'}-${width}.png`,
+          `${path === '/' ? 'home' : path.includes('installation') ? 'installation' : path.includes('data') ? 'doc' : 'guides'}-${width}.png`,
         ),
         fullPage: path === '/',
       });
@@ -151,13 +167,33 @@ try {
         await page.screenshot({ path: join(evidence, 'doc-viewport-390.png') });
     }
   }
+  await page.setViewportSize({ width: 320, height: 740 });
+  for (const guide of guides) {
+    await page.goto(`${origin}/docs/${guide.slug}/`);
+    await checkDocsReadability(page, `${guide.slug} at 320px`);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      guide.slug,
+    ).toBe(true);
+    docsReadabilityCases++;
+  }
+  await checkDocsCommands(page, origin);
+  checks.push(
+    'Every guide retains 18px prose, 15px code and 16px tables at desktop and 320px; installation/data reading layouts pass seven widths. Copy preserves canonical commands, clipboard denial selects the full code, and keyboard scrolling stays within code/tables.',
+  );
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await checkDisclosures(page, origin);
+  await checkSearchLifecycle(page, origin);
+  await checkSearchViewports(page, origin);
+  checks.push(
+    'Search opens directly into its input, keeps modal/scroll geometry, survives interrupted exit/reopen and late results, supports clearing and arrow navigation, and fits mobile/short windows with no Axe findings.',
+  );
   await checkSectionNavigation(page, origin);
   checks.push(
     'Pointer section links interpolate with a sticky-header offset; hash history, focus, keyboard/reduced-motion navigation, wheel interruption and search scroll restoration work.',
   );
   checks.push(
-    'Readable 12px-minimum labels, 16px-minimum reading text, 40px controls and unobscured directive cards pass at five widths; all project/Harness selections retain layout height.',
+    'Readable 12px-minimum labels, 16px-minimum reading text, 40px controls and unobscured directive cards pass at seven widths; all project/Harness selections retain layout height.',
   );
   await page.goto(origin);
   const box = await page.locator('.context-machine').boundingBox();
@@ -179,14 +215,14 @@ try {
     'Context selection changes four focused capabilities while keeping native Plugin references outside; Harness selection updates documented native paths without page jumps.',
   );
   await page.getByRole('button', { name: 'Search documentation', exact: true }).click();
-  const search = page.getByRole('dialog', { name: 'Find your way.' });
+  const search = page.getByRole('dialog', { name: 'Search documentation' });
   await expect(search).toBeVisible();
-  const searchFrame = await search.boundingBox();
+  const searchFrame = await search.locator('.search-panel').boundingBox();
   await page.getByRole('searchbox').fill('immutable');
   await expect(search.locator('.search-results a').first()).toBeVisible();
   await page.getByRole('searchbox').fill('no-fixture-match-931');
   await expect(search.getByRole('status')).toContainText('No matching guides');
-  expect((await search.boundingBox())?.height).toBe(searchFrame?.height);
+  expect((await search.locator('.search-panel').boundingBox())?.height).toBe(searchFrame?.height);
   await page.getByRole('searchbox').fill('MCP');
   await expect(search.getByRole('link', { name: /MCP integration/ })).toBeVisible();
   await page.keyboard.press('Escape');
@@ -205,7 +241,7 @@ try {
     .click();
   await expect(page).toHaveURL(`${origin}/docs/`);
   await page.goto(`${origin}/docs/start/`);
-  await page.getByText('Browse the guides', { exact: true }).click();
+  await page.getByText('Browse guides', { exact: true }).click();
   await page.locator('.docs-mobile-tools').getByRole('link', { name: 'Backup & restore' }).click();
   await expect(page.locator('h1')).toHaveText('Backup & restore');
   checks.push('Mobile navigation and the docs guide drawer reach real pages at 320px.');
@@ -288,6 +324,18 @@ try {
   await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'false');
   await graphicsPage.getByRole('button', { name: 'Explode rig' }).click();
   await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'true');
+  await graphicsPage.getByRole('button', { name: 'Search documentation', exact: true }).click();
+  await expect(graphicsPage.getByRole('dialog')).toHaveAttribute('data-state', 'open');
+  const coveredFrames = await graphicsPage.evaluate(
+    () => (globalThis as typeof globalThis & { rigFrameCount: number }).rigFrameCount,
+  );
+  await graphicsPage.waitForTimeout(250);
+  expect(
+    await graphicsPage.evaluate(
+      () => (globalThis as typeof globalThis & { rigFrameCount: number }).rigFrameCount,
+    ),
+  ).toBe(coveredFrames);
+  await graphicsPage.keyboard.press('Escape');
   await graphicsPage.getByRole('button', { name: 'Rotate rig' }).click();
   await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'false', {
     timeout: 10000,
@@ -316,9 +364,20 @@ try {
     canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
   });
   await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-renderer', 'static');
+  await expect(graphicsPage.getByRole('button', { name: 'Rotate rig' })).toBeDisabled();
+  expect(
+    await graphicsPage
+      .locator('[data-static-part]')
+      .first()
+      .evaluate((node) => getComputedStyle(node).transform),
+  ).not.toBe('none');
   await graphics.close();
   checks.push(
     'Software WebGL renders the actual model; desktop/mobile framing works, idle/offscreen frames stop, keyboard changes are immediate, interrupted layer/rotation transitions settle, reduced motion stops interpolation and context loss restores the illustration.',
+  );
+  await checkLateRigBoot(graphicsBrowser, origin);
+  checks.push(
+    'Delayed graphics keep the fallback stable, preserve the latest project/layer intent and defer initialization behind Search; SVG icons and rapid FAQ toggles retain layout.',
   );
   const fallback = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -360,6 +419,12 @@ try {
     .getByRole('link', { name: 'Build your first kit' })
     .click();
   await expect(staticPage.locator('.prose')).toBeVisible();
+  await staticPage.goto(`${origin}/docs/installation/`);
+  await expect(staticPage.locator('.code-example pre').first()).toBeVisible();
+  expect(await staticPage.locator('.code-example pre').first().textContent()).toContain(
+    'bun install --frozen-lockfile',
+  );
+  await expect(staticPage.locator('.copy-code').first()).toBeHidden();
   await offline.close();
   const missing = await page.goto(`${origin}/no-such-page/`);
   expect(missing?.status()).toBe(404);
@@ -385,8 +450,9 @@ try {
     status: 'pass',
     pages: guides.length + 3,
     layoutCases,
-    readabilityCases: 5,
-    selectionVariants: 50,
+    readabilityCases: 7,
+    docsReadabilityCases,
+    selectionVariants: 70,
     internalTargets: targets.size,
     clientBytes,
     graphicsGzipBytes,
