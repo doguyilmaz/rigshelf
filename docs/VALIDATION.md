@@ -2,7 +2,7 @@
 
 Updated 2026-11-07. Results cover exercised fixtures and source revisions; they do not establish that the application or third-party content is defect-free.
 
-The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery implementation is `3c8ae35`, and the separate website implementation is `6cf5e48`. The frozen audit below describes the earlier baseline separately.
+The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery implementation is `3c8ae35`, and the separate website implementation is `6cf5e48`, with the redesigned landing page in `7fb8bbf`. The frozen audit below describes the earlier baseline separately.
 
 ## Current development checks
 
@@ -15,7 +15,7 @@ The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery imp
 | `bun audit --json` | No known advisories reported for the locked dependency tree on 2026-11-07. |
 | `bun run test:ui` | Pass: all 23 Chromium suites completed in one final run. |
 | Portable and standalone delivery | Final extraction/CLI/UI/API/MCP smoke passed on macOS arm64 and isolated Linux arm64, including the legacy MCP corrections. |
-| Astro website | 21 canonical guides; 38 responsive/accessibility cases and 146 internal link/fragment targets passed under production CSP. Interactive examples, search, focus return, finite/reduced motion and JavaScript-free navigation passed. |
+| Astro website | 21 canonical guides and the preserved comparison page; 39 responsive/accessibility cases and 150 internal link/fragment targets passed under production CSP. Interactive project/Harness examples, search, focus return, reduced motion and JavaScript-free navigation passed. Software WebGL covered desktop/mobile framing, interrupted transitions, stopped idle/offscreen frames, immediate keyboard changes and context-loss recovery. |
 
 The browser rerun updated two fixture assumptions: MCP save assertions read the explicitly selected private Snapshot, and the disposable dev checkout includes its required data input. The complete suite then passed with all assertions intact. Layout checks cover nine viewport sizes in English/Turkish; modal, scroll/focus, independent file reading and populated Include/Exclude controls were also inspected in fixture screenshots.
 
@@ -35,4 +35,4 @@ No public package, signed/notarized release or registry image is published. The 
 
 See [distribution](DISTRIBUTION.md), [compatibility](COMPATIBILITY.md), [backup](BACKUP-SYNC.md) and [localization](LOCALIZATION.md) for concrete usage and boundaries. Earlier validation history remains in Git rather than accumulating contradictory current-version claims here.
 
-The separate [website](WEBSITE.md) is a static introduction and field guide, not a hosted workbench. Its client scripts total approximately 6.1 kB before compression; documentation search loads its static index on demand. The website’s locked dependency audit reported no known advisories. The public hosting workflow is prepared, not deployed; an actual domain and hosting configuration remain owner decisions.
+The separate [website](WEBSITE.md) is a static introduction and field guide, not a hosted workbench. The redesigned homepage loads approximately 12.0 kB of client scripts before compression (4.7 kB gzip) for its base interactions; reduced-motion visitors do not request the optional renderer. All generated JavaScript, including the optional Three.js renderer and the earlier comparison page, totals approximately 563 kB before compression (142.6 kB gzip). Documentation search loads its static index on demand. The website’s locked dependency audit reported no known advisories on 2026-11-07. Graphics checks used Chromium’s software WebGL implementation; native GPU/device behavior remains a separate acceptance check. The public hosting workflow is prepared, not deployed; an actual domain and hosting configuration remain owner decisions.
