@@ -44,7 +44,9 @@ export function startServer(
   } = {},
 ): WorkbenchServer {
   let token = '';
-  const root = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
+  const root = resolve(
+    fileURLToPath(new URL(Bun.isStandaloneExecutable ? './dist' : '../dist', import.meta.url)),
+  );
   const base = `http://127.0.0.1:${port}`;
   const directoryPicker = createDirectoryPicker(options.chooseDirectory);
   const headers = {

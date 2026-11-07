@@ -26,6 +26,8 @@ Keep the access URL private. Stop with Ctrl-C. The access key survives restarts;
 
 For development, `bun run dev` watches both frontend and server files. Frontend changes rebuild automatically; a workbench notice offers Reload without discarding drafts automatically. The next development start cleans old build assets. See [Contributing](CONTRIBUTING.md).
 
+For installation without a source checkout, build a portable archive with `bun run package`, or include a standalone executable with `bun run package:native`. Both retain the local browser UI, CLI and MCP engine. See [delivery options and installation](docs/DISTRIBUTION.md); local artifacts do not publish themselves.
+
 English and Turkish are available in **Settings → Language**. Technical terms remain English. Four additional languages are tracked in the [localization release plan](docs/LOCALIZATION.md).
 
 ## Prepare your first project

@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import resourceNotes from '../../data/resource-notes.txt' with { type: 'text' };
 import type { Preset, Rule, Source } from './model';
 import { recordPluginRecipe } from './recipes';
 import { hash, slug } from './safety';
@@ -294,12 +293,7 @@ export function classifyResource(line: string): Source {
 
 export function seed(store: Store): void {
   if (store.get('meta', 'seed-v1')) return;
-  const lines = readFileSync(
-    fileURLToPath(new URL('../../data/resource-notes.txt', import.meta.url)),
-    'utf8',
-  )
-    .split('\n')
-    .filter(Boolean);
+  const lines = resourceNotes.split('\n').filter(Boolean);
   for (const line of [...new Set(lines)]) {
     const source = classifyResource(line);
     const previous = store.get<Source>('source', source.id);

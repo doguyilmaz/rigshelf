@@ -17,6 +17,7 @@ import { checkProject, watchProject } from './core/watch';
 import { serveMcp } from './mcp';
 import { serveProxy } from './mcp-proxy';
 import { openWorkbenchServer } from './platform/workbench-start';
+import { VERSION } from './version';
 
 const help = `Rigshelf · Project setup for coding agents
 
@@ -52,6 +53,7 @@ const help = `Rigshelf · Project setup for coding agents
   rigshelf import <file.json[.gz]> [--apply]         Preview import; --apply writes library only
   rigshelf mcp [--write] [--root /project]      Stdio MCP; read/plan tools by default
   rigshelf doctor                              Show local paths and provider capabilities
+  rigshelf --version                           Show the installed version
   rigshelf connection --agents codex [--write --root /project]  Render MCP connection settings
 
 RIGSHELF_DATA_DIR overrides private storage; KITFOLD_DATA_DIR remains compatible.
@@ -65,6 +67,7 @@ async function main(): Promise<void> {
     allowPositionals: true,
     options: {
       help: { type: 'boolean', short: 'h' },
+      version: { type: 'boolean', short: 'v' },
       port: { type: 'string' },
       root: { type: 'string', multiple: true },
       'no-global': { type: 'boolean' },
@@ -87,6 +90,10 @@ async function main(): Promise<void> {
       'acknowledge-frozen': { type: 'boolean' },
     },
   });
+  if (values.version) {
+    process.stdout.write(`Rigshelf ${VERSION}\n`);
+    return;
+  }
   if (values.help) {
     process.stdout.write(help);
     return;

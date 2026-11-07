@@ -13,6 +13,7 @@ for (const name of [
   'web',
   'scripts',
   'design',
+  'data',
   'package.json',
   'vite.config.ts',
   'tsconfig.json',

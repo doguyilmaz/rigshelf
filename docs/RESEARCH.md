@@ -2,6 +2,14 @@
 
 Agent contract links rechecked 2026-11-06. Links describe evidence, not permanent compatibility guarantees.
 
+## Packaging contracts · 2026-11-07
+
+- [Bun standalone executables](https://bun.com/docs/compiler/executables) documents embedded directory assets, explicit runtime paths, cross-target executable selection and disabling automatic configuration loading. Rigshelf uses the stable JIT-backed compiler; experimental AOT remains separate work.
+- [Bun installation backends](https://bun.com/docs/pm/cli/install#platform-specific-backends) documents the Linux/Windows hard-link default and explicit `copyfile` backend. Dedicated release installs use copied inputs because packaged notice collection rejects linked files and directories.
+- [GitHub runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) documents the Linux/macOS runner families used by the manual artifact workflow. A prepared workflow is not evidence that it has run.
+- [Upload Artifact v7.0.2](https://github.com/actions/upload-artifact/releases/tag/v7.0.2) is pinned to its exact commit. Only the named release archives and checksum sidecars are selected; no private catalog or general `.local` tree is uploaded.
+- [Checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1) and [Setup Bun v2.2.0](https://github.com/oven-sh/setup-bun/releases/tag/v2.2.0) are pinned to their published commits. Checkout credential persistence is disabled; the manual artifact workflow has read-only repository permission and no release publication step.
+
 ## Agent contracts
 
 - [Agent Skills specification](https://agentskills.io/specification): a skill is a folder, not just its Markdown file. Preserve references, assets, and scripts. Metadata is discovered before the body is activated. A library outside provider discovery paths avoids listing every skill in every session.
