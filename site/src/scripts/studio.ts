@@ -53,13 +53,13 @@ async function loadRig(): Promise<void> {
         controller = rig;
         stage.dataset.renderer = 'webgl';
         rig.project(selected, false);
-        if (!expanded && !reduced.matches) {
-          rig.explode(true, false);
-          rig.explode(false, true);
-        } else rig.explode(expanded, false);
+        rig.explode(expanded, false);
         rig.visible(visible);
-        document.querySelector('[data-rig-instruction]')!.textContent =
-          'Drag to inspect · choose a project';
+        document.querySelector('[data-rig-instruction]')!.textContent = matchMedia(
+          '(hover: hover) and (pointer: fine)',
+        ).matches
+          ? 'Drag the rig or use the controls.'
+          : 'Use the controls to explore the rig.';
       } catch {
         failed = true;
         stage.dataset.renderer = 'static';
@@ -91,6 +91,9 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-rig-pro
 document.querySelector('[data-rig-split]')?.addEventListener('click', (event) => {
   expanded = !expanded;
   stage.dataset.exploded = String(expanded);
+  document.querySelector('[data-rig-motion-label]')!.textContent = expanded
+    ? `Layers separated for ${projects[selected].name}`
+    : `Assembled for ${projects[selected].name}`;
   document.querySelector('[data-rig-split]')!.setAttribute('aria-pressed', String(expanded));
   if (controller) controller.explode(expanded, (event as MouseEvent).detail > 0);
   else animateFallback((event as MouseEvent).detail > 0);
@@ -146,10 +149,6 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-native-
     document.querySelector('[data-native-guidance]')!.textContent = harness.guidance;
     document.querySelector('[data-native-current]')!.textContent =
       `${harness.name.toUpperCase()} / PROJECT SCOPE`;
-    document.querySelector('[data-native-note]')!.textContent =
-      key === 'claude'
-        ? 'Skills retain supporting files. Claude guidance can reference shared AGENTS.md.'
-        : 'Skills retain supporting files. Native configuration is used where supported; a local bridge covers documented MCP gaps.';
     document.querySelector('[data-native-status]')!.textContent =
       `${harness.name} selected. Example paths only; nothing is installed.`;
   });

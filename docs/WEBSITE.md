@@ -25,7 +25,7 @@ bun run test:site
 bun run site:preview
 ```
 
-The browser suite uses the root development dependencies and an already installed Chromium. It serves only the generated static files under an ephemeral loopback origin, applies the production header policy and stores evidence under ignored `.local/qa/site`. It checks the published guides, internal links/fragments, responsive geometry, accessibility, project/Harness examples, search, reduced motion, JavaScript-free navigation and the 404. Graphics checks exercise software WebGL, interrupted transitions, stopped idle frames, context loss and the static fallback; they do not substitute for native GPU/device acceptance. The application’s separate `bun run verify`, `bun run lint` and `bun run test:ui` remain required for application changes.
+The browser suite uses the root development dependencies and an already installed Chromium. It serves only the generated static files under an ephemeral loopback origin, applies the production header policy and stores evidence under ignored `.local/qa/site`. It checks the published guides, internal links/fragments, responsive geometry, accessibility, project/Harness examples, search, reduced motion, JavaScript-free navigation and the 404. Separate interaction checks cover readable text/control sizes, non-overlapping directive cards, selection height, smooth section progress, header clearance, wheel interruption, fragment history and focus/scroll restoration. Graphics checks exercise software WebGL, interrupted transitions, stopped idle frames, context loss and the static fallback; they do not substitute for native GPU/device acceptance. The application’s separate `bun run verify`, `bun run lint` and `bun run test:ui` remain required for application changes.
 
 ## Maintain the documentation
 
@@ -47,7 +47,18 @@ The website has no production server, API credentials, account database, analyti
 
 The approved Rigshelf mark, Instrument Sans and Newsreader remain the identity. The landing page has its own editorial presentation: a charcoal equipment stage, warm paper sections and a signal-orange accent. It explains the product through a physical rig, selective project context, native Harness file routes and layered guidance. The workbench UI is not a marketing-page template. Documentation keeps the quieter light reading theme.
 
-The hero starts with a usable SVG illustration. Visible, motion-enabled browsers with WebGL2 load the separate Three.js chunk; reduced-motion visitors retain the illustration without downloading that renderer. Layer and rotation controls have a static fallback. The finite 3D transitions retarget from the current pose, stop when settled, pause offscreen or while the document is hidden, and dispose resources on exit. Context loss restores the illustration. No infinite render loop, scroll hijacking or external runtime request is required. Touch visitors use explicit controls instead of capturing page scrolling.
+The hero starts with a usable SVG illustration. Visible, motion-enabled browsers with WebGL2 load the separate Three.js chunk; reduced-motion visitors retain the illustration without downloading that renderer. Layer and rotation controls have a static fallback. Surface markings are deliberately large symbols; explanatory text lives in readable HTML rather than angled texture labels. The model starts assembled, and layer/rotation motion is requested through the controls. The finite 3D transitions retarget from the current pose, stop when settled, pause offscreen or while the document is hidden, and dispose resources on exit. Context loss restores the illustration. No infinite render loop, scroll hijacking or external runtime request is required. Touch visitors use explicit controls instead of capturing page scrolling.
+
+The homepage uses 16–18px reading text, labels no smaller than 12px and controls at least 40px tall. Directive examples do not cover each other. All four project examples and six Harness choices retain their container height at the five tested widths.
+
+Same-page pointer links use the browser’s native smooth scrolling, with offsets for the sticky header. Fragment URLs and Back/Forward remain native history entries, and focus follows the destination heading without a second jump. Keyboard navigation and reduced motion are immediate. Wheel/touch scrolling is not replaced by an animation engine; wheel input can interrupt a section transition. Search keeps the page position and restores focus on close.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Pointer section links jumped immediately. | Native smooth scrolling, sticky-header clearance and destination focus; keyboard/reduced motion remain immediate. | Make the destination legible while preserving user input and browser history. |
+| Labels shrank to 5–10px and descriptions to 11–13px. | Labels are at least 12px; reading text is 16–18px; example controls are at least 40px tall. | A passing overflow or contrast check does not establish readability. |
+| Angled textures carried microtext; paper examples covered one another. | Large model symbols with HTML explanations; fully visible directive cards and wider native-file diagrams. | The illustration explains the product without hiding information. |
+| Harness-specific prose changed layout height. | Shared compatibility guidance and stable file rows. | Keep nearby content stationary without reserving a large empty text area. |
 
 The earlier homepage is preserved at `/previous/` for comparison. It has `noindex` metadata and is excluded from the public sitemap. The redesign is isolated on the `website/rig-studio` branch; the application and its private data are unchanged.
 

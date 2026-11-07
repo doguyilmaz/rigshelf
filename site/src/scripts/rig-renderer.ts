@@ -21,9 +21,9 @@ import {
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RigMotion } from './rig-motion';
-import { type ProjectKey, projects } from './studio-data';
+import type { ProjectKey } from './studio-data';
 
-const MAX_PIXEL_RATIO = 1.6;
+const MAX_PIXEL_RATIO = 2;
 const VIEW_WIDTH = 8.8;
 const slots = [
   [-1.05, 0.72, -0.88],
@@ -40,34 +40,31 @@ export type RigController = {
   destroy: () => void;
 };
 
-function labelTexture(heading: string, body: string, dark = false): CanvasTexture {
+function labelTexture(symbol: string, dark = false): CanvasTexture {
   const surface = document.createElement('canvas');
-  surface.width = 1024;
-  surface.height = 512;
-  paintLabel(surface, heading, body, dark);
+  surface.width = surface.height = 512;
+  const context = surface.getContext('2d');
+  if (context) {
+    context.fillStyle = dark ? '#f6ecdc' : '#20211f';
+    context.font = '500 300px Instrument, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(symbol, 256, 270);
+    context.lineWidth = 7;
+    context.strokeStyle = dark ? '#b8ac96' : '#54544c';
+    context.beginPath();
+    context.moveTo(50, 130);
+    context.lineTo(50, 50);
+    context.lineTo(130, 50);
+    context.moveTo(382, 462);
+    context.lineTo(462, 462);
+    context.lineTo(462, 382);
+    context.stroke();
+  }
   const texture = new CanvasTexture(surface);
   texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 4;
   return texture;
-}
-
-function paintLabel(
-  surface: HTMLCanvasElement,
-  heading: string,
-  body: string,
-  dark: boolean,
-): void {
-  const context = surface.getContext('2d');
-  if (!context) return;
-  context.clearRect(0, 0, surface.width, surface.height);
-  context.fillStyle = dark ? '#ece9df' : '#242424';
-  context.font = '24px monospace';
-  context.fillText(heading, 65, 85);
-  context.fillRect(65, 118, 890, 2);
-  context.font = '500 98px Instrument, sans-serif';
-  context.fillText(body, 65, 290, 890);
-  context.font = '20px monospace';
-  context.fillText('RIGSHELF  /  PROJECT EQUIPMENT', 65, 437);
-  context.fillRect(900, 400, 40, 40);
 }
 
 function rounded(
@@ -76,7 +73,7 @@ function rounded(
   material: MeshStandardMaterial,
   position: [number, number, number],
 ): Mesh {
-  const shape = new Mesh(new RoundedBoxGeometry(...dimensions, 2, 0.045), material);
+  const shape = new Mesh(new RoundedBoxGeometry(...dimensions, 3, 0.055), material);
   shape.position.set(...position);
   shape.castShadow = true;
   shape.receiveShadow = true;
@@ -110,28 +107,24 @@ function createModule(index: number, textures: CanvasTexture[]): Group {
   const orange = index === 2,
     dark = index === 3;
   const material = new MeshStandardMaterial({
-    color: orange ? '#ee7041' : dark ? '#353535' : '#d8d7d0',
-    metalness: orange ? 0.18 : 0.65,
-    roughness: 0.36,
+    color: orange ? '#ba4823' : dark ? '#292b2d' : '#a8aba9',
+    metalness: orange ? 0.12 : 0.75,
+    roughness: 0.42,
   });
   rounded(module, [1.74, 0.55, 1.45], material, [0, 0, 0]);
   rounded(
     module,
     [1.5, 0.07, 1.21],
     new MeshStandardMaterial({
-      color: orange ? '#f78850' : dark ? '#454545' : '#e8e7df',
-      metalness: 0.35,
-      roughness: 0.5,
+      color: orange ? '#ed703c' : dark ? '#343637' : '#c8cbc7',
+      metalness: 0.25,
+      roughness: 0.55,
     }),
     [0, 0.3, 0],
   );
-  const texture = labelTexture(
-    ['01 / SKILL', '02 / MCP', '03 / DIRECTIVE', '04 / HARNESS'][index]!,
-    ['Native UI', 'Project docs', 'Your rules', 'Your Agent'][index]!,
-    dark,
-  );
+  const texture = labelTexture(['S', 'M', 'R', 'A'][index]!, dark);
   textures.push(texture);
-  topLabel(module, texture, 1.35, 0.9, 0.341);
+  topLabel(module, texture, 1.25, 1.05, 0.341);
   const contact = new MeshStandardMaterial({ color: '#9f9d91', metalness: 0.9, roughness: 0.3 });
   for (let pin = 0; pin < 7; pin++)
     rounded(module, [0.07, 0.11, 0.24], contact, [-0.52 + pin * 0.17, -0.31, 0.6]);
@@ -141,7 +134,6 @@ function createModule(index: number, textures: CanvasTexture[]): Group {
 function createChassis(textures: CanvasTexture[]): {
   rig: Group;
   modules: Group[];
-  projectLabel: CanvasTexture;
 } {
   const rig = new Group();
   const silver = new MeshStandardMaterial({ color: '#999a98', metalness: 0.88, roughness: 0.27 });
@@ -170,11 +162,11 @@ function createChassis(textures: CanvasTexture[]): {
     rig.add(module);
     return module;
   });
-  const projectLabel = labelTexture('RIG / 001', 'Fieldnotes', true);
-  textures.push(projectLabel);
+  const brandMark = labelTexture('R', true);
+  textures.push(brandMark);
   const nameplate = new Group();
   nameplate.position.set(0, 0.42, 1.94);
-  topLabel(nameplate, projectLabel, 1.8, 0.42, 0);
+  topLabel(nameplate, brandMark, 0.6, 0.36, 0);
   rig.add(nameplate);
   for (let index = 0; index < 9; index++)
     rounded(
@@ -184,7 +176,7 @@ function createChassis(textures: CanvasTexture[]): {
       [-1.08 + index * 0.26, 0.37, -1.97],
     );
   rig.rotation.y = -0.18;
-  return { rig, modules, projectLabel };
+  return { rig, modules };
 }
 
 function createLighting(renderer: WebGLRenderer) {
@@ -193,11 +185,11 @@ function createLighting(renderer: WebGLRenderer) {
     environment = new PMREMGenerator(renderer);
   const envMap = environment.fromScene(room, 0.04);
   scene.environment = envMap.texture;
-  scene.environmentIntensity = 0.85;
+  scene.environmentIntensity = 0.65;
   room.dispose();
   environment.dispose();
-  scene.add(new HemisphereLight(0xffffff, 0x232323, 2.2));
-  const key = new DirectionalLight(0xfff4e5, 4);
+  scene.add(new HemisphereLight(0xffffff, 0x232323, 1.6));
+  const key = new DirectionalLight(0xfff4e5, 3);
   key.position.set(-4, 9, 5);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
@@ -207,7 +199,7 @@ function createLighting(renderer: WebGLRenderer) {
   key.shadow.camera.bottom = -6;
   key.shadow.bias = -0.001;
   scene.add(key);
-  const fill = new DirectionalLight(0xffffff, 2);
+  const fill = new DirectionalLight(0xffffff, 1.5);
   fill.position.set(4, 3, -5);
   scene.add(fill);
   const ground = new Mesh(new PlaneGeometry(15, 15), new ShadowMaterial({ opacity: 0.4 }));
@@ -297,7 +289,7 @@ export async function createRig(
   renderer.setPixelRatio(Math.min(devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 0.95;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
   const camera = new OrthographicCamera(-4.4, 4.4, 4, -4, 0.1, 70);
@@ -333,28 +325,7 @@ export async function createRig(
     throw error;
   }
   return {
-    project(projectKey, animate) {
-      const project = projects[projectKey];
-      paintLabel(
-        built.projectLabel.image as HTMLCanvasElement,
-        `RIG / 0${project.number}`,
-        project.name,
-        true,
-      );
-      built.projectLabel.needsUpdate = true;
-      const labels = [project.skills[0], 'Project docs', project.directive] as const;
-      labels.forEach((label, index) => {
-        const texture = textures[index]!;
-        paintLabel(
-          texture.image as HTMLCanvasElement,
-          ['01 / SKILL', '02 / MCP', '03 / DIRECTIVE'][index]!,
-          label,
-          false,
-        );
-        texture.needsUpdate = true;
-      });
-      motion.project(projectKey, animate);
-    },
+    project: (projectKey, animate) => motion.project(projectKey, animate),
     explode: (value, animate) => motion.explode(value, animate),
     rotate: (animate) => motion.rotate(animate),
     visible: (value) => motion.visible(value),

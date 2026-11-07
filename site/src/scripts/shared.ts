@@ -1,4 +1,4 @@
-export {};
+import './section-navigation';
 
 type SearchEntry = { slug: string; title: string; description: string; text: string };
 const dialog = document.querySelector<HTMLDialogElement>('#doc-search')!;

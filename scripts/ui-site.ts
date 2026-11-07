@@ -3,6 +3,11 @@ import { extname, join, resolve, sep } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { type Browser, type BrowserContext, chromium, expect, type Page } from '@playwright/test';
 import { guides } from '../site/src/docs';
+import {
+  checkLandingReadability,
+  checkSectionNavigation,
+  checkSelectionStability,
+} from './site-interaction-checks';
 
 const root = resolve('site/dist');
 const evidence = resolve('.local/qa/site');
@@ -118,6 +123,10 @@ try {
     for (const path of ['/', '/docs/', '/docs/data/']) {
       await page.goto(`${origin}${path}`);
       await fits(`${path} at ${width}`);
+      if (path === '/') {
+        await checkLandingReadability(page, width);
+        await checkSelectionStability(page);
+      }
       await page.evaluate(() => document.fonts.ready);
       await page.screenshot({
         path: join(
@@ -126,6 +135,14 @@ try {
         ),
         fullPage: path === '/',
       });
+      if (path === '/' && width === 768) {
+        for (const [selector, name] of [
+          ['.context-machine', 'library-reading'],
+          ['.native-bench', 'files-reading'],
+          ['.principle-stack', 'principles-reading'],
+        ] as const)
+          await page.locator(selector).screenshot({ path: join(evidence, `${name}.png`) });
+      }
       if (path === '/' && width <= 390)
         await page
           .locator('.studio-hero')
@@ -135,6 +152,13 @@ try {
     }
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await checkSectionNavigation(page, origin);
+  checks.push(
+    'Pointer section links interpolate with a sticky-header offset; hash history, focus, keyboard/reduced-motion navigation, wheel interruption and search scroll restoration work.',
+  );
+  checks.push(
+    'Readable 12px-minimum labels, 16px-minimum reading text, 40px controls and unobscured directive cards pass at five widths; all project/Harness selections retain layout height.',
+  );
   await page.goto(origin);
   const box = await page.locator('.context-machine').boundingBox();
   await page.locator('[data-context-project="api"]').click();
@@ -213,6 +237,7 @@ try {
   const graphics = await graphicsBrowser.newContext({
     viewport: { width: 1440, height: 1000 },
     reducedMotion: 'no-preference',
+    deviceScaleFactor: 2,
   });
   await graphics.addInitScript(() => {
     const scope = globalThis as typeof globalThis & { rigFrameCount: number };
@@ -245,6 +270,11 @@ try {
     ),
   ).toBe(idleFrames);
   await graphicsPage.screenshot({ path: join(evidence, 'studio-webgl.png') });
+  await graphicsPage.setViewportSize({ width: 768, height: 1000 });
+  await graphicsPage.locator('[data-rig-stage]').scrollIntoViewIfNeeded();
+  await graphicsPage
+    .locator('.rig-installation')
+    .screenshot({ path: join(evidence, 'rig-reading.png') });
   await graphicsPage.setViewportSize({ width: 390, height: 844 });
   await graphicsPage.locator('[data-rig-stage]').scrollIntoViewIfNeeded();
   await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-renderer', 'webgl');
@@ -355,6 +385,8 @@ try {
     status: 'pass',
     pages: guides.length + 3,
     layoutCases,
+    readabilityCases: 5,
+    selectionVariants: 50,
     internalTargets: targets.size,
     clientBytes,
     graphicsGzipBytes,
