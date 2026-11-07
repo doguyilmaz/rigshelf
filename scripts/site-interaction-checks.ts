@@ -93,6 +93,63 @@ async function expectSectionPosition(page: Page, selector: string): Promise<void
     .toBeLessThan(2);
 }
 
+export async function checkHarnessFrame(page: Page): Promise<void> {
+  await page.evaluate(() => document.fonts.ready);
+  await expectSectionPosition(page, '#harnesses');
+  const frame = await page.evaluate(() => {
+    const section = document.querySelector('#harnesses')!,
+      header = document.querySelector('.site-header')!.getBoundingClientRect(),
+      bounds = section.getBoundingClientRect();
+    return {
+      gap: Math.abs(bounds.top - header.bottom),
+      bottom: bounds.bottom,
+      height: innerHeight,
+      topSection: document.elementFromPoint(4, header.bottom + 2)?.closest('section')?.id,
+      bottomSection: document.elementFromPoint(4, innerHeight - 2)?.closest('section')?.id,
+      background: getComputedStyle(document.documentElement).backgroundColor,
+      bodyBackground: getComputedStyle(document.body).backgroundColor,
+    };
+  });
+  expect(frame.gap, 'No previous-section strip below the sticky header').toBeLessThan(2);
+  expect(frame.bottom, 'Harness background fills the available viewport').toBeGreaterThanOrEqual(
+    frame.height - 1,
+  );
+  expect(frame.topSection).toBe('harnesses');
+  expect(frame.bottomSection).toBe('harnesses');
+  expect(frame.background, 'Overscroll uses the homepage background').toBe(frame.bodyBackground);
+}
+
+export async function checkHarnessEntry(page: Page, origin: string): Promise<void> {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const [width, height] of [
+    [1280, 800],
+    [1920, 1440],
+    [1440, 1600],
+    [390, 844],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto(`${origin}/docs/installation/`);
+    if (width < 740) await page.getByLabel('Navigation menu', { exact: true }).click();
+    await page
+      .getByRole('navigation', {
+        name: width < 740 ? 'Mobile navigation' : 'Main navigation',
+        exact: true,
+      })
+      .getByRole('link', { name: 'Harnesses', exact: true })
+      .click();
+    await expect(page).toHaveURL(`${origin}/#harnesses`);
+    await checkHarnessFrame(page);
+    await page.screenshot({ path: `.local/qa/site/harness-entry-${width}x${height}.png` });
+    await page.reload();
+    await checkHarnessFrame(page);
+    await page.goBack();
+    await expect(page).toHaveURL(`${origin}/docs/installation/`);
+    await page.goForward();
+    await checkHarnessFrame(page);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+}
+
 export async function checkSectionNavigation(page: Page, origin: string): Promise<void> {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto(origin);

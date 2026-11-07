@@ -1,5 +1,10 @@
 /* The homepage has a reading scale of 16–18px; labels never shrink below 12px. */
+.studio-root {
+  background: #141414;
+  color-scheme: dark;
+}
 .studio-page {
+  --studio-header-height: 80px;
   --paper: #141414;
   --ink: #f3f1e9;
   --muted: #b9b6ad;
@@ -15,12 +20,12 @@
   outline-color: var(--signal);
 }
 .studio-page :is(section[id], main[id]) {
-  scroll-margin-block-start: 108px;
+  scroll-margin-block-start: var(--studio-header-height);
 }
 .studio-page .site-header {
   position: sticky;
   top: 0;
-  height: 80px;
+  height: var(--studio-header-height);
   background: #141414;
   border-color: #383733;
 }
@@ -438,6 +443,9 @@
   --muted: #625c50;
   --line: #c9c3b7;
 }
+.native-section {
+  min-block-size: calc(100svh - var(--studio-header-height));
+}
 .context-section .section-index > span,
 .principles-section .section-index > span,
 .local-section .section-index > span {
@@ -763,7 +771,7 @@
   border-left-color: var(--signal);
   color: #fff7e9;
 }
-.native-agent-rail button[aria-pressed="true"] > span:last-child {
+.native-agent-rail button[aria-pressed="true"] > .icon {
   color: var(--signal);
   visibility: visible;
 }
@@ -886,6 +894,9 @@
   max-width: 720px;
 }
 .native-notes > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
   grid-column: 2;
   width: fit-content;
   font-size: 14px;
@@ -1641,14 +1652,11 @@
   }
 }
 @media (max-width: 700px) {
-  .studio-page .site-header {
-    height: 72px;
+  .studio-page {
+    --studio-header-height: 72px;
   }
   .studio-page .header-inner {
     width: calc(100% - 40px);
-  }
-  .studio-page :is(section[id], main[id]) {
-    scroll-margin-block-start: 96px;
   }
   .studio-hero {
     padding: 28px 24px 0;

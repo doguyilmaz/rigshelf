@@ -20,6 +20,8 @@ The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery imp
 
 The browser rerun updated two fixture assumptions: MCP save assertions read the explicitly selected private Snapshot, and the disposable dev checkout includes its required data input. The complete suite then passed with all assertions intact. Layout checks cover nine viewport sizes in English/Turkish; modal, scroll/focus, independent file reading and populated Include/Exclude controls were also inspected in fixture screenshots.
 
+Website destination checks also cover documentation-to-Harness navigation at 1280×800, 1920×1440, 1440×1600 and 390×844, including reload and Back/Forward. The section starts at the sticky header's bottom edge and fills the remaining viewport without adjacent light strips; the root matches its dark background. A separate JavaScript-disabled check exercises the tall-screen fragment destination.
+
 New regressions exercise structured/deep credential masking, exact MCP references through runtime resolution, mixed-value sanitization, legacy argument/command/query read/export/activation boundaries, canonical export metadata, external-root aliases and retained indexes, late authored edits during replace/remove/rollback, multi-byte document limits, Codex regular-file output/cleanup, archive inventory and duplicate manifests, and linked dependency notices. Fixtures preserve original bytes and verify failed operations do not grant trust or modify projects.
 
 ## Security evidence

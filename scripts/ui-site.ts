@@ -5,6 +5,8 @@ import { type Browser, type BrowserContext, chromium, expect, type Page } from '
 import { guides } from '../site/src/docs';
 import { checkDocsCommands, checkDocsReadability } from './site-docs-checks';
 import {
+  checkHarnessEntry,
+  checkHarnessFrame,
   checkLandingReadability,
   checkSectionNavigation,
   checkSelectionStability,
@@ -182,6 +184,10 @@ try {
     'Every guide retains 18px prose, 15px code and 16px tables at desktop and 320px; installation/data reading layouts pass seven widths. Copy preserves canonical commands, clipboard denial selects the full code, and keyboard scrolling stays within code/tables.',
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await checkHarnessEntry(page, origin);
+  checks.push(
+    'Documentation-to-Harness navigation, reload and Back/Forward align the section with the sticky header and fill desktop, tall and mobile viewports without adjacent light strips; the document root matches the dark homepage background.',
+  );
   await checkDisclosures(page, origin);
   await checkSearchLifecycle(page, origin);
   await checkSearchViewports(page, origin);
@@ -425,6 +431,9 @@ try {
     'bun install --frozen-lockfile',
   );
   await expect(staticPage.locator('.copy-code').first()).toBeHidden();
+  await staticPage.setViewportSize({ width: 1920, height: 1440 });
+  await staticPage.goto(`${origin}/#harnesses`);
+  await checkHarnessFrame(staticPage);
   await offline.close();
   const missing = await page.goto(`${origin}/no-such-page/`);
   expect(missing?.status()).toBe(404);
