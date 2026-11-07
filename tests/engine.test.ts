@@ -4,13 +4,14 @@ import { join } from 'node:path';
 import { exportLibrary, importLibrary } from '../src/core/backup';
 import { detectProject } from '../src/core/detect';
 import { importSkillDirectory } from '../src/core/ingest';
-import type { Entry, SetupRequest } from '../src/core/model';
+import { resolveDefinition } from '../src/core/mcp-compat';
+import type { Entry, Mcp, SetupRequest } from '../src/core/model';
 import { approveProject } from '../src/core/ownership';
 import { createPlan, executePlan, managedBlock } from '../src/core/planner';
 import { effectiveRules, recommend } from '../src/core/recommend';
-import { checkedProject, safeRelative } from '../src/core/safety';
+import { checkedProject, hash, safeRelative } from '../src/core/safety';
 import { sanitizeMcp, scan } from '../src/core/scanner';
-import { route } from '../src/core/service';
+import { route, state } from '../src/core/service';
 import { checkProject } from '../src/core/watch';
 import { fixture, sampleSkill } from './helpers';
 
@@ -263,6 +264,170 @@ describe('portability, credentials and automation', () => {
       },
     })) as Entry;
     expect(JSON.stringify(store.entry(entry.id))).not.toContain('not-a-prefix-secret');
+  });
+
+  test('MCP template interpolation does not preserve literal credential fragments', async () => {
+    const { store } = await setup();
+    const entry = (await route(store, 'POST', 'mcp', {
+      name: 'templated-server',
+      mcp: {
+        transport: 'stdio',
+        command: 'fixture-server',
+        env: {
+          API_KEY: 'literal-fixture-secret-${OTHER}',
+          EXACT: '${EXACT}',
+          MODE: 'development',
+          BIN_PATH: '${HOME}/bin',
+        },
+        headers: { 'x-region': 'ghp_fixture_region_secret-${OTHER}' },
+      },
+    })) as Entry;
+    const saved = store.entry(entry.id)!;
+    const definition = JSON.parse(saved.body);
+    expect(JSON.stringify(saved)).not.toContain('literal-fixture-secret');
+    expect(JSON.stringify(saved)).not.toContain('ghp_fixture_region_secret');
+    expect(definition.env.API_KEY).toBe('${API_KEY}');
+    expect(definition.env.EXACT).toBe('${EXACT}');
+    expect(definition.env.MODE).toBe('development');
+    expect(definition.env.BIN_PATH).toBe('${HOME}/bin');
+  });
+
+  test('MCP creation preserves explicitly named credential references through runtime resolution', async () => {
+    const { store } = await setup();
+    const stdio = (await route(store, 'POST', 'mcp', {
+      name: 'referenced-stdio',
+      mcp: {
+        transport: 'stdio',
+        command: 'fixture-server',
+        args: ['--token', '${AUTH_TOKEN}', '--api-key=${API_KEY}'],
+      },
+    })) as Entry;
+    const resolved = resolveDefinition(store.entry(stdio.id)!.mcp!, {
+      AUTH_TOKEN: 'dummy-token-value',
+      API_KEY: 'dummy-api-value',
+    });
+    expect(resolved.args).toEqual(['--token', 'dummy-token-value', '--api-key=dummy-api-value']);
+    const http = (await route(store, 'POST', 'mcp', {
+      name: 'referenced-http',
+      mcp: {
+        transport: 'http',
+        url: 'https://example.test/mcp?token=${AUTH_TOKEN}&secret=${OTHER}literal-fixture-fragment&mode=public',
+      },
+    })) as Entry;
+    const saved = store.entry(http.id)!;
+    expect(saved.mcp!.url).toBe(
+      'https://example.test/mcp?token=${AUTH_TOKEN}&secret=${KITFOLD_SECRET}&mode=public',
+    );
+    expect(saved.body).not.toContain('literal-fixture-fragment');
+  });
+
+  test.each<{ channel: string; definition: Partial<Mcp> }>([
+    { channel: 'environment', definition: { env: { API_KEY: 'private-fixture-${OTHER}' } } },
+    { channel: 'positional argument', definition: { args: ['--token', 'private-fixture'] } },
+    { channel: 'inline argument', definition: { args: ['--auth-token=private-fixture'] } },
+    { channel: 'embedded command', definition: { command: 'server --token "private-fixture"' } },
+    {
+      channel: 'password query',
+      definition: {
+        transport: 'http',
+        url: 'https://example.test/mcp?password=private-fixture&mode=public',
+      },
+    },
+    {
+      channel: 'auth query',
+      definition: {
+        transport: 'http',
+        url: 'https://example.test/mcp?auth_token=private-fixture&mode=public',
+      },
+    },
+    {
+      channel: 'encoded query key',
+      definition: {
+        transport: 'http',
+        url: 'https://example.test/mcp?api%5Fkey=private-fixture&mode=public',
+      },
+    },
+  ])(
+    'legacy MCP $channel credentials stay immutable and cannot escape reads or gain activation',
+    async ({ definition }) => {
+      const { store, project } = await setup();
+      const safe = (await route(store, 'POST', 'mcp', {
+        name: 'legacy-mcp-fixture',
+        mcp: { transport: 'stdio', command: 'fixture-server', env: { API_KEY: '${TOKEN}' } },
+      })) as Entry;
+      const mcp = { ...safe.mcp!, ...definition };
+      const body = JSON.stringify(mcp, null, 2);
+      const legacy: Entry = {
+        ...safe,
+        id: 'legacy-mcp-snapshot',
+        body,
+        mcp,
+        digest: hash(body),
+        custom: false,
+      };
+      store.saveEntry(legacy);
+      const visible = (await route(store, 'GET', `entries/${legacy.id}`, undefined)) as {
+        entry: Entry;
+      };
+      expect(visible.entry.mcp).toBeUndefined();
+      expect(visible.entry.body).not.toContain('private-fixture');
+      if (mcp.url) expect(visible.entry.body).toContain('mode=public');
+      expect(JSON.stringify(state(store))).not.toContain('private-fixture');
+      await expect(createPlan(store, request(project, [legacy.id]))).rejects.toThrow(
+        'environment placeholders',
+      );
+      await expect(route(store, 'POST', `trust/${legacy.id}`, {})).rejects.toThrow(
+        'environment placeholders',
+      );
+      expect(exportLibrary(store).excluded.some((entry) => entry.id === legacy.id)).toBe(true);
+      expect(store.entry(legacy.id)!.body).toBe(body);
+      expect(store.entry(legacy.id)!.digest).toBe(hash(body));
+      expect(store.list('trust')).toEqual([]);
+    },
+  );
+
+  test('credential references survive shared MCP ingestion, reading, export and planning', async () => {
+    const { store, project } = await setup();
+    const mcp: Mcp = {
+      transport: 'stdio',
+      command: 'server --token "${TOKEN}"',
+      args: ['--token', '${AUTH_TOKEN}', '--api-key=${API_KEY}'],
+      env: { API_KEY: '${NAMED_KEY}' },
+      headers: { Authorization: 'Bearer ${HEADER_TOKEN}' },
+      url: 'https://example.test/mcp?password=${PASSWORD}&auth_token=${AUTH_TOKEN}&sig=${SIGNATURE}&mode=public',
+    };
+    const entry = (await route(store, 'POST', 'mcp', { name: 'reference-channels', mcp })) as Entry;
+    const saved = store.entry(entry.id)!;
+    expect(saved.mcp).toEqual(mcp);
+    const visible = (await route(store, 'GET', `entries/${entry.id}`, undefined)) as {
+      entry: Entry;
+    };
+    expect(visible.entry.body).toBe(saved.body);
+    expect(exportLibrary(store).excluded.some((item) => item.id === entry.id)).toBe(false);
+    const plan = await createPlan(store, request(project, [entry.id]));
+    expect(
+      plan.changes.some(
+        (change) =>
+          change.after &&
+          Buffer.from(change.after, 'base64').toString('utf8').includes('${AUTH_TOKEN}'),
+      ),
+    ).toBe(true);
+  });
+
+  test('MCP exports derive optional parsed metadata from the checked immutable body', async () => {
+    const { store } = await setup();
+    const safe = (await route(store, 'POST', 'mcp', {
+      name: 'canonical-export-fixture',
+      mcp: { transport: 'stdio', command: 'server', env: { API_KEY: '${TOKEN}' } },
+    })) as Entry;
+    const stale = { ...safe.mcp!, args: ['--token', 'stale-fixture-private-value'] };
+    store.saveEntry({ ...safe, mcp: stale });
+    const exported = exportLibrary(store);
+    const included = exported.entries.find((item) => item.entry.id === safe.id)!;
+    expect(included.entry.mcp).toEqual(JSON.parse(safe.body));
+    expect(JSON.stringify(exported)).not.toContain('stale-fixture-private-value');
+    expect(store.entry(safe.id)!.mcp).toEqual(stale);
+    expect(store.entry(safe.id)!.body).toBe(safe.body);
   });
 
   test('portable export excludes projects and plan preimages, and rejects traversal/tampered snapshots', async () => {

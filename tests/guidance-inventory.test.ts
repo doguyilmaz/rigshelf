@@ -191,6 +191,55 @@ test('a nested project referenced by user-level MCP gets its own local AI invent
   ).toBe(true);
 });
 
+test('MCP references cannot follow a symlinked parent outside selected roots', async () => {
+  const data = await setup();
+  const outside = join(data.root, 'outside');
+  await write(join(outside, 'child/AGENTS.md'), 'Unselected external guidance.');
+  await write(join(outside, 'child/.agents/skills/focused/SKILL.md'), skill);
+  await symlink(outside, join(data.project, 'linked-parent'));
+  const referenced = join(data.project, 'linked-parent/child');
+  await write(
+    join(data.home, '.claude.json'),
+    JSON.stringify({
+      projects: { [referenced]: { mcpServers: { echo: { command: 'example-server' } } } },
+    }),
+  );
+  const result = await scan(data.store, { roots: [data.project], globals: true, home: data.home });
+  const project = data.store.projects().find((item) => item.path === referenced)!;
+  expect(project.discovery).toBe('configuration');
+  expect(project.documents).toEqual([]);
+  expect(data.store.entries().some((entry) => entry.kind === 'skill')).toBe(false);
+  expect(result.skipped.some((note) => note.includes('outside selected roots excluded'))).toBe(
+    true,
+  );
+  await expect(
+    projectDocument(data.store, { projectId: project.id, path: 'AGENTS.md' }),
+  ).rejects.toThrow('not part of this project inventory');
+});
+
+test('retained alias inventory cannot bypass project-root checks by claiming global scope', async () => {
+  const data = await setup();
+  const outside = join(data.root, 'outside-retained');
+  await write(join(outside, 'child/package.json'), '{}');
+  await write(join(outside, 'child/AGENTS.md'), 'Keep this external fixture private.');
+  await symlink(outside, join(data.project, 'retained-alias'));
+  const reference = join(data.project, 'retained-alias/child');
+  await scan(data.store, { roots: [reference], globals: false, home: data.home });
+  const project = data.store.projects().find((item) => item.path === reference)!;
+  const location = project.documentLocations!.find((file) => file.path === 'AGENTS.md')!;
+  expect(location.scope).toBe('global');
+  await scan(data.store, { roots: [data.project], globals: false, home: data.home });
+  expect(data.store.get<typeof project>('project', project.id)?.documentLocations).toContainEqual(
+    location,
+  );
+  await expect(
+    projectDocument(data.store, { projectId: project.id, documentId: location.id }),
+  ).rejects.toThrow('Use the resolved path');
+  expect(await Bun.file(join(outside, 'child/AGENTS.md')).text()).toBe(
+    'Keep this external fixture private.',
+  );
+});
+
 test('trusted user memory overrides and project-local overrides are found, while repository-selected external directories are reported without reading', async () => {
   const data = await setup();
   const custom = join(data.root, 'my-memory');

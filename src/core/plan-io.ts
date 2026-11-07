@@ -3,6 +3,7 @@ import { mkdir, open, rename, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { detectProject } from './detect';
 import { parseKit, readKit } from './kit';
+import { checkedMcpDefinition } from './mcp-definition';
 import type { Change, Plan } from './model';
 import { rootIdentity, syncOwnership } from './ownership';
 import { planFile } from './plan-limits';
@@ -14,6 +15,11 @@ import type { Store } from './store';
 
 export async function verifyChanges(plan: Plan, direction: 'apply' | 'rollback'): Promise<void> {
   await checkedProject(plan.projectPath);
+  if (
+    plan.rootIdentity !== undefined &&
+    plan.rootIdentity !== (await rootIdentity(plan.projectPath))
+  )
+    throw new Error('Project root changed during the operation. Create a new plan.');
   for (const change of plan.changes) {
     const path = await assertWritePath(plan.projectPath, change.path);
     const bytes = await planFile(path);
@@ -42,6 +48,7 @@ export async function writeChange(
   const content = direction === 'apply' ? change.after : change.before;
   if (content === null) {
     await guard?.();
+    await verifyChanges({ ...plan, changes: [change] }, direction);
     await unlink(target).catch((error) => {
       if (error.code !== 'ENOENT') throw error;
     });
@@ -63,6 +70,7 @@ export async function writeChange(
       await handle.close();
     }
     await guard?.();
+    await verifyChanges({ ...plan, changes: [change] }, direction);
     await rename(temporary, target);
   } finally {
     await unlink(temporary).catch(() => undefined);
@@ -133,6 +141,11 @@ export async function executePlan(
     throw new Error(`Cannot ${direction} a ${plan.status} plan.`);
   if (plan.purpose === 'setup' && (!plan.ownershipAfter || !plan.manifestHash))
     throw new Error('This legacy plan has no reviewed ownership record. Create a new plan.');
+  if (direction === 'apply' && plan.purpose === 'setup')
+    for (const entryId of plan.entries) {
+      const entry = store.entry(entryId);
+      if (entry?.kind === 'mcp') checkedMcpDefinition(entry.body);
+    }
   await checkedProject(plan.projectPath);
   if (
     plan.rootIdentity !== undefined &&

@@ -30,9 +30,11 @@ import {
 import { detectProject } from './detect';
 import { discoverSkills } from './discovery';
 import { documentPlan, projectDocument } from './documents';
+import { entryView } from './entry-view';
 import { guidanceFindings } from './guidance';
 import { createCustomSkill, importSkillDirectory } from './ingest';
 import { inventoryHistory, readInventoryBaseline } from './inventory-baselines';
+import { checkedMcpDefinition } from './mcp-definition';
 import {
   type Entry,
   McpSchema,
@@ -207,7 +209,7 @@ export async function route(
     const entry = store.entry(id);
     if (!entry) throw new Error('Snapshot no longer exists. Refresh the library.');
     return {
-      entry,
+      entry: entryView(entry),
       files: store.fileMetadata(id),
     };
   }
@@ -257,7 +259,7 @@ export async function route(
     }
     store.saveEntry(entry);
     store.event('entry.updated', entry.name);
-    return entry;
+    return entryView(entry);
   }
   if (method === 'DELETE' && resource === 'entries' && id && (!action || action === 'purge')) {
     const entry = store.entry(id);
@@ -407,6 +409,7 @@ export async function route(
       throw new Error('Only active skill and MCP snapshots can be approved.');
     if (entry.findings.some((finding) => finding.level !== 'info'))
       throw new Error('Resolve content findings before approving automation.');
+    if (entry.kind === 'mcp') checkedMcpDefinition(entry.body);
     store.put('trust', { id, digest: entry.digest });
     store.event('entry.trusted', entry.name);
     return { approved: true, digest: entry.digest };

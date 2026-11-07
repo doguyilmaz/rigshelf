@@ -275,7 +275,7 @@ try {
       expect(data.store.entry(saved.id)?.body).toContain(
         'Review the project requirements before changing the focused kit.',
       );
-    else expect(saved.mcp?.args).toEqual(['--readonly', '--compact']);
+    else expect(data.store.entry(saved.id)?.mcp?.args).toEqual(['--readonly', '--compact']);
     expect(data.store.entry(item.original.id)?.body).toBe(item.original.body);
     await detail.getByRole('button', { name: 'Close dialog', exact: true }).click();
   }

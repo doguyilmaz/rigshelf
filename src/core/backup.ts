@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { guidanceFindings } from './guidance';
 import { sensitiveResource, skillMetadata, snapshotDigest } from './ingest';
+import { checkedMcpDefinition as portableMcp } from './mcp-definition';
 import {
   type Entry,
   MAX_BUNDLE_BYTES,
   MAX_FILES,
   MAX_TEXT_BYTES,
-  McpSchema,
   PresetSchema,
   RecordIdSchema,
   RuleSchema,
@@ -99,13 +99,6 @@ export const BackupSchema = z.object({
   rules: z.array(RuleSchema).max(1000),
 });
 
-function portableMcp(body: string) {
-  const definition = McpSchema.strict().parse(JSON.parse(body));
-  if (redact(body) !== body || redact(JSON.stringify(definition)) !== JSON.stringify(definition))
-    throw new Error('MCP imports must use environment placeholders for credentials.');
-  return definition;
-}
-
 export function exportLibrary(store: Store) {
   const excluded: { id: string; name: string; reason: string }[] = [];
   const entries = store
@@ -114,7 +107,7 @@ export function exportLibrary(store: Store) {
     .filter((value) => {
       if (value.entry.kind === 'mcp') {
         try {
-          portableMcp(value.entry.body);
+          value.entry = { ...value.entry, mcp: portableMcp(value.entry.body) };
         } catch {
           excluded.push({
             id: value.entry.id,

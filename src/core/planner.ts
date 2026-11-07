@@ -5,6 +5,7 @@ import { detectProject, readText } from './detect';
 import { guidanceFindings } from './guidance';
 import { readKit } from './kit';
 import { bridgeDefinition, bridgeReason } from './mcp-compat';
+import { checkedMcpDefinition } from './mcp-definition';
 import { type Change, type Mcp, type Plan, type SetupRequest, SetupSchema } from './model';
 import { ownedProject, rootIdentity } from './ownership';
 import { MAX_PLAN_BYTES, MAX_PLAN_CHANGES, planFile } from './plan-limits';
@@ -162,12 +163,13 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
   const selectedMcp: Record<string, Mcp> = {};
   const providerMcp: Record<string, Record<string, Mcp>> = {};
   for (const entry of entries)
-    if (entry.mcp) {
+    if (entry.kind === 'mcp') {
+      const definition = checkedMcpDefinition(entry.body);
       const name = slug(entry.name);
-      if (selectedMcp[name] && JSON.stringify(selectedMcp[name]) !== JSON.stringify(entry.mcp))
+      if (selectedMcp[name] && JSON.stringify(selectedMcp[name]) !== JSON.stringify(definition))
         throw new Error(`Select one MCP variant for ${name}.`);
-      selectedMcp[name] = entry.mcp;
-      if (/\$\{/.test(JSON.stringify(entry.mcp)))
+      selectedMcp[name] = definition;
+      if (/\$\{/.test(JSON.stringify(definition)))
         warnings.push(
           `${entry.name}: resolve required environment placeholders in the target harness before use. Credentials are never copied from global config.`,
         );

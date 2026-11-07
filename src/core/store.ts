@@ -3,6 +3,7 @@ import { chmodSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { defaultDataDirectory } from './data-directory';
+import { entryMetadata } from './entry-view';
 import type { Entry, Installation, PackedFile, Plan, Project, Settings, Source } from './model';
 import { SCHEMA_VERSION, SettingsSchema } from './model';
 import { now } from './safety';
@@ -62,6 +63,7 @@ export class Store {
       }[]
     )
       .map((row) => JSON.parse(row.data) as Omit<Entry, 'body'>)
+      .map(entryMetadata)
       .filter((entry) => includeArchived || !entry.archived);
   }
   entry(id: string): Entry | undefined {

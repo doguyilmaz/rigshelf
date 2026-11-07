@@ -31,7 +31,12 @@ async function document(store: Store, raw: unknown) {
     throw new Error('Document is not part of this project inventory');
   if (!location && !project.documents.includes(input.path!))
     throw new Error('Document is not part of this project inventory');
-  if (!location || location.scope === 'project') await checkedProject(project.path);
+  if (
+    !location ||
+    location.scope === 'project' ||
+    inside(resolve(project.path), location.sourcePath)
+  )
+    await checkedProject(project.path);
   let target: string;
   if (location) {
     const root = await realpath(location.root);
@@ -70,7 +75,13 @@ export async function projectDocument(store: Store, raw: unknown) {
 }
 export async function documentPlan(store: Store, raw: unknown) {
   const input = DocumentSchema.extend({
-    content: z.string().max(512 * 1024),
+    content: z
+      .string()
+      .max(MAX_TEXT_BYTES)
+      .refine(
+        (content) => Buffer.byteLength(content, 'utf8') <= MAX_TEXT_BYTES,
+        'Document exceeds the UTF-8 byte limit.',
+      ),
     digest: z.string().regex(/^[a-f0-9]{64}$/),
   }).parse(raw);
   const value = await document(store, input);

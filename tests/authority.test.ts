@@ -5,8 +5,9 @@ import { exportLibrary, importLibrary } from '../src/core/backup';
 import { importSkillDirectory } from '../src/core/ingest';
 import { readLocalBytes, readRecord } from '../src/core/local-files';
 import { referencedEnvironment, resolveDefinition } from '../src/core/mcp-compat';
-import { McpSchema, SetupSchema } from '../src/core/model';
-import { approveProject, ownedProject, projectKey } from '../src/core/ownership';
+import { McpSchema, type Plan, SetupSchema } from '../src/core/model';
+import { approveProject, ownedProject, projectKey, rootIdentity } from '../src/core/ownership';
+import { writeChange } from '../src/core/plan-io';
 import { createPlan, executePlan } from '../src/core/planner';
 import { readReviewResponse } from '../src/core/review-response';
 import { hash } from '../src/core/safety';
@@ -23,6 +24,43 @@ async function setup() {
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0)) await cleanup();
 });
+
+test.each(['replace', 'remove', 'rollback'] as const)(
+  'a late authored edit survives a planned %s',
+  async (operation) => {
+    const { project } = await setup();
+    const original = 'Owner baseline';
+    const generated = 'Reviewed generated content';
+    const direction = operation === 'rollback' ? 'rollback' : 'apply';
+    const target = join(project, 'AGENTS.md');
+    await Bun.write(target, direction === 'rollback' ? generated : original);
+    const change = {
+      path: 'AGENTS.md',
+      before: Buffer.from(original).toString('base64'),
+      beforeHash: hash(original),
+      after: operation === 'remove' ? null : Buffer.from(generated).toString('base64'),
+      reason: 'Fixture guidance',
+    };
+    const plan: Plan = {
+      id: 'late-edit-fixture',
+      projectPath: project,
+      providers: ['codex'],
+      entries: [],
+      createdAt: new Date(0).toISOString(),
+      changes: [change],
+      warnings: [],
+      status: direction === 'rollback' ? 'applied' : 'planned',
+      purpose: 'document',
+      rootIdentity: await rootIdentity(project),
+    };
+    await expect(
+      writeChange(plan, change, direction, async () => {
+        await Bun.write(target, 'Concurrent owner edit');
+      }),
+    ).rejects.toThrow('File changed since');
+    expect(await Bun.file(target).text()).toBe('Concurrent owner edit');
+  },
+);
 
 test('repository manifests cannot claim deletion or MCP ownership without a private reviewed baseline', async () => {
   const { store, project } = await setup();

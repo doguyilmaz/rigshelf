@@ -6,6 +6,7 @@ import { exportLibrary } from '../src/core/backup';
 import { documentChoices } from '../src/core/document-index';
 import { documentPlan, projectDocument } from '../src/core/documents';
 import { inventoryHistory, readInventoryBaseline } from '../src/core/inventory-baselines';
+import { MAX_TEXT_BYTES } from '../src/core/model';
 import { createPlan, executePlan } from '../src/core/planner';
 import { scan } from '../src/core/scanner';
 import { checkProject } from '../src/core/watch';
@@ -27,6 +28,38 @@ async function write(path: string, content: string) {
 }
 const skill =
   '---\nname: private-guide\ndescription: Use for a focused project.\n---\nKeep changes focused.\n';
+
+test('multi-byte document edits stay readable and oversized proposals preserve the original', async () => {
+  const data = await setup();
+  const path = join(data.project, 'MEMORY.md');
+  await write(path, 'Keep this project lesson.');
+  await scan(data.store, { roots: [data.project], globals: false, home: data.home });
+  const project = data.store.projects()[0]!;
+  const opened = await projectDocument(data.store, { projectId: project.id, path: 'MEMORY.md' });
+  const content = 'é'.repeat(MAX_TEXT_BYTES / 2);
+  await expect(
+    documentPlan(data.store, {
+      projectId: project.id,
+      path: 'MEMORY.md',
+      digest: opened.digest,
+      content: `${content}é`,
+    }),
+  ).rejects.toThrow('UTF-8 byte limit');
+  expect(data.store.planSummaries()).toHaveLength(0);
+  expect(await Bun.file(path).text()).toBe(opened.content);
+  const plan = await documentPlan(data.store, {
+    projectId: project.id,
+    path: 'MEMORY.md',
+    digest: opened.digest,
+    content,
+  });
+  await executePlan(data.store, plan.id, 'apply');
+  expect(
+    (await projectDocument(data.store, { projectId: project.id, path: 'MEMORY.md' })).content,
+  ).toBe(content);
+  await executePlan(data.store, plan.id, 'rollback');
+  expect(await Bun.file(path).text()).toBe(opened.content);
+});
 
 test('gitignored native Agents, config, hooks, Plugins and local agent memory are inventoried without execution', async () => {
   const data = await setup();

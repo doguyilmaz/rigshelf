@@ -7,6 +7,7 @@ import { aiDraft, startAiDraft } from '../src/core/ai-assistance';
 import { bridgeReason, resolveDefinition } from '../src/core/mcp-compat';
 import type { Entry, Mcp, Plan, Preset, Rule } from '../src/core/model';
 import { createPlan, executePlan } from '../src/core/planner';
+import { hash } from '../src/core/safety';
 import { scan } from '../src/core/scanner';
 import { route } from '../src/core/service';
 import { fixture, sampleSkill } from './helpers';
@@ -14,6 +15,49 @@ import { fixture, sampleSkill } from './helpers';
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const close of cleanup.splice(0)) await close();
+});
+
+test('MCP item reads never expose parsed legacy credential metadata', async () => {
+  const data = await fixture();
+  cleanup.push(data.cleanup);
+  const safe = (await route(data.store, 'POST', 'mcp', {
+    name: 'legacy-credential-fixture',
+    mcp: { transport: 'stdio', command: 'fixture-server', env: { API_KEY: '${TOKEN}' } },
+  })) as Entry;
+  const mcp = {
+    ...safe.mcp!,
+    command: 'server --token "private-fixture-command"',
+    args: ['--token', 'private-fixture-argument'],
+    url: 'https://example.test/mcp?password=private-fixture-query&mode=public',
+    env: { API_KEY: 'private-fixture-${OTHER}' },
+  };
+  const body = JSON.stringify(mcp, null, 2);
+  const legacy: Entry = {
+    ...safe,
+    id: 'legacy-mcp-reader',
+    body,
+    mcp,
+    digest: hash(body),
+    custom: false,
+  };
+  data.store.saveEntry(legacy);
+  const client = new Client({ name: 'legacy-reader-fixture', version: '1.0.0' });
+  cleanup.unshift(() => client.close());
+  await client.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve('src/cli.ts'), 'mcp'],
+      env: { KITFOLD_DATA_DIR: data.store.directory },
+      stderr: 'pipe',
+    }),
+  );
+  const result = await client.callTool({ name: 'kitfold_item', arguments: { id: legacy.id } });
+  expect(result.isError).not.toBe(true);
+  expect(JSON.stringify(result)).not.toContain('private-fixture');
+  const parsed = JSON.parse((result.content as { text: string }[])[0]!.text) as { entry: Entry };
+  expect(parsed.entry.mcp).toBeUndefined();
+  expect(parsed.entry.body).toContain('${API_KEY}');
+  expect(data.store.entry(legacy.id)!.body).toBe(body);
 });
 
 test('read-only MCP can restore private returning choices without applying again or granting permission', async () => {

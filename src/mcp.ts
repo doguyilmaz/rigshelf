@@ -6,6 +6,7 @@ import { aiDraft, completeAiDraft, listAiDrafts } from './core/ai-assistance';
 import type { AiFileInventory } from './core/ai-files';
 import { brand } from './core/brand';
 import { documentChoices } from './core/document-index';
+import { entryView } from './core/entry-view';
 import {
   type Plan,
   PresetSchema,
@@ -236,10 +237,11 @@ export async function serveMcp(
     async ({ id, offset, length }) => {
       const entry = store.entry(id);
       if (!entry) throw new Error('Capability not found');
-      const body = redact(entry.body);
+      const visible = entryView(entry);
+      const body = redact(visible.body);
       return output({
         entry: {
-          ...entry,
+          ...visible,
           origins: entry.origins?.slice(0, 20),
           findings: entry.findings.slice(0, 30),
           body: body.slice(offset, offset + length),

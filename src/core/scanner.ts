@@ -22,6 +22,7 @@ import {
   projectSkillPaths,
 } from './inventory-paths';
 import type { Kit } from './kit';
+import { sanitizeMcpDefinition } from './mcp-definition';
 import { McpInventoryError, readInventoryMcpConfig } from './mcp-inventory-config';
 import { mcpLocationGroups } from './mcp-locations';
 import { type DocumentLocation, type Entry, McpSchema, type Project, type Source } from './model';
@@ -31,7 +32,7 @@ import { pluginBoundaries, pluginPathAllowed } from './plugin-files';
 import { inventoryNativePlugins } from './plugin-inventory';
 import { pluginProject } from './plugin-records';
 import { canonicalMcp, object } from './providers';
-import { hash, inside, now, redact, scanText } from './safety';
+import { hash, inside, now, scanText } from './safety';
 import { pinnedMcp, pinnedSkill } from './scan-pinned';
 import type { Store } from './store';
 
@@ -201,47 +202,7 @@ async function discoverSkills(
 }
 
 export function sanitizeMcp(mcp: NonNullable<ReturnType<typeof canonicalMcp>>): typeof mcp {
-  return {
-    ...mcp,
-    command: mcp.command ? redact(mcp.command) : undefined,
-    args: mcp.args.map((argument, index) =>
-      /(?:token|secret|password|api-key|api_key|auth|credential|license-key)$/i.test(
-        mcp.args[index - 1] || '',
-      )
-        ? '${KITFOLD_SECRET}'
-        : redact(argument).replace(
-            /(--[\w-]*(?:token|secret|password|key|auth|credential)=).+/i,
-            '$1${KITFOLD_SECRET}',
-          ),
-    ),
-    url: mcp.url
-      ? redact(mcp.url).replace(
-          /([?&](?:token|key|api_key|access_token)=)[^&]+/gi,
-          '$1${KITFOLD_SECRET}',
-        )
-      : undefined,
-    env: Object.fromEntries(
-      Object.entries(mcp.env).map(([key, value]) => [
-        key,
-        value.includes('${')
-          ? value
-          : /^(?:NODE_ENV|BUN_ENV|MODE|LOG_LEVEL|DEBUG|PORT|TZ|LANG|LC_ALL|NO_COLOR|FORCE_COLOR|CI|MCP_TRANSPORT|MCP_PORT|MCP_HOST)$/i.test(
-                key,
-              )
-            ? redact(value)
-            : `\${${key}}`,
-      ]),
-    ),
-    headers: Object.fromEntries(
-      Object.entries(mcp.headers).map(([key, value]) => [
-        key,
-        /^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(value) ||
-        /^(?:accept|content-type|x-region|mcp-protocol-version)$/i.test(key)
-          ? value
-          : `\${KITFOLD_${key.toUpperCase().replace(/[^A-Z0-9]/g, '_')}}`,
-      ]),
-    ),
-  };
+  return sanitizeMcpDefinition(mcp);
 }
 
 async function importMcp(
@@ -516,6 +477,7 @@ export async function scan(
       selectedRoots.push(expanded);
       if (await discoverProjects(expanded, projects, result.skipped)) completeRoots.push(expanded);
     }
+    const completeBoundaries = await pluginBoundaries(completeRoots);
     const nativeBoundaries = await pluginBoundaries([
       ...configRoots.map((root) => root.path),
       ...selectedRoots,
@@ -721,8 +683,24 @@ export async function scan(
                 .split(sep)
                 .some((part) => ignoredDirectories.has(part)),
           );
-          if (!authorized || !(await lstat(referenced.path).catch(() => undefined))?.isDirectory())
+          if (!authorized) continue;
+          const canonical = await realpath(referenced.path).catch(() => undefined);
+          if (!canonical) continue;
+          if (
+            !completeBoundaries.some(
+              (root) =>
+                inside(root, canonical) &&
+                !relative(root, canonical)
+                  .split(sep)
+                  .some((part) => ignoredDirectories.has(part)),
+            )
+          ) {
+            result.skipped.push(
+              `${referenced.path}: Referenced project target outside selected roots excluded.`,
+            );
             continue;
+          }
+          if (!(await lstat(referenced.path).catch(() => undefined))?.isDirectory()) continue;
           try {
             const detail = await inventoryProject(
               store,
