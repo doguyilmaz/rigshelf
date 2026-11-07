@@ -7,8 +7,10 @@ interface Props {
   title: string;
   description: string;
   home?: boolean;
+  studio?: boolean;
+  noindex?: boolean;
 }
-const { title, description, home = false } = Astro.props;
+const { title, description, home = false, studio = false, noindex = false } = Astro.props;
 const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined;
 ---
 
@@ -17,8 +19,9 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefin
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#f7f7f2" />
+    <meta name="color-scheme" content={studio ? 'dark' : 'light'} />
+    <meta name="theme-color" content={studio ? '#141414' : '#f7f7f2'} />
+    {noindex && <meta name="robots" content="noindex,follow" />}
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -38,13 +41,15 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefin
     <meta name="twitter:card" content="summary_large_image" />
     <slot name="head" />
   </head>
-  <body class:list={[{ 'home-page': home }]} id="top">
+  <body class:list={[{ 'home-page': home, 'studio-page': studio }]} id="top">
     <a class="skip-link" href="#main">
       Skip to content
     </a>
     <Header />
     <slot />
-    <Footer />
+    <slot name="footer">
+      <Footer />
+    </slot>
     <Search />
     <script>
       import '../scripts/shared';

@@ -11,6 +11,8 @@ const routes = new Map<string, string>(
 );
 routes.set('web/public/fonts/instrumentsans-OFL.txt', '/fonts/instrumentsans-OFL.txt');
 routes.set('web/public/fonts/newsreader-OFL.txt', '/fonts/newsreader-OFL.txt');
+for (const name of ['three', 'astro'])
+  routes.set(`site/public/licenses/${name}.txt`, `/licenses/${name}.txt`);
 
 function links(content: string, source: string): string {
   return content.replace(/\]\(([^)\s]+)\)/g, (match, href: string) => {
@@ -40,7 +42,16 @@ for (const name of [
   await mkdir(dirname(target), { recursive: true });
   await copyFile(join(repository, 'web/public/fonts', name), target);
 }
-for (const name of ['favicon.svg', 'social.svg', 'social.png', '_headers']) {
-  await copyFile(join(site, 'public', name), join(output, 'public', name));
+for (const name of [
+  'favicon.svg',
+  'social.svg',
+  'social.png',
+  '_headers',
+  'licenses/three.txt',
+  'licenses/astro.txt',
+]) {
+  const target = join(output, 'public', name);
+  await mkdir(dirname(target), { recursive: true });
+  await copyFile(join(site, 'public', name), target);
 }
 process.stdout.write(`Prepared ${guides.length} guides from canonical repository documents.\n`);

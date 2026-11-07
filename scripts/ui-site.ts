@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
-import { chromium, expect } from '@playwright/test';
+import { type Browser, type BrowserContext, chromium, expect, type Page } from '@playwright/test';
 import { guides } from '../site/src/docs';
 
 const root = resolve('site/dist');
@@ -34,6 +34,7 @@ const server = Bun.serve({
 });
 const origin = `http://127.0.0.1:${server.port}`;
 const browser = await chromium.launch({ headless: true });
+let graphicsBrowser: Browser | undefined;
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
   reducedMotion: 'reduce',
@@ -42,16 +43,22 @@ const page = await context.newPage();
 const errors: string[] = [],
   blocked: string[] = [],
   checks: string[] = [];
-page.on('pageerror', (error) => errors.push(error.message));
-page.on('console', (message) => {
-  if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text());
-});
-await context.route('**/*', (route) => {
-  const url = new URL(route.request().url());
-  if (url.origin === origin || url.protocol === 'data:') return route.continue();
-  blocked.push(url.origin);
-  return route.abort();
-});
+function captureErrors(target: Page): void {
+  target.on('pageerror', (error) => errors.push(error.message));
+  target.on('console', (message) => {
+    if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text());
+  });
+}
+async function localRequests(target: BrowserContext): Promise<void> {
+  await target.route('**/*', (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin === origin || url.protocol === 'data:') return route.continue();
+    blocked.push(url.origin);
+    return route.abort();
+  });
+}
+captureErrors(page);
+await localRequests(context);
 const targets = new Set<string>();
 let layoutCases = 0;
 async function fits(label: string) {
@@ -70,10 +77,18 @@ async function fits(label: string) {
   layoutCases++;
 }
 try {
-  for (const path of ['/', '/docs/', ...guides.map((guide) => `/docs/${guide.slug}/`)]) {
+  for (const path of [
+    '/',
+    '/previous/',
+    '/docs/',
+    ...guides.map((guide) => `/docs/${guide.slug}/`),
+  ]) {
     const response = await page.goto(`${origin}${path}`);
     expect(response?.status()).toBe(200);
-    if (path === '/') await page.screenshot({ path: join(evidence, 'home-viewport.png') });
+    if (path === '/' || path === '/previous/')
+      await page.screenshot({
+        path: join(evidence, path === '/' ? 'home-viewport.png' : 'previous-viewport.png'),
+      });
     await fits(path);
     const hrefs = await page
       .locator('a[href]')
@@ -103,34 +118,41 @@ try {
     for (const path of ['/', '/docs/', '/docs/data/']) {
       await page.goto(`${origin}${path}`);
       await fits(`${path} at ${width}`);
+      await page.evaluate(() => document.fonts.ready);
       await page.screenshot({
         path: join(
           evidence,
           `${path === '/' ? 'home' : path.includes('data') ? 'doc' : 'guides'}-${width}.png`,
         ),
-        fullPage: true,
+        fullPage: path === '/',
       });
       if (path === '/' && width <= 390)
-        await page.locator('.hero').screenshot({ path: join(evidence, `hero-${width}.png`) });
+        await page
+          .locator('.studio-hero')
+          .screenshot({ path: join(evidence, `hero-${width}.png`) });
       if (path === '/docs/data/' && width === 390)
         await page.screenshot({ path: join(evidence, 'doc-viewport-390.png') });
     }
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(origin);
-  const box = await page.locator('.workbench').boundingBox();
-  await page.getByRole('button', { name: 'API service' }).click();
-  await expect(page.locator('[data-project-name]')).toHaveText('Relay');
-  await expect(page.locator('[data-kit-list]')).toContainText('API conventions');
-  await page.getByRole('button', { name: 'Codex', exact: true }).click();
-  await expect(page.locator('[data-file-name]')).toHaveText('.codex/config.toml');
-  await expect(page.locator('[data-skill-path]')).toHaveText('.agents/skills/');
-  const after = await page.locator('.workbench').boundingBox();
-  expect(after?.height).toBe(box?.height);
-  await page.getByRole('button', { name: 'Web app' }).click();
-  await expect(page.locator('[data-project-name]')).toHaveText('Papertrail');
+  const box = await page.locator('.context-machine').boundingBox();
+  await page.locator('[data-context-project="api"]').click();
+  await expect(page.locator('[data-context-name]')).toHaveText('Relay');
+  await expect(page.locator('[data-context-selection]')).toContainText('API design');
+  await expect(page.locator('.context-item.is-selected')).toHaveCount(4);
+  await expect(page.locator('[data-library-index="10"]')).not.toHaveClass(/is-selected/);
+  await page.locator('[data-native-harness="codex"]').click();
+  await expect(page.locator('[data-native-mcp]')).toHaveText('.codex/config.toml');
+  await expect(page.locator('[data-native-skills]')).toHaveText('.agents/skills/');
+  expect((await page.locator('.context-machine').boundingBox())?.height).toBe(box?.height);
+  await page.locator('[data-context-project="swift"]').click();
+  await expect(page.locator('[data-context-name]')).toHaveText('Daylight');
+  await expect(page.locator('[data-context-selection]')).toContainText('SwiftUI patterns');
+  await page.locator('[data-native-harness="kiro"]').click();
+  await expect(page.locator('[data-native-mcp]')).toHaveText('.kiro/settings/mcp.json');
   checks.push(
-    'Project and Harness selection update real example content and native paths without resizing the workbench or contacting services.',
+    'Context selection changes four focused capabilities while keeping native Plugin references outside; Harness selection updates documented native paths without page jumps.',
   );
   await page.getByRole('button', { name: 'Search documentation', exact: true }).click();
   const search = page.getByRole('dialog', { name: 'Find your way.' });
@@ -164,32 +186,149 @@ try {
   await expect(page.locator('h1')).toHaveText('Backup & restore');
   checks.push('Mobile navigation and the docs guide drawer reach real pages at 320px.');
   await page.goto(origin);
-  await page.getByRole('button', { name: 'Replay assembly' }).click();
+  await page.getByRole('button', { name: 'Explode rig' }).click();
+  await expect(page.locator('[data-rig-stage]')).toHaveAttribute('data-exploded', 'true');
   expect(
-    await page.locator('.rig-art').evaluate((node) => node.getAnimations({ subtree: true }).length),
+    await page
+      .locator('[data-rig-stage]')
+      .evaluate((node) => node.getAnimations({ subtree: true }).length),
   ).toBe(0);
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.getByRole('button', { name: 'Replay assembly' }).click();
-  expect(
-    await page.locator('.rig-art').evaluate((node) => node.getAnimations({ subtree: true }).length),
-  ).toBeGreaterThan(0);
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect
-    .poll(() =>
-      page.locator('.rig-art').evaluate((node) => node.getAnimations({ subtree: true }).length),
-    )
-    .toBe(0);
+  await page.locator('[data-rig-project="swift"]').click();
+  await expect(page.locator('[data-rig-motion-label]')).toHaveText('Assembled for Daylight');
+  await expect(page.locator('[data-rig-stage]')).toHaveAttribute('data-exploded', 'false');
+  const reducedScripts = await page.evaluate(() =>
+    performance
+      .getEntriesByType('resource')
+      .map((entry) => new URL(entry.name).pathname)
+      .filter((path) => path.endsWith('.js')),
+  );
+  expect(reducedScripts.some((path) => path.includes('rig-renderer'))).toBe(false);
   checks.push(
-    'Assembly motion is interruptible, finite and removed immediately when reduced motion is requested.',
+    'Reduced-motion visitors keep the static artwork and working project/layer controls without loading the graphics runtime.',
+  );
+  graphicsBrowser = await chromium.launch({
+    headless: true,
+    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  });
+  const graphics = await graphicsBrowser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    reducedMotion: 'no-preference',
+  });
+  await graphics.addInitScript(() => {
+    const scope = globalThis as typeof globalThis & { rigFrameCount: number };
+    const original = requestAnimationFrame;
+    scope.rigFrameCount = 0;
+    window.requestAnimationFrame = (callback) =>
+      original((time) => {
+        scope.rigFrameCount++;
+        callback(time);
+      });
+  });
+  const graphicsPage = await graphics.newPage();
+  captureErrors(graphicsPage);
+  await localRequests(graphics);
+  await graphicsPage.goto(origin);
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-renderer', 'webgl', {
+    timeout: 30000,
+  });
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'false', {
+    timeout: 10000,
+  });
+  await graphicsPage.waitForTimeout(150);
+  const idleFrames = await graphicsPage.evaluate(
+    () => (globalThis as typeof globalThis & { rigFrameCount: number }).rigFrameCount,
+  );
+  await graphicsPage.waitForTimeout(250);
+  expect(
+    await graphicsPage.evaluate(
+      () => (globalThis as typeof globalThis & { rigFrameCount: number }).rigFrameCount,
+    ),
+  ).toBe(idleFrames);
+  await graphicsPage.screenshot({ path: join(evidence, 'studio-webgl.png') });
+  await graphicsPage.setViewportSize({ width: 390, height: 844 });
+  await graphicsPage.locator('[data-rig-stage]').scrollIntoViewIfNeeded();
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-renderer', 'webgl');
+  await graphicsPage
+    .locator('.rig-installation')
+    .screenshot({ path: join(evidence, 'rig-webgl-mobile.png') });
+  await graphicsPage.setViewportSize({ width: 1440, height: 1000 });
+  await graphicsPage.evaluate(() => scrollTo(0, 0));
+  await graphicsPage.getByRole('button', { name: 'Rotate rig' }).focus();
+  await graphicsPage.keyboard.press('Enter');
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'false');
+  await graphicsPage.getByRole('button', { name: 'Explode rig' }).click();
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'true');
+  await graphicsPage.getByRole('button', { name: 'Rotate rig' }).click();
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'false', {
+    timeout: 10000,
+  });
+  await graphicsPage.getByRole('button', { name: 'Explode rig' }).click();
+  await graphicsPage.evaluate(() => scrollTo(0, document.body.scrollHeight));
+  await graphicsPage.waitForTimeout(200);
+  const pausedFrames = await graphicsPage.evaluate(
+    () => (globalThis as typeof globalThis & { rigFrameCount: number }).rigFrameCount,
+  );
+  await graphicsPage.waitForTimeout(250);
+  expect(
+    await graphicsPage.evaluate(
+      () => (globalThis as typeof globalThis & { rigFrameCount: number }).rigFrameCount,
+    ),
+  ).toBe(pausedFrames);
+  await graphicsPage.locator('[data-rig-stage]').scrollIntoViewIfNeeded();
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'false', {
+    timeout: 10000,
+  });
+  await graphicsPage.emulateMedia({ reducedMotion: 'reduce' });
+  await graphicsPage.getByRole('button', { name: 'Explode rig' }).click();
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-moving', 'false');
+  await graphicsPage.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('[data-rig-canvas]')!;
+    canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
+  });
+  await expect(graphicsPage.locator('[data-rig-stage]')).toHaveAttribute('data-renderer', 'static');
+  await graphics.close();
+  checks.push(
+    'Software WebGL renders the actual model; desktop/mobile framing works, idle/offscreen frames stop, keyboard changes are immediate, interrupted layer/rotation transitions settle, reduced motion stops interpolation and context loss restores the illustration.',
+  );
+  const fallback = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'no-preference',
+  });
+  await fallback.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+      value: function (this: HTMLCanvasElement, kind: string, ...args: unknown[]) {
+        return kind === 'webgl2' ? null : Reflect.apply(original, this, [kind, ...args]);
+      },
+    });
+  });
+  const fallbackPage = await fallback.newPage();
+  captureErrors(fallbackPage);
+  await localRequests(fallback);
+  await fallbackPage.goto(origin);
+  await expect(fallbackPage.locator('[data-rig-stage]')).toHaveAttribute('data-renderer', 'static');
+  await fallbackPage.getByRole('button', { name: 'Explode rig' }).click();
+  await expect(fallbackPage.getByRole('button', { name: 'Explode rig' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await fallback.close();
+  checks.push(
+    'A browser without WebGL retains the artwork and usable controls rather than showing an empty canvas.',
   );
   const offline = await browser.newContext({
     javaScriptEnabled: false,
     viewport: { width: 390, height: 844 },
   });
   const staticPage = await offline.newPage();
+  captureErrors(staticPage);
+  await localRequests(offline);
   await staticPage.goto(origin);
   await expect(staticPage.getByRole('heading', { level: 1 })).toBeVisible();
-  await staticPage.getByRole('link', { name: 'Build your first kit' }).click();
+  await staticPage
+    .locator('.studio-hero')
+    .getByRole('link', { name: 'Build your first kit' })
+    .click();
   await expect(staticPage.locator('.prose')).toBeVisible();
   await offline.close();
   const missing = await page.goto(`${origin}/no-such-page/`);
@@ -203,13 +342,23 @@ try {
   const clientBytes = (
     await Promise.all(scripts.map((name) => Bun.file(join(root, '_astro', name)).size))
   ).reduce((sum, size) => sum + size, 0);
-  expect(clientBytes).toBeLessThan(20000);
+  const graphicsGzipBytes = (
+    await Promise.all(
+      scripts.map(
+        async (name) =>
+          Bun.gzipSync(await Bun.file(join(root, '_astro', name)).arrayBuffer()).byteLength,
+      ),
+    )
+  ).reduce((sum, size) => sum + size, 0);
+  expect(graphicsGzipBytes).toBeLessThan(240 * 1024);
   const report = {
     status: 'pass',
-    pages: guides.length + 2,
+    pages: guides.length + 3,
     layoutCases,
     internalTargets: targets.size,
     clientBytes,
+    graphicsGzipBytes,
+    reducedScripts,
     checks,
     errors,
     externalRequests: blocked,
@@ -222,6 +371,7 @@ try {
     .catch(() => undefined);
   throw error;
 } finally {
+  await graphicsBrowser?.close();
   await browser.close();
   await server.stop(true);
 }

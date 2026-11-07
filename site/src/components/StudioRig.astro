@@ -1,0 +1,144 @@
+---
+import { projects } from '../scripts/studio-data';
+---
+
+<div class="rig-installation" data-rig-shell>
+  <div class="rig-coordinate">
+    <span>R / 001</span>
+    <span>PROJECT EQUIPMENT</span>
+    <span class="coordinate-cross" aria-hidden="true">
+      +
+    </span>
+  </div>
+  <div
+    class="rig-stage"
+    data-rig-stage
+    data-renderer="static"
+    data-moving="false"
+    data-exploded="false"
+  >
+    <div class="stage-reticle reticle-one" aria-hidden="true"></div>
+    <div class="stage-reticle reticle-two" aria-hidden="true"></div>
+    <svg class="stage-fallback" viewBox="0 0 700 540" aria-hidden="true" fill="none">
+      <defs>
+        <linearGradient
+          id="studio-metal"
+          x1="150"
+          y1="200"
+          x2="550"
+          y2="400"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stop-color="#f2f0e9" />
+          <stop offset="1" stop-color="#8d8d88" />
+        </linearGradient>
+        <linearGradient
+          id="studio-side"
+          x1="140"
+          y1="300"
+          x2="350"
+          y2="440"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stop-color="#3d3d3b" />
+          <stop offset="1" stop-color="#73736d" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="350" cy="429" rx="240" ry="42" fill="#000" opacity=".3" />
+      <path d="m70 333 280-161 280 161-280 162z" stroke="#444440" stroke-dasharray="3 10" />
+      <path
+        d="m104 317 246 142 246-142v25L350 484 104 342z"
+        fill="url(#studio-side)"
+        stroke="#888881"
+      />
+      <path d="m104 317 246-142 246 142-246 142z" fill="#bfbfb8" stroke="#deded6" />
+      <path d="m127 317 223-129 223 129-223 129z" fill="#252525" stroke="#74746d" />
+      <path d="m153 317 197-114 197 114-197 114z" stroke="#484843" />
+      <g data-static-part>
+        <path d="m181 270 73-42 73 42v37l-73 42-73-42z" fill="#888882" stroke="#d7d7cd" />
+        <path d="m181 270 73-42 73 42-73 42z" fill="url(#studio-metal)" stroke="#eeeae1" />
+        <g transform="translate(234 269) rotate(30) skewX(-30)">
+          <text fill="#242424" font-size="30" font-family="monospace">
+            S
+          </text>
+        </g>
+      </g>
+      <g data-static-part>
+        <path d="m344 176 73-42 73 42v37l-73 42-73-42z" fill="#9b9b94" stroke="#dadad0" />
+        <path d="m344 176 73-42 73 42-73 42z" fill="url(#studio-metal)" stroke="#efebe2" />
+        <g transform="translate(397 175) rotate(30) skewX(-30)">
+          <text fill="#242424" font-size="30" font-family="monospace">
+            M
+          </text>
+        </g>
+      </g>
+      <g data-static-part>
+        <path d="m344 364 73-42 73 42v37l-73 42-73-42z" fill="#ab3b20" stroke="#ef744b" />
+        <path d="m344 364 73-42 73 42-73 42z" fill="#f1774b" stroke="#ffb18a" />
+        <g transform="translate(397 363) rotate(30) skewX(-30)">
+          <text fill="#242424" font-size="30" font-family="monospace">
+            R
+          </text>
+        </g>
+      </g>
+      <g data-static-part>
+        <path d="m507 270 40-23 40 23v37l-40 23-40-23z" fill="#4c4c47" stroke="#b4b4a9" />
+        <path d="m507 270 40-23 40 23-40 23z" fill="#4e4e49" stroke="#b4b4a9" />
+        <g transform="translate(534 268) rotate(30) skewX(-30)">
+          <text fill="#f3f0e6" font-size="22" font-family="monospace">
+            A
+          </text>
+        </g>
+      </g>
+      <path d="m143 317 207-120m0 247 207-120" stroke="#dcdcd2" stroke-width="5" />
+      <path d="m259 426 38 22 39-22-38-22z" fill="#f1774b" />
+      <path d="m290 425 7-4 8 5m-11-1 7 4" stroke="#232323" stroke-width="2" />
+    </svg>
+    <canvas data-rig-canvas aria-hidden="true"></canvas>
+    <div class="stage-label label-skills">
+      <span>01</span> Skills
+    </div>
+    <div class="stage-label label-mcp">
+      <span>02</span> MCP
+    </div>
+    <div class="stage-label label-rules">
+      <span>03</span> Your principles
+    </div>
+    <div class="rig-model-note">
+      <span class="model-dot"></span>
+      <span data-rig-motion-label>Assembled for Fieldnotes</span>
+    </div>
+  </div>
+  <div class="rig-desk-controls">
+    <div class="rig-project-buttons" role="group" aria-label="Rig project">
+      {Object.entries(projects).map(([key, project]) => (
+        <button type="button" data-rig-project={key} aria-pressed={key === 'expo'}>
+          <span>{project.number}</span>
+          {project.stack.split(' / ')[0]}
+        </button>
+      ))}
+    </div>
+    <div class="rig-view-controls">
+      <button
+        type="button"
+        data-rig-split
+        aria-pressed="false"
+        aria-label="Explode rig"
+        title="Separate the rig layers"
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor">
+          <path d="m3 6 7-4 7 4-7 4zM3 10l7 4 7-4M3 14l7 4 7-4" />
+        </svg>
+      </button>
+      <button type="button" data-rig-rotate aria-label="Rotate rig" title="Rotate the rig">
+        <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor">
+          <path d="M15 5A7 7 0 1 0 17 10M15 2v4h-4" />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <p class="rig-footnote">
+    <span>Illustrative rig. No tools are installed.</span>
+    <span data-rig-instruction>Choose a project or explore the layers ↗</span>
+  </p>
+</div>

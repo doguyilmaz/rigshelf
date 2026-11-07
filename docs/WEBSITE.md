@@ -25,13 +25,13 @@ bun run test:site
 bun run site:preview
 ```
 
-The browser suite uses the root development dependencies and an already installed Chromium. It serves only the generated static files under an ephemeral loopback origin, applies the production header policy and stores evidence under ignored `.local/qa/site`. It checks the published guides, internal links/fragments, responsive geometry, accessibility, project/Harness examples, search, reduced motion, JavaScript-free navigation and the 404. The application’s separate `bun run verify`, `bun run lint` and `bun run test:ui` remain required for application changes.
+The browser suite uses the root development dependencies and an already installed Chromium. It serves only the generated static files under an ephemeral loopback origin, applies the production header policy and stores evidence under ignored `.local/qa/site`. It checks the published guides, internal links/fragments, responsive geometry, accessibility, project/Harness examples, search, reduced motion, JavaScript-free navigation and the 404. Graphics checks exercise software WebGL, interrupted transitions, stopped idle frames, context loss and the static fallback; they do not substitute for native GPU/device acceptance. The application’s separate `bun run verify`, `bun run lint` and `bun run test:ui` remain required for application changes.
 
 ## Maintain the documentation
 
 The route inventory lives in `site/src/docs.ts`. `site/scripts/prepare.ts` reads only those named repository documents and the public brand/font assets. It generates frontmatter, removes the duplicate document heading and rewrites known relative Markdown links into site routes. An unmapped local link fails the build. Edit the canonical document, not `.generated`.
 
-`site/.generated`, `site/.astro` and `site/dist` are disposable build outputs. Website dependencies are kept out of the application’s runtime package. No private inventory, real project screenshot, conversation, account store or user catalog is a website input. Public diagrams are original SVG illustrations, and local fonts retain their OFL notices.
+`site/.generated`, `site/.astro` and `site/dist` are disposable build outputs. Website dependencies are kept out of the application’s runtime package. No private inventory, real project screenshot, conversation, account store or user catalog is a website input. Public diagrams use original SVG illustrations and procedural Three.js geometry; no model downloads or external texture services are required. Local fonts retain their OFL notices. Website dependency notices are included under `/licenses/`.
 
 Search loads a static same-origin index only when opened. It includes the published documentation text; the browser sends no query to an external search or AI service. Essential text and links work without JavaScript. Project examples are illustrative, with explicit native paths and compatibility links rather than claims that every native feature is interchangeable.
 
@@ -45,6 +45,10 @@ The website has no production server, API credentials, account database, analyti
 
 ## Visual direction
 
-The approved Rigshelf mark, Instrument Sans and Newsreader remain the identity. Paper, graphite, precise rules and modular isometric drawings describe a physical rig assembled for a project. The finite assembly animation is explanatory, interruptible and disabled by reduced motion. Common controls stay immediate; the site has no infinite render loop, scroll hijacking, pointer chase or WebGL requirement.
+The approved Rigshelf mark, Instrument Sans and Newsreader remain the identity. The landing page has its own editorial presentation: a charcoal equipment stage, warm paper sections and a signal-orange accent. It explains the product through a physical rig, selective project context, native Harness file routes and layered guidance. The workbench UI is not a marketing-page template. Documentation keeps the quieter light reading theme.
+
+The hero starts with a usable SVG illustration. Visible, motion-enabled browsers with WebGL2 load the separate Three.js chunk; reduced-motion visitors retain the illustration without downloading that renderer. Layer and rotation controls have a static fallback. The finite 3D transitions retarget from the current pose, stop when settled, pause offscreen or while the document is hidden, and dispose resources on exit. Context loss restores the illustration. No infinite render loop, scroll hijacking or external runtime request is required. Touch visitors use explicit controls instead of capturing page scrolling.
+
+The earlier homepage is preserved at `/previous/` for comparison. It has `noindex` metadata and is excluded from the public sitemap. The redesign is isolated on the `website/rig-studio` branch; the application and its private data are unchanged.
 
 The social card source is `site/public/social.svg`; regenerate its committed PNG with `bun site/scripts/social.ts`. The generated site includes both formats and font notices. Keep technical terms and product behavior consistent with [compatibility](COMPATIBILITY.md), [security](SECURITY-REVIEW.md) and [brand compatibility](BRANDING.md).
