@@ -7,7 +7,9 @@ import { checkDocsCommands, checkDocsReadability } from './site-docs-checks';
 import {
   checkHarnessEntry,
   checkHarnessFrame,
+  checkLandingFrame,
   checkLandingReadability,
+  checkLandingScreens,
   checkSectionNavigation,
   checkSelectionStability,
 } from './site-interaction-checks';
@@ -93,6 +95,10 @@ async function fits(label: string) {
   layoutCases++;
 }
 try {
+  await checkLandingScreens(page, origin);
+  checks.push(
+    'The dark opening fills the first viewport at eleven desktop/mobile sizes before and after font loading; two live window resizes retain the fold boundary without clipping the rig, hiding content or horizontal overflow.',
+  );
   const transitionContext = await browser.newContext({
     reducedMotion: 'no-preference',
     viewport: { width: 1280, height: 900 },
@@ -436,6 +442,7 @@ try {
   captureErrors(staticPage);
   await localRequests(offline);
   await staticPage.goto(origin);
+  await checkLandingFrame(staticPage);
   await expect(staticPage.getByRole('heading', { level: 1 })).toBeVisible();
   await staticPage
     .locator('.studio-hero')

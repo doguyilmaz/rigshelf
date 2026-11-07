@@ -62,6 +62,8 @@ Same-page pointer links use the browser’s native smooth scrolling. Their secti
 
 Cross-document links use a 180ms opacity crossfade through [native View Transitions](https://developer.chrome.com/docs/web-platform/view-transitions/cross-document). The opt-in is declared early in the shared document head, and `rel="expect"` waits for the main HTML to be parsed before its first paint. No extra JavaScript request, navigation timeout or client router is introduced. Existing full-document initialization, native history and fragment handling remain in use. JavaScript skips the effect for keyboard navigation; reduced motion disables the native opt-in in CSS. Supporting browsers manage interruption and snapshot cleanup; other browsers retain standard navigation. First visits, reloads and same-page anchors do not run the page crossfade.
 
+The opening fills the viewport below the header. The hero and adapter strip share this minimum height; text and graphics keep their existing sizes. On short or narrow screens the opening expands to fit its content. The next light section appears after scrolling. Browser checks cover eleven desktop/mobile sizes before and after font loading, plus two live window resizes and JavaScript-disabled navigation.
+
 | Before | After | Why |
 | --- | --- | --- |
 | Pointer section links jumped immediately. | Native smooth scrolling, sticky-header clearance and destination focus; keyboard/reduced motion remain immediate. | Make the destination legible while preserving user input and browser history. |
@@ -74,6 +76,7 @@ Cross-document links use a 180ms opacity crossfade through [native View Transiti
 | Repeated rig visibility events restarted transitions; delayed graphics could lose the selected pose. | Pause/resume retains timing, selection uses the nearest rotation and initialization preserves the current choice. | Avoid jumps or extra spins during interrupted interaction. |
 | Entering Harnesses left a light strip below the header; tall viewports could reveal the next light section at the bottom. | The anchor offset matches the header and the section fills at least the available viewport; the root background matches the homepage. | Keep the destination visually continuous without adding fixed padding or trapping scrolling. |
 | Documentation and the dark homepage changed abruptly. | A native 180ms opacity crossfade, with early opt-in and the destination's main HTML ready before painting. | Bridge the visual change while keeping keyboard and reduced-motion navigation immediate. |
+| At the top of tall windows, the next light section appeared within the first screen. | The hero and adapter strip share a viewport-sized opening with natural content growth on smaller screens. | Keep the opening visually complete across display sizes without shrinking or clipping its content. |
 
 The earlier homepage is preserved at `/previous/` for comparison. It has `noindex` metadata and is excluded from the public sitemap. The redesign is isolated on the `website/rig-studio` branch; the application and its private data are unchanged.
 

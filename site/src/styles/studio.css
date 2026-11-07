@@ -66,12 +66,18 @@
   --search-ring: #e78758;
   color-scheme: dark;
 }
+.studio-opening {
+  min-block-size: calc(100svh - var(--studio-header-height));
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
 .studio-hero {
   width: min(1600px, 100%);
   padding: 64px 56px 0;
-  margin: auto;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 1.12fr;
+  grid-template-rows: 1fr auto;
   gap: 28px;
   align-items: center;
 }
@@ -377,7 +383,7 @@
 }
 .studio-tools {
   width: min(1488px, calc(100% - 112px));
-  margin: auto;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 36px;
@@ -1504,6 +1510,7 @@
   }
   .studio-hero {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
     padding-top: 36px;
   }
   .studio-hero-copy {

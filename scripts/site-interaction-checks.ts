@@ -1,5 +1,69 @@
 import { expect, type Page } from '@playwright/test';
 
+export async function checkLandingFrame(page: Page): Promise<void> {
+  const frame = await page.evaluate(() => {
+    const opening = document.querySelector('.studio-opening')!,
+      bounds = opening.getBoundingClientRect(),
+      header = document.querySelector('.site-header')!.getBoundingClientRect(),
+      hero = document.querySelector('.studio-hero')!.getBoundingClientRect(),
+      separator = document.querySelector('.hero-bottom-line')!.getBoundingClientRect(),
+      rig = document.querySelector('.rig-installation')!.getBoundingClientRect();
+    return {
+      height: innerHeight,
+      topGap: Math.abs(bounds.top - header.bottom),
+      lightSectionTop: document.querySelector('#how-it-works')!.getBoundingClientRect().top,
+      bottomInside: !!document.elementFromPoint(4, innerHeight - 2)?.closest('.studio-opening'),
+      contentFits: opening.scrollHeight <= opening.clientHeight + 1,
+      rigFits: rig.left >= hero.left && rig.right <= hero.right && rig.bottom <= separator.top,
+      overflow: document.documentElement.scrollWidth > innerWidth + 1,
+    };
+  });
+  expect(frame.topGap, 'Opening starts immediately below the header').toBeLessThan(1);
+  expect(
+    frame.lightSectionTop,
+    'The light section starts beyond the opening viewport',
+  ).toBeGreaterThanOrEqual(frame.height - 1);
+  expect(frame.bottomInside, 'The initial viewport stays within the dark opening').toBe(true);
+  expect(frame.contentFits, 'Short screens retain the full opening content').toBe(true);
+  expect(frame.rigFits, 'Rig controls remain inside the hero and above its footer').toBe(true);
+  expect(frame.overflow).toBe(false);
+}
+
+export async function checkLandingScreens(page: Page, origin: string): Promise<void> {
+  for (const [width, height] of [
+    [1280, 720],
+    [1440, 900],
+    [1920, 1080],
+    [1920, 1440],
+    [2560, 1440],
+    [1440, 1600],
+    [1024, 768],
+    [768, 1024],
+    [390, 844],
+    [390, 1600],
+    [320, 568],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto(origin);
+    await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+    await checkLandingFrame(page);
+    await page.evaluate(() => document.fonts.ready);
+    await checkLandingFrame(page);
+    if (width >= 1920 || height >= 1600)
+      await page.screenshot({ path: `.local/qa/site/opening-${width}x${height}.png` });
+  }
+  // Reflow an already open page as the browser window or display changes.
+  for (const [width, height] of [
+    [2560, 1800],
+    [1280, 720],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+    await checkLandingFrame(page);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+}
+
 export async function checkLandingReadability(page: Page, width: number): Promise<void> {
   const smallText = await page.evaluate(() => {
     const failures: { text: string; size: number }[] = [];

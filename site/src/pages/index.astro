@@ -14,57 +14,59 @@ import '../styles/studio.css';
   studio
 >
   <main id="main">
-    <section class="studio-hero" aria-labelledby="studio-title">
-      <div class="studio-hero-copy">
-        <p class="studio-kicker">
-          <span class="orange-square" aria-hidden="true"></span> PROJECT SETUP FOR CODING AGENTS
-        </p>
-        <h1 id="studio-title">
-          Your agents.
-          <br />
-          Properly
-          <br />
-          <span>equipped.</span>
-        </h1>
-        <p class="studio-intro">
-          A private library for your Skills, MCP, Plugins and working principles. A focused kit for
-          every project you build.
-        </p>
-        <div class="studio-hero-actions">
-          <a class="studio-button" href="/docs/start/">
-            Build your first kit <Icon name="arrow-up-right" />
-          </a>
-          <a href="#how-it-works" class="studio-watch">
-            See how it works <Icon name="arrow-down" />
-          </a>
+    <div class="studio-opening">
+      <section class="studio-hero" aria-labelledby="studio-title">
+        <div class="studio-hero-copy">
+          <p class="studio-kicker">
+            <span class="orange-square" aria-hidden="true"></span> PROJECT SETUP FOR CODING AGENTS
+          </p>
+          <h1 id="studio-title">
+            Your agents.
+            <br />
+            Properly
+            <br />
+            <span>equipped.</span>
+          </h1>
+          <p class="studio-intro">
+            A private library for your Skills, MCP, Plugins and working principles. A focused kit
+            for every project you build.
+          </p>
+          <div class="studio-hero-actions">
+            <a class="studio-button" href="/docs/start/">
+              Build your first kit <Icon name="arrow-up-right" />
+            </a>
+            <a href="#how-it-works" class="studio-watch">
+              See how it works <Icon name="arrow-down" />
+            </a>
+          </div>
+          <p class="studio-availability">
+            Local application <span>·</span> Open source / MIT <span>·</span> Your choice of AI
+          </p>
         </div>
-        <p class="studio-availability">
-          Local application <span>·</span> Open source / MIT <span>·</span> Your choice of AI
+        <StudioRig />
+        <div class="hero-bottom-line">
+          <span>ONE LIBRARY. DIFFERENT PROJECTS.</span>
+          <span>
+            SCROLL TO UNPACK <Icon name="arrow-down" />
+          </span>
+        </div>
+      </section>
+      <section class="studio-tools" aria-label="Project adapters">
+        <p>
+          Already part of
+          <br />
+          your workflow.
         </p>
-      </div>
-      <StudioRig />
-      <div class="hero-bottom-line">
-        <span>ONE LIBRARY. DIFFERENT PROJECTS.</span>
-        <span>
-          SCROLL TO UNPACK <Icon name="arrow-down" />
+        <div>
+          {Object.values(harnesses).map((harness) => (
+            <a href="/docs/harnesses/">{harness.name}</a>
+          ))}
+        </div>
+        <span class="tools-end" aria-hidden="true">
+          <Icon name="arrow-up-right" />
         </span>
-      </div>
-    </section>
-    <section class="studio-tools" aria-label="Project adapters">
-      <p>
-        Already part of
-        <br />
-        your workflow.
-      </p>
-      <div>
-        {Object.values(harnesses).map((harness) => (
-          <a href="/docs/harnesses/">{harness.name}</a>
-        ))}
-      </div>
-      <span class="tools-end" aria-hidden="true">
-        <Icon name="arrow-up-right" />
-      </span>
-    </section>
+      </section>
+    </div>
     <section class="context-section" id="how-it-works" aria-labelledby="context-title">
       <div class="studio-section-top">
         <p class="section-index">

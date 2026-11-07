@@ -24,6 +24,8 @@ Website destination checks also cover documentation-to-Harness navigation at 128
 
 Native page-transition checks observed real 180ms fade animations for light/dark navigation, guide links and Back/Forward in full Chromium. Keyboard links, reduced motion and reload remain immediate. Rapid Back interruption settles to usable content, and Search initializes correctly after navigation. The shared head declares opt-in before stylesheet loading and waits for the destination's main HTML before painting; no client router or persistent transition state is introduced.
 
+The homepage opening also passes eleven desktop/mobile viewport sizes, before and after font loading, and two live window resizes. At scroll position zero the following light section starts beyond the viewport; the rig and its controls stay within the hero, short-screen content remains available and horizontal page overflow is absent. The same opening boundary is exercised with JavaScript disabled.
+
 New regressions exercise structured/deep credential masking, exact MCP references through runtime resolution, mixed-value sanitization, legacy argument/command/query read/export/activation boundaries, canonical export metadata, external-root aliases and retained indexes, late authored edits during replace/remove/rollback, multi-byte document limits, Codex regular-file output/cleanup, archive inventory and duplicate manifests, and linked dependency notices. Fixtures preserve original bytes and verify failed operations do not grant trust or modify projects.
 
 ## Security evidence
