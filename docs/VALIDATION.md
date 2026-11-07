@@ -2,7 +2,7 @@
 
 Updated 2026-11-07. Results cover exercised fixtures and source revisions; they do not establish that the application or third-party content is defect-free.
 
-The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery implementation is `3c8ae35`. The frozen audit below describes the earlier baseline separately.
+The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery implementation is `3c8ae35`, and the separate website implementation is `6cf5e48`. The frozen audit below describes the earlier baseline separately.
 
 ## Current development checks
 
@@ -15,6 +15,7 @@ The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery imp
 | `bun audit --json` | No known advisories reported for the locked dependency tree on 2026-11-07. |
 | `bun run test:ui` | Pass: all 23 Chromium suites completed in one final run. |
 | Portable and standalone delivery | Final extraction/CLI/UI/API/MCP smoke passed on macOS arm64 and isolated Linux arm64, including the legacy MCP corrections. |
+| Astro website | 21 canonical guides; 38 responsive/accessibility cases and 146 internal link/fragment targets passed under production CSP. Interactive examples, search, focus return, finite/reduced motion and JavaScript-free navigation passed. |
 
 The browser rerun updated two fixture assumptions: MCP save assertions read the explicitly selected private Snapshot, and the disposable dev checkout includes its required data input. The complete suite then passed with all assertions intact. Layout checks cover nine viewport sizes in English/Turkish; modal, scroll/focus, independent file reading and populated Include/Exclude controls were also inspected in fixture screenshots.
 
@@ -33,3 +34,5 @@ Rigshelf is a local browser application with the same CLI and stdio MCP engine. 
 No public package, signed/notarized release or registry image is published. The Dockerfile built successfully; unprivileged CLI/doctor and real stdio MCP catalog checks passed with network disabled, a read-only root and ephemeral data. Windows and native Harness/platform combinations require their own acceptance. No real GitHub repository or S3/R2 bucket was supplied: protocol fixtures cover batching, revision conflicts, conditional publication, cancellation, lost acknowledgments, restore and authority exclusion, while live service acceptance remains separate. English/Turkish are implemented; four additional languages and language review are required before the requested six-language public release.
 
 See [distribution](DISTRIBUTION.md), [compatibility](COMPATIBILITY.md), [backup](BACKUP-SYNC.md) and [localization](LOCALIZATION.md) for concrete usage and boundaries. Earlier validation history remains in Git rather than accumulating contradictory current-version claims here.
+
+The separate [website](WEBSITE.md) is a static introduction and field guide, not a hosted workbench. Its client scripts total approximately 6.1 kB before compression; documentation search loads its static index on demand. The website’s locked dependency audit reported no known advisories. The public hosting workflow is prepared, not deployed; an actual domain and hosting configuration remain owner decisions.
