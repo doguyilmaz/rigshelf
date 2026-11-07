@@ -11,6 +11,7 @@ import {
   checkSectionNavigation,
   checkSelectionStability,
 } from './site-interaction-checks';
+import { checkPageTransitions } from './site-page-transition-checks';
 import {
   checkDisclosures,
   checkLateRigBoot,
@@ -47,7 +48,7 @@ const server = Bun.serve({
   },
 });
 const origin = `http://127.0.0.1:${server.port}`;
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, channel: 'chromium' });
 let graphicsBrowser: Browser | undefined;
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
@@ -92,6 +93,22 @@ async function fits(label: string) {
   layoutCases++;
 }
 try {
+  const transitionContext = await browser.newContext({
+    reducedMotion: 'no-preference',
+    viewport: { width: 1280, height: 900 },
+  });
+  await localRequests(transitionContext);
+  const transitionPage = await transitionContext.newPage();
+  captureErrors(transitionPage);
+  try {
+    await checkPageTransitions(transitionPage, origin);
+  } finally {
+    await transitionContext.close();
+  }
+  process.stdout.write('Page transition flows passed.\n');
+  checks.push(
+    'Native cross-document transitions produce real 180ms fade animations between light/dark pages and guides, retain fragment alignment and Back/Forward, and settle after interruption. Keyboard links, reduced motion and reload stay immediate; Search initializes after navigation.',
+  );
   for (const path of [
     '/',
     '/previous/',

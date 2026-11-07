@@ -21,6 +21,17 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefin
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content={studio ? 'dark' : 'light'} />
     <meta name="theme-color" content={studio ? '#141414' : '#f7f7f2'} />
+    <style is:inline>
+      @view-transition {
+        navigation: auto;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @view-transition {
+          navigation: none;
+        }
+      }
+    </style>
+    <link rel="expect" href="#main" blocking="render" />
     {noindex && <meta name="robots" content="noindex,follow" />}
     <title>{title}</title>
     <meta name="description" content={description} />

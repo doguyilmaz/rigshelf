@@ -1,3 +1,4 @@
+import './page-transitions';
 import './section-navigation';
 
 import './search-dialog';
