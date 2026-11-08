@@ -213,8 +213,10 @@ export async function runMachineCommand(
       globalSkills: values['global-skills'],
       everything: values.all,
     });
-    if (!sync.request.projects.length)
-      return { text: `No project here has an applied Rigshelf kit with a Git origin.\n` };
+    if (!sync.request.projects.length && !sync.request.globalFiles?.length)
+      return {
+        text: 'Nothing to sync: no project with a Rigshelf kit or untracked agent files, and no global guidance.\n',
+      };
     const prepared = await remotePrepare(alias, sync.request, {
       roots: values['remote-root'],
       replaceDirectives: values['replace-directives'],
