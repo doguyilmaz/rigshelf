@@ -75,35 +75,47 @@ export async function privateDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true, mode: 0o700 });
 }
 
+const SECRET_NAME =
+  '(?<![A-Za-z0-9])[A-Za-z0-9_-]*?(?:api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|role[_-]?key|access[_-]?token|auth[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret|token|authorization|cookie)';
+const SECRET_FLAG = '--(?:api[_-]?key|access[_-]?token|auth[_-]?token|token|password|secret)';
+
 export function redact(text: string): string {
   const placeholder = '${KITFOLD_SECRET}';
   const dynamic = (value: string) => /^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(value);
+  const keep = (match: string, prefix: string, value: string) =>
+    value.startsWith('${') ? match : prefix + placeholder;
   return text
     .replace(
       /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/g,
       placeholder,
     )
     .replace(
-      /(?<![A-Za-z0-9_-])(?:sk-|ghp_|gho_|github_pat_|xox[baprs]-|AKIA)[A-Za-z0-9_-]{12,}/g,
+      /(?<![A-Za-z0-9_-])(?:sk-|sk_live_|sk_test_|rk_live_|rk_test_|ghp_|gho_|ghs_|github_pat_|glpat-|npm_|xox[baprs]-|AKIA|AIza)[A-Za-z0-9_-]{12,}/g,
       placeholder,
     )
     .replace(
-      /((?:["']?)(?:api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password|secret|token|authorization|cookie|private[_-]?key)(?:["']?)\s*[:=]\s*)(["'])((?:\\.|(?!\2)[^\r\n])*)\2/gi,
+      /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
+      placeholder,
+    )
+    .replace(
+      new RegExp(
+        `((?:["']?)${SECRET_NAME}(?:["']?)\\s*[:=]\\s*)(["'])((?:\\\\.|(?!\\2)[^\\r\\n])*)\\2`,
+        'gi',
+      ),
       (_match, prefix: string, quote: string, value: string) =>
         `${prefix}${quote}${dynamic(value) ? value : placeholder}${quote}`,
     )
+    .replace(new RegExp(`(${SECRET_NAME}\\s*[:=]\\s*)([^\\s,"'}#]+)`, 'gi'), keep)
     .replace(
-      /\b((?:api[_-]?key|access[_-]?token|auth[_-]?token|password|secret|token)\s*[:=]\s*)([^\s,"'}#]+)/gi,
-      (match, prefix: string, value: string) =>
-        value.startsWith('${') ? match : prefix + placeholder,
+      new RegExp(
+        `(${SECRET_FLAG}\\\\?["']?(?:\\s*,\\s*|\\s+|=)\\\\?["']?)([^\\s"'\\\\,\\]]+)`,
+        'gi',
+      ),
+      keep,
     )
     .replace(/(Bearer\s+)(?!\$\{)[A-Za-z0-9._-]{12,}/gi, '$1${KITFOLD_SECRET}')
-    .replace(
-      /([?&](?:token|key|api_key|access_token|secret)=)([^&#\s]+)/gi,
-      (match, prefix: string, value: string) =>
-        value.startsWith('${') ? match : prefix + placeholder,
-    )
-    .replace(/(https?:\/\/)[^\s/@:]+:[^\s/@]+@/g, '$1${KITFOLD_SECRET}@');
+    .replace(/([?&](?:token|key|api_key|access_token|secret)=)([^&#\s]+)/gi, keep)
+    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^\s/@]+@/gi, '$1${KITFOLD_SECRET}@');
 }
 
 export function scanText(text: string, file = 'SKILL.md'): Finding[] {
