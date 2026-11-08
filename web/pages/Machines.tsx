@@ -111,6 +111,7 @@ export function Machines({ notify }: PageProps): ReactNode {
   const [alias, setAlias] = useState('');
   const [compared, setCompared] = useState<Compared>();
   const [memory, setMemory] = useState<string[]>([]);
+  const [globalGuidance, setGlobalGuidance] = useState(false);
   const [prepared, setPrepared] = useState<Prepared>();
   const [busy, setBusy] = useState<'check' | 'sync' | 'apply'>();
   const [confirm, setConfirm] = useState(false);
@@ -152,11 +153,18 @@ export function Machines({ notify }: PageProps): ReactNode {
     });
   const prepare = () =>
     run('sync', async () =>
-      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, memory })),
+      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, memory, globalGuidance })),
     );
-  const planIds = prepared?.prepared.projects.flatMap((project) =>
-    [project.planId, project.memoryPlanId].filter((id): id is string => Boolean(id)),
-  );
+  const planIds = prepared
+    ? [
+        ...prepared.prepared.projects.flatMap((project) => [
+          project.planId,
+          project.localPlanId,
+          project.memoryPlanId,
+        ]),
+        ...prepared.prepared.globalGuidance.map((guidance) => guidance.planId),
+      ].filter((id): id is string => Boolean(id))
+    : undefined;
   const apply = () =>
     run('apply', async () => {
       await api('machines/apply', 'POST', { alias, planIds });
@@ -274,6 +282,19 @@ export function Machines({ notify }: PageProps): ReactNode {
                 label={t('Only on {{alias}}', { alias })}
                 values={names(compared.report.projects, 'remote')}
               />
+              <label className="machine-memory">
+                <input
+                  type="checkbox"
+                  checked={globalGuidance}
+                  onChange={(event) => setGlobalGuidance(event.target.checked)}
+                />
+                {t('Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)')}
+              </label>
+              <p className="machine-muted">
+                {t(
+                  'Local agent files that Git does not track are included. Private local settings stay on this machine.',
+                )}
+              </p>
               <div className="button-row">
                 <Button onClick={() => void prepare()} disabled={Boolean(busy)}>
                   {busy === 'sync' ? t('Preparing…') : t('Prepare sync')}
@@ -293,12 +314,26 @@ export function Machines({ notify }: PageProps): ReactNode {
                         ? t('{{count}} file changes', { count: project.files ?? 0 })
                         : project.error}
                     </span>
+                    {project.localPlanId && (
+                      <span>{t('local files: {{count}}', { count: project.localFiles ?? 0 })}</span>
+                    )}
+                    {project.localError && <span>{project.localError}</span>}
                     {project.memoryPlanId && (
                       <span>
                         {t('memory: {{count}} files', { count: project.memoryFiles ?? 0 })}
                       </span>
                     )}
                     {project.memoryError && <span>{project.memoryError}</span>}
+                  </li>
+                ))}
+                {prepared.prepared.globalGuidance.map((guidance) => (
+                  <li key={guidance.root}>
+                    <strong>~/{guidance.root}</strong>
+                    <span>
+                      {guidance.planId
+                        ? t('{{count}} file changes', { count: guidance.files ?? 0 })
+                        : (guidance.error ?? t('in sync'))}
+                    </span>
                   </li>
                 ))}
               </ul>

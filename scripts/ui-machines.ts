@@ -32,6 +32,8 @@ data.store.put('settings', {
 });
 const planId = '0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c';
 const memoryPlanId = '1c7e2d2f-3a5b-4d9f-8b62-7e3f4a5b6c7d';
+const localPlanId = '2d8f3e3a-4b6c-4eaf-9c73-8f4a5b6c7d8e';
+const guidancePlanId = '3e9a4f4b-5c7d-4fb0-ad84-9a5b6c7d8e9f';
 const remote: MachineInventory = {
   version: 1,
   rigshelf: '0.1.0',
@@ -76,10 +78,13 @@ const machineRunner: RemoteRunner = async (args, input) => {
           planId,
           files: 4,
           warnings: [],
+          localPlanId,
+          localFiles: 3,
           memoryPlanId,
           memoryFiles: 1,
         },
       ],
+      globalGuidance: [{ root: '.claude', planId: guidancePlanId, files: 1 }],
     });
   return reply({ status: 'applied', fileCount: 4 });
 };
@@ -124,20 +129,27 @@ try {
   await project.getByText('2 differences').click();
   await expect(project.getByText('.claude/skills/guide', { exact: true })).toBeVisible();
   await project.getByLabel('Include memory in sync').check();
+  await page
+    .getByLabel('Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)')
+    .check();
   await audit('compare-1440');
   await page.getByRole('button', { name: 'Prepare sync', exact: true }).click();
   await expect(page.getByText('4 file changes')).toBeVisible();
   await expect(page.getByText('memory: 1 files')).toBeVisible();
+  await expect(page.getByText('local files: 3')).toBeVisible();
+  await expect(page.getByText('~/.claude', { exact: true })).toBeVisible();
   await expect(
     page.getByText('Directives that differ on build-box were kept: communication'),
   ).toBeVisible();
   const prepared = JSON.parse(
     requests.find((value) => value.command.includes('machine prepare'))!.input!,
   );
-  expect(prepared.projects[0].memory.files).toEqual([]);
+  expect(prepared.projects[0].memory).toEqual([]);
+  expect(prepared.globalGuidance).toBeUndefined();
+
   expect(requests.some((value) => value.command.includes('rigshelf apply'))).toBe(false);
   await page.getByRole('button', { name: 'Apply on build-box', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Apply 2 plans on build-box?' });
+  const dialog = page.getByRole('dialog', { name: 'Apply 4 plans on build-box?' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(page.getByText('Applied on build-box')).toBeVisible();
@@ -146,7 +158,9 @@ try {
     .map((value) => value.command);
   expect(applied).toEqual([
     `exec "$SHELL" -lc 'rigshelf apply ${planId}'`,
+    `exec "$SHELL" -lc 'rigshelf apply ${localPlanId}'`,
     `exec "$SHELL" -lc 'rigshelf apply ${memoryPlanId}'`,
+    `exec "$SHELL" -lc 'rigshelf apply ${guidancePlanId}'`,
   ]);
   await page.setViewportSize({ width: 390, height: 900 });
   await page.getByRole('button', { name: 'Check', exact: true }).click();

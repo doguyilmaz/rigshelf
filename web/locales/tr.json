@@ -1352,5 +1352,8 @@
   "Guidance": "Yönergeler",
   "MCP": "MCP",
   "Applying…": "Uygulanıyor…",
-  "Apply": "Uygula"
+  "Apply": "Uygula",
+  "Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)": "Global yönergeleri dahil et (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)",
+  "Local agent files that Git does not track are included. Private local settings stay on this machine.": "Git'in izlemediği yerel agent dosyaları dahil edilir. Özel yerel ayarlar bu makinede kalır.",
+  "local files: {{count}}": "yerel dosyalar: {{count}}"
 }

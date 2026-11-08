@@ -29,7 +29,7 @@ Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
   rigshelf machine compare --manifest inventory.json   Compare with a saved inventory
   rigshelf machine doctor [ssh-alias]           Rigshelf version and harness CLIs on each machine
   rigshelf machine sync <ssh-alias> [--root /dir] [--remote-root /dir] [--replace-directives]
-                        [--memory project,project] [--apply]
+                        [--memory project,project] [--global-guidance] [--skip-local-files] [--apply]
                                                 Prepare plans on the server for each applied project kit
   rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
   rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
@@ -44,6 +44,8 @@ interface MachineOptions {
   apply?: boolean;
   'replace-directives'?: boolean;
   memory?: string;
+  'skip-local-files'?: boolean;
+  'global-guidance'?: boolean;
 }
 
 const label: Record<string, string> = {
@@ -129,11 +131,20 @@ function formatSync(
         ? `${project.repository} → ${project.path}: ${project.files} file changes, plan ${project.planId}`
         : `${project.repository}: ${project.error}`,
     );
+    if (project.localPlanId)
+      lines.push(`  local files: ${project.localFiles} files, plan ${project.localPlanId}`);
+    else if (project.localError) lines.push(`  local files: ${project.localError}`);
     if (project.memoryPlanId)
       lines.push(`  memory: ${project.memoryFiles} files, plan ${project.memoryPlanId}`);
     else if (project.memoryError) lines.push(`  memory: ${project.memoryError}`);
     else if (project.memoryFiles === 0) lines.push('  memory: already in sync');
   }
+  for (const guidance of prepared.globalGuidance)
+    lines.push(
+      guidance.planId
+        ? `Global guidance ~/${guidance.root}: ${guidance.files} files, plan ${guidance.planId}`
+        : `Global guidance ~/${guidance.root}: ${guidance.error ?? 'already in sync'}`,
+    );
   for (const value of sync.skipped) lines.push(`Skipped ${value.name}: ${value.reason}`);
   const ids = planIdsOf(prepared);
   if (ids.length)
@@ -142,9 +153,14 @@ function formatSync(
 }
 
 function planIdsOf(prepared: PreparedSync): string[] {
-  return prepared.projects.flatMap((project) =>
-    [project.planId, project.memoryPlanId].filter((id): id is string => Boolean(id)),
-  );
+  return [
+    ...prepared.projects.flatMap((project) => [
+      project.planId,
+      project.localPlanId,
+      project.memoryPlanId,
+    ]),
+    ...prepared.globalGuidance.map((guidance) => guidance.planId),
+  ].filter((id): id is string => Boolean(id));
 }
 
 async function applyPlans(alias: string, ids: string[]): Promise<string> {
@@ -186,6 +202,8 @@ export async function runMachineCommand(
         ?.split(',')
         .map((value) => value.trim())
         .filter(Boolean),
+      localFiles: !values['skip-local-files'],
+      globalGuidance: values['global-guidance'],
     });
     if (!sync.request.projects.length)
       return { text: `No project here has an applied Rigshelf kit with a Git origin.\n` };

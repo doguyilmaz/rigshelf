@@ -1352,5 +1352,8 @@
   "Guidance": "Guidance",
   "MCP": "MCP",
   "Applying…": "Applying…",
-  "Apply": "Apply"
+  "Apply": "Apply",
+  "Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)": "Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)",
+  "Local agent files that Git does not track are included. Private local settings stay on this machine.": "Local agent files that Git does not track are included. Private local settings stay on this machine.",
+  "local files: {{count}}": "local files: {{count}}"
 }

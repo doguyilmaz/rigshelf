@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { mkdir } from 'node:fs/promises';
+import { chmod, mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildSyncRequest, prepareSync } from '../src/core/machine-sync';
 import { claudeMemoryKey } from '../src/core/memory-locations';
@@ -44,10 +44,15 @@ test('a server receives the applied kit through its own reviewed plan', async ()
   await executePlan(laptop.store, plan.id, 'apply');
   const serverProject = join(serverRoot, 'app-checkout');
   await repository(serverProject, 'https://github.com/owner/app');
-  const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.project]);
+  const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.project], {
+    localFiles: false,
+  });
   expect(skipped).toEqual([]);
   expect(request.projects).toEqual([
-    expect.objectContaining({ repository: 'github.com/owner/app', entryIds: [skill.id] }),
+    expect.objectContaining({
+      repository: 'github.com/owner/app',
+      kit: expect.objectContaining({ entryIds: [skill.id] }),
+    }),
   ]);
   const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot]);
   expect(prepared.library.entries).toBe(1);
@@ -76,13 +81,20 @@ test('projects without a kit or repository are skipped, and unmatched repositori
   await mkdir(serverRoot, { recursive: true });
   const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.root]);
   expect(skipped.map((value) => value.reason)).toEqual(
-    expect.arrayContaining([expect.stringContaining('no Rigshelf kit')]),
+    expect.arrayContaining([expect.stringContaining('no Rigshelf kit or local agent files')]),
   );
   const prepared = await prepareSync(
     server,
     {
       ...request,
-      projects: [{ repository: 'github.com/owner/missing', entryIds: [], providers: ['codex'] }],
+      sourceHome: '/home/laptop',
+      projects: [
+        {
+          repository: 'github.com/owner/missing',
+          sourceProject: '/x',
+          kit: { entryIds: [], providers: ['codex'] },
+        },
+      ],
     },
     [serverRoot],
   );
@@ -128,7 +140,13 @@ test('a malformed sync request is refused before anything is imported', async ()
   await expect(
     prepareSync(
       server,
-      { library: {}, projects: [{ repository: 'x', entryIds: [], providers: ['nope'] }] },
+      {
+        library: {},
+        sourceHome: '/h',
+        projects: [
+          { repository: 'x', sourceProject: '/x', kit: { entryIds: [], providers: ['nope'] } },
+        ],
+      },
       [serverRoot],
     ),
   ).rejects.toThrow();
@@ -158,11 +176,15 @@ test('opted-in memory is re-keyed and re-mapped to the server clone through its 
   await mkdir(join(serverHome, '.claude/projects'), { recursive: true });
   const clone = join(serverRoot, 'app');
   await repository(clone, 'https://github.com/owner/app');
-  const without = await buildSyncRequest(laptop.store, [laptop.project], { home: laptop.home });
+  const without = await buildSyncRequest(laptop.store, [laptop.project], {
+    home: laptop.home,
+    localFiles: false,
+  });
   expect(without.request.projects[0]?.memory).toBeUndefined();
   const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
     home: laptop.home,
     memory: ['project'],
+    localFiles: false,
   });
   expect(withheld.map((value) => value.name)).toContain('memory/token.md');
   const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
@@ -178,4 +200,73 @@ test('opted-in memory is re-keyed and re-mapped to the server clone through its 
   );
   await executePlan(server, result!.memoryPlanId!, 'rollback');
   expect(await Bun.file(target).exists()).toBe(false);
+});
+
+test('untracked local agent files and opted-in global guidance reach the server; tracked and private files do not', async () => {
+  const { laptop, server, serverRoot } = await machines();
+  const git = (...args: string[]) =>
+    Bun.spawnSync([
+      'git',
+      '-c',
+      'user.email=t@example.com',
+      '-c',
+      'user.name=t',
+      '-C',
+      laptop.project,
+      ...args,
+    ]);
+  git('init', '-q');
+  git('remote', 'add', 'origin', 'git@github.com:owner/app.git');
+  await Bun.write(join(laptop.project, '.claude/rules/team.md'), 'Shared rule\n');
+  git('add', '.claude/rules/team.md');
+  git('commit', '-qm', 'rule');
+  await Bun.write(join(laptop.project, '.claude/rules/mine.md'), 'My rule\n');
+  await Bun.write(
+    join(laptop.project, 'CLAUDE.local.md'),
+    `Scripts live in ${laptop.project}/bin.\n`,
+  );
+  await Bun.write(join(laptop.project, '.claude/hooks/check.sh'), '#!/bin/sh\nexit 0\n');
+  await chmod(join(laptop.project, '.claude/hooks/check.sh'), 0o755);
+  await Bun.write(join(laptop.project, '.claude/settings.local.json'), '{"env":{}}');
+  await Bun.write(
+    join(laptop.project, '.agents/skills/local-skill/SKILL.md'),
+    '---\nname: local-skill\n---\n',
+  );
+  await Bun.write(join(laptop.home, '.claude/CLAUDE.md'), `Notes in ${laptop.home}/notes.\n`);
+  const serverHome = join(laptop.root, 'server-home');
+  await mkdir(join(serverHome, '.claude'), { recursive: true });
+  const clone = join(serverRoot, 'app');
+  await repository(clone, 'https://github.com/owner/app');
+  const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
+    home: laptop.home,
+    globalGuidance: true,
+  });
+  const [project] = request.projects;
+  expect(project?.kit).toBeUndefined();
+  expect(project?.localFiles?.map((file) => file.path).sort()).toEqual([
+    '.agents/skills/local-skill/SKILL.md',
+    '.claude/hooks/check.sh',
+    '.claude/rules/mine.md',
+    'CLAUDE.local.md',
+  ]);
+  expect(withheld.map((value) => value.name)).toContain('project/.claude/settings.local.json');
+  const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
+    home: serverHome,
+  });
+  const [result] = prepared.projects;
+  expect(result?.planId).toBeUndefined();
+  expect(result?.localFiles).toBe(4);
+  expect(await Bun.file(join(clone, 'CLAUDE.local.md')).exists()).toBe(false);
+  await executePlan(server, result!.localPlanId!, 'apply');
+  expect(await Bun.file(join(clone, 'CLAUDE.local.md')).text()).toBe(
+    `Scripts live in ${clone}/bin.\n`,
+  );
+  expect((await stat(join(clone, '.claude/hooks/check.sh'))).mode & 0o100).toBe(0o100);
+  expect(await Bun.file(join(clone, '.claude/rules/team.md')).exists()).toBe(false);
+  const [guidance] = prepared.globalGuidance;
+  expect(guidance).toMatchObject({ root: '.claude', files: 1 });
+  await executePlan(server, guidance!.planId!, 'apply');
+  expect(await Bun.file(join(serverHome, '.claude/CLAUDE.md')).text()).toBe(
+    `Notes in ${serverHome}/notes.\n`,
+  );
 });

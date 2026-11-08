@@ -23,6 +23,8 @@ const SyncInput = z.object({
   alias: Alias,
   memory: z.array(z.string().min(1).max(300)).max(300).default([]),
   replaceDirectives: z.boolean().default(false),
+  localFiles: z.boolean().default(true),
+  globalGuidance: z.boolean().default(false),
 });
 const ApplyInput = z.object({ alias: Alias, planIds: z.array(z.string().uuid()).min(1).max(600) });
 
@@ -73,8 +75,13 @@ export async function machineRoute(
     };
   }
   if (action === 'sync') {
-    const { alias, memory, replaceDirectives } = SyncInput.parse(input);
-    const sync = await buildSyncRequest(store, await inventoryRoots(store), { memory, home });
+    const { alias, memory, replaceDirectives, localFiles, globalGuidance } = SyncInput.parse(input);
+    const sync = await buildSyncRequest(store, await inventoryRoots(store), {
+      memory,
+      home,
+      localFiles,
+      globalGuidance,
+    });
     const prepared = await remotePrepare(alias, sync.request, { replaceDirectives, run });
     return { prepared, skipped: sync.skipped, withheld: sync.withheld };
   }

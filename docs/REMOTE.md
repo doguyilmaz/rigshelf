@@ -85,6 +85,6 @@ Separate from sync, and later:
 
 ## Decisions (2026-11-08)
 
-- **Scope:** making a server match copies each matched project's kit (Skills, MCP, guidance) and the Library with directives. Global Skills are compared and shown but not copied, keeping servers project-scoped like the laptop.
+- **Scope:** making a server match copies each matched project's kit (Skills, MCP, guidance), the Library with directives, and the project's local agent files that Git does not track (`CLAUDE.local.md`, `.claude/rules|agents|commands|hooks|skills`, untracked Skill folders and MCP configuration). Private local settings (`settings.local.json`, `.env*`) and credential-like files are reported, never copied. Global Skills are compared and shown but not copied, keeping servers project-scoped like the laptop. Global guidance (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`) is copied only with `--global-guidance`; account and settings files stay hand-set because they hold machine paths and credentials.
 - **Memory:** off by default. It is enabled per project, then re-mapped to the server's project path; it is never copied byte for byte.
 - **Harnesses:** a server receives the same harness formats the project uses on the laptop (Claude Code, Codex, OpenCode, Kiro, Grok and the rest of the supported set), so the plan on the server mirrors the laptop's selection.

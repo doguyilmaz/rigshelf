@@ -184,9 +184,23 @@ const PreparedSchema = z.object({
         memoryPlanId: z.string().regex(PLAN_ID).optional(),
         memoryFiles: z.number().int().min(0).optional(),
         memoryError: z.string().max(2000).optional(),
+        localPlanId: z.string().regex(PLAN_ID).optional(),
+        localFiles: z.number().int().min(0).optional(),
+        localError: z.string().max(2000).optional(),
       }),
     )
     .max(300),
+  globalGuidance: z
+    .array(
+      z.object({
+        root: z.string().max(20),
+        planId: z.string().regex(PLAN_ID).optional(),
+        files: z.number().int().min(0).optional(),
+        error: z.string().max(2000).optional(),
+      }),
+    )
+    .max(10)
+    .default([]),
 });
 export type PreparedSync = z.infer<typeof PreparedSchema>;
 

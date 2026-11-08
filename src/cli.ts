@@ -99,6 +99,8 @@ async function main(): Promise<void> {
       'remote-port': { type: 'string' },
       'replace-directives': { type: 'boolean' },
       memory: { type: 'string' },
+      'skip-local-files': { type: 'boolean' },
+      'global-guidance': { type: 'boolean' },
     },
   });
   if (values.version) {
