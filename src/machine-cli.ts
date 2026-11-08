@@ -4,10 +4,20 @@ import { readLocalBytes } from './core/local-files';
 import { compareInventories, type SyncReport, type SyncSection } from './core/machine-compare';
 import { machineDoctor } from './core/machine-doctor';
 import { buildMachineInventory, parseMachineInventory } from './core/machine-inventory';
-import { remoteDoctor, remoteInventory, remoteReadyUrl, tunnelArguments } from './core/machine-ssh';
+import {
+  type PreparedSync,
+  remoteApply,
+  remoteDoctor,
+  remoteInventory,
+  remotePrepare,
+  remoteReadyUrl,
+  tunnelArguments,
+} from './core/machine-ssh';
+import { buildSyncRequest, prepareSync } from './core/machine-sync';
 import type { Store } from './core/store';
 
 const MAX_MANIFEST_BYTES = 32 * 1024 * 1024;
+const MAX_SYNC_INPUT_BYTES = 256 * 1024 * 1024;
 
 export const machineHelp = `
 Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
@@ -15,6 +25,9 @@ Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
   rigshelf machine compare <ssh-alias> [--root /dir] [--remote-root /dir] [--json]
   rigshelf machine compare --manifest inventory.json   Compare with a saved inventory
   rigshelf machine doctor [ssh-alias]           Rigshelf version and harness CLIs on each machine
+  rigshelf machine sync <ssh-alias> [--root /dir] [--remote-root /dir] [--replace-directives] [--apply]
+                                                Prepare plans on the server for each applied project kit
+  rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
   rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
                                                 Open that machine's workbench here through an SSH tunnel
 `;
@@ -24,6 +37,8 @@ interface MachineOptions {
   'remote-root'?: string[];
   manifest?: string;
   json?: boolean;
+  apply?: boolean;
+  'replace-directives'?: boolean;
 }
 
 async function localRoots(store: Store, roots?: string[]): Promise<string[]> {
@@ -82,12 +97,79 @@ export function formatSyncReport(report: SyncReport, here: string, there: string
   return `${lines.join('\n')}\n`;
 }
 
+function formatSync(
+  alias: string,
+  sync: Awaited<ReturnType<typeof buildSyncRequest>>,
+  prepared: PreparedSync,
+): string {
+  const lines = [`this machine → ${alias}`, `Library  ${prepared.library.entries} entries sent`];
+  for (const value of sync.withheld) lines.push(`  withheld ${value.name}: ${value.reason}`);
+  const { added, replaced, kept } = prepared.directives;
+  lines.push(`Directives  ${added.length} added, ${replaced.length} replaced, ${kept.length} kept`);
+  if (kept.length)
+    lines.push(
+      `  ${kept.join(', ')} differ on ${alias}; --replace-directives uses this machine's version`,
+    );
+  for (const project of prepared.projects)
+    lines.push(
+      project.planId
+        ? `${project.repository} → ${project.path}: ${project.files} file changes, plan ${project.planId}`
+        : `${project.repository}: ${project.error}`,
+    );
+  for (const value of sync.skipped) lines.push(`Skipped ${value.name}: ${value.reason}`);
+  const ids = prepared.projects.flatMap((project) => (project.planId ? [project.planId] : []));
+  if (ids.length)
+    lines.push('', `Apply on ${alias}: rigshelf machine apply ${alias} ${ids.join(' ')}`);
+  return `${lines.join('\n')}\n`;
+}
+
+async function applyPlans(alias: string, ids: string[]): Promise<string> {
+  const lines = [];
+  for (const id of ids) {
+    const applied = await remoteApply(alias, id);
+    lines.push(
+      `${id}: ${applied.status}${applied.fileCount === undefined ? '' : `, ${applied.fileCount} files`}`,
+    );
+  }
+  return `${lines.join('\n')}\n`;
+}
+
 export async function runMachineCommand(
   store: Store,
   action: string | undefined,
   alias: string | undefined,
   values: MachineOptions,
+  planIds: string[] = [],
 ): Promise<{ text?: string; result?: unknown }> {
+  if (action === 'prepare') {
+    const input = await Bun.stdin.text();
+    if (input.length > MAX_SYNC_INPUT_BYTES) throw new Error('The sync bundle exceeds 256 MiB.');
+    return {
+      result: await prepareSync(store, JSON.parse(input), await localRoots(store, values.root), {
+        replaceDirectives: values['replace-directives'],
+      }),
+    };
+  }
+  if (action === 'sync') {
+    if (!alias) throw new Error('machine sync needs an SSH host alias.');
+    const sync = await buildSyncRequest(store, await localRoots(store, values.root));
+    if (!sync.request.projects.length)
+      return { text: `No project here has an applied Rigshelf kit with a Git origin.\n` };
+    const prepared = await remotePrepare(alias, sync.request, {
+      roots: values['remote-root'],
+      replaceDirectives: values['replace-directives'],
+    });
+    const text = formatSync(alias, sync, prepared);
+    const ids = prepared.projects.flatMap((project) => (project.planId ? [project.planId] : []));
+    if (values.json)
+      return { result: { ...prepared, skipped: sync.skipped, withheld: sync.withheld } };
+    return { text: values.apply && ids.length ? text + (await applyPlans(alias, ids)) : text };
+  }
+  if (action === 'apply') {
+    if (!alias || !planIds.length)
+      throw new Error('machine apply needs an SSH host alias and plan IDs.');
+    return { text: await applyPlans(alias, planIds) };
+  }
   if (action === 'inventory')
     return {
       result: await buildMachineInventory({
@@ -117,7 +199,7 @@ export async function runMachineCommand(
       ? { result: report }
       : { text: formatSyncReport(report, 'this machine', alias || values.manifest!) };
   }
-  throw new Error('Use machine inventory, compare or doctor. Run rigshelf --help.');
+  throw new Error('Use machine inventory, compare, doctor, sync or apply. Run rigshelf --help.');
 }
 
 const DEFAULT_PORT = 47471;

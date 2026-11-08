@@ -245,6 +245,7 @@ function App(): ReactNode {
   return (
     <div className="app-shell experience-shell">
       <AppNavigation
+        remote={state?.machine?.remote}
         page={page}
         navigate={navigate}
         onSearch={() => setPalette(true)}

@@ -9,8 +9,10 @@ import {
   repositoryKey,
 } from '../src/core/machine-inventory';
 import {
+  remoteApply,
   remoteDoctor,
   remoteInventory,
+  remotePrepare,
   remoteReadyUrl,
   sshArguments,
   tunnelArguments,
@@ -223,4 +225,56 @@ test('a remote workbench tunnel forwards one loopback port and runs only the fix
       47480,
     ),
   ).toBeUndefined();
+});
+
+test('sync sends the bundle on stdin and applies only plan IDs on the server', async () => {
+  let sent: { args: string[]; input?: string } = { args: [] };
+  const prepared = {
+    library: { entries: 1 },
+    directives: { added: [], replaced: [], kept: [] },
+    projects: [
+      {
+        repository: 'github.com/owner/app',
+        path: '/srv/app',
+        planId: '0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c',
+        files: 3,
+        warnings: [],
+      },
+    ],
+  };
+  const result = await remotePrepare(
+    'box',
+    { library: {}, projects: [] },
+    {
+      roots: ['/srv'],
+      replaceDirectives: true,
+      run: async (args, input) => {
+        sent = { args, input };
+        return { code: 0, stdout: JSON.stringify(prepared), stderr: '' };
+      },
+    },
+  );
+  expect(result).toEqual(prepared);
+  expect(sent.args.at(-1)).toContain(
+    'rigshelf machine prepare --json --replace-directives --root /srv',
+  );
+  expect(JSON.parse(sent.input!)).toEqual({ library: {}, projects: [] });
+  const applied = await remoteApply('box', prepared.projects[0]!.planId, {
+    run: async (args) => {
+      sent = { args };
+      return { code: 0, stdout: JSON.stringify({ status: 'applied', fileCount: 3 }), stderr: '' };
+    },
+  });
+  expect(applied).toEqual({ status: 'applied', fileCount: 3 });
+  expect(sent.args.at(-1)).toBe(
+    `exec "$SHELL" -lc 'rigshelf apply ${prepared.projects[0]!.planId}'`,
+  );
+  await expect(remoteApply('box', '$(reboot)')).rejects.toThrow('plan ID');
+  await expect(
+    remotePrepare(
+      'box',
+      { library: {}, projects: [] },
+      { run: async () => ({ code: 0, stdout: '{"projects":"x"}', stderr: '' }) },
+    ),
+  ).rejects.toThrow('cannot read');
 });

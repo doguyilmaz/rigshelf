@@ -61,9 +61,24 @@ try {
   await expect(page.locator('.storage-compatibility-note')).toContainText('Rigshelf');
   expect(catalog.entry(skill.id)).toEqual(skill);
   expect(catalog.files(skill.id)).toEqual(files);
+  const remote = startServer(catalog, 48021, { remoteName: 'build-box' });
+  try {
+    for (const width of [1440, 390, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(remote.accessUrl);
+      const badge = page.locator(width > 800 ? '.experience-remote' : '.experience-remote-line');
+      await expect(badge).toHaveText('Remote: build-box');
+      await expect(badge).toBeVisible();
+      const box = await badge.boundingBox();
+      expect(box && box.x >= 0 && box.x + box.width <= width).toBe(true);
+    }
+  } finally {
+    await remote.stop(true);
+  }
   expect(errors).toEqual([]);
   const report = {
     checks: [
+      'A workbench opened through ui --on names its machine in the header at desktop and phone widths.',
       'Existing Kitfold storage remains visible at its actual path with an explicit English/Turkish compatibility explanation.',
       'New connection snippets use Rigshelf in native Codex configuration; existing content and resources remain unchanged.',
       'Storage explanation and connection preview fit three desktop/mobile widths without page errors or automated accessibility violations.',

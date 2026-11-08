@@ -42,6 +42,7 @@ export function startServer(
     resetAccess?: boolean;
     backupTransport?: BackupTransportFactory;
     publicPort?: number;
+    remoteName?: string;
   } = {},
 ): WorkbenchServer {
   let token = '';
@@ -174,7 +175,7 @@ export function startServer(
       try {
         const input: unknown = hasBody ? await readJson(request) : undefined;
         if (url.pathname === '/api/pick-directory') server.timeout(request, 0);
-        const result =
+        let result: unknown =
           url.pathname === '/api/dev-build' && request.method === 'GET'
             ? await devBuild(root)
             : url.pathname === '/api/pick-directory'
@@ -185,6 +186,8 @@ export function startServer(
                   backupTransport: options.backupTransport,
                 });
         if (url.pathname.startsWith('/api/automation/')) await automation.sync();
+        if (options.remoteName && url.pathname === '/api/state' && request.method === 'GET')
+          result = { ...(result as object), machine: { remote: options.remoteName } };
         return Response.json(result ?? { error: 'Not found' }, {
           status: result === undefined ? 404 : 200,
           headers,

@@ -1308,5 +1308,6 @@
   "This is a saved reference or recipe. Automatic Skill import is available for supported GitHub repositories; website content is not fetched by AI.": "Bu bir kaynak referansı veya kurulum tarifidir. Desteklenen GitHub repository’lerinden otomatik Skill aktarılabilir; website içeriği AI tarafından getirilmez.",
   "Preview uses no model, network request or installer. Saving checks supported sources online.": "Önizleme model, ağ isteği veya installer kullanmaz. Kaydetmek desteklenen kaynakları çevrimiçi kontrol eder.",
   "Snapshot for {{name}}": "{{name}} için Snapshot",
-  "Choose a saved Snapshot, then Review setup to inspect the file differences. No project files change here.": "Kayıtlı bir Snapshot seçin, ardından dosya farklarını görmek için kurulumu inceleyin. Burada proje dosyaları değişmez."
+  "Choose a saved Snapshot, then Review setup to inspect the file differences. No project files change here.": "Kayıtlı bir Snapshot seçin, ardından dosya farklarını görmek için kurulumu inceleyin. Burada proje dosyaları değişmez.",
+  "Remote: {{name}}": "Uzak: {{name}}"
 }

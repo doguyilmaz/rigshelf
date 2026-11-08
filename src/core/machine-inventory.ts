@@ -258,6 +258,20 @@ async function findProjects(root: string, depth = 0, out: string[] = []): Promis
   return out;
 }
 
+export async function machineProjects(
+  roots: string[],
+): Promise<{ path: string; name: string; repository: string | null }[]> {
+  const projects: string[] = [];
+  for (const root of roots) await findProjects(resolve(root), 0, projects);
+  return Promise.all(
+    projects.slice(0, MAX_PROJECTS).map(async (path) => ({
+      path,
+      name: basename(path),
+      repository: (await repositoryKey(path)) ?? null,
+    })),
+  );
+}
+
 async function projectInventory(project: string, home: string): Promise<MachineProject> {
   const identity = [home, project];
   const memory = join(home, '.claude/projects', claudeMemoryKey(project), 'memory');

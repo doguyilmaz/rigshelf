@@ -347,3 +347,23 @@ test('a tunnelled workbench accepts its public port and prints the URL for it', 
   });
   expect(foreign.status).toBe(403);
 });
+
+test('an attached remote workbench names its machine in the state it serves', async () => {
+  const value = await fixture();
+  cleanup.push(() => value.cleanup());
+  const port = randomInt(48000, 59000);
+  const server = startServer(value.store, port, { remoteName: 'build-box' });
+  cleanup.unshift(async () => {
+    await server.stop(true);
+  });
+  const token = new URLSearchParams(new URL(server.accessUrl).hash.slice(1)).get('access')!;
+  const state = await (
+    await fetch(`http://127.0.0.1:${port}/api/state`, { headers: { 'x-kitfold-token': token } })
+  ).json();
+  expect(state.machine).toEqual({ remote: 'build-box' });
+  const local = await serverFixture();
+  const plain = await (
+    await fetch(`${local.base}/api/state`, { headers: { 'x-kitfold-token': local.token } })
+  ).json();
+  expect(plain.machine).toBeUndefined();
+});

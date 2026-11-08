@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { hostname } from 'node:os';
 import { parseArgs } from 'node:util';
 import { backupHelp, runBackupCommand } from './backup-cli';
 import { readImport, setupProject, writeExport } from './cli-operations';
@@ -96,6 +97,7 @@ async function main(): Promise<void> {
       attached: { type: 'boolean' },
       'public-port': { type: 'string' },
       'remote-port': { type: 'string' },
+      'replace-directives': { type: 'boolean' },
     },
   });
   if (values.version) {
@@ -126,7 +128,13 @@ async function main(): Promise<void> {
         result = await runBackupCommand(store, subject, extra, positionals[3], values);
         break;
       case 'machine': {
-        const machine = await runMachineCommand(store, subject, extra, values);
+        const machine = await runMachineCommand(
+          store,
+          subject,
+          extra,
+          values,
+          positionals.slice(3),
+        );
         if (machine.text) process.stdout.write(machine.text);
         result = machine.result;
         break;
@@ -170,6 +178,7 @@ async function main(): Promise<void> {
           values.port === undefined ? undefined : port,
           values['reset-access'],
           publicPort,
+          values.attached ? hostname().replace(/\.local$/, '') : undefined,
         );
         persistent = true;
         let closing = false;

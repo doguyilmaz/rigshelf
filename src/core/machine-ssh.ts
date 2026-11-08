@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { type MachineDoctor, parseMachineDoctor } from './machine-doctor';
 import { type MachineInventory, parseMachineInventory } from './machine-inventory';
 
@@ -11,7 +12,12 @@ export interface RemoteResult {
   stdout: string;
   stderr: string;
 }
-export type RemoteRunner = (args: string[]) => Promise<RemoteResult>;
+export type RemoteRunner = (args: string[], input?: string) => Promise<RemoteResult>;
+
+const PLAN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const PLAN_COMMAND =
+  /^rigshelf apply [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const MAX_BUNDLE_BYTES = 256 * 1024 * 1024;
 
 const baseOptions = [
   '-o',
@@ -36,6 +42,7 @@ function checkedAlias(alias: string): string {
 function remoteCommand(command: string): string {
   if (
     !/^rigshelf [a-z -]+(?: --root \/[A-Za-z0-9._/-]{1,255})*$/.test(command) &&
+    !PLAN_COMMAND.test(command) &&
     !/^rigshelf ui --port \d{4,5} --attached --public-port \d{4,5}$/.test(command)
   )
     throw new Error('Unsupported remote command.');
@@ -85,8 +92,12 @@ export function remoteReadyUrl(output: string, port: number): string | undefined
   return url && Number(url[2]) === port ? url[1] : undefined;
 }
 
-async function spawnRemote(args: string[]): Promise<RemoteResult> {
-  const child = Bun.spawn(args, { stdin: 'ignore', stdout: 'pipe', stderr: 'pipe' });
+async function spawnRemote(args: string[], input?: string): Promise<RemoteResult> {
+  const child = Bun.spawn(args, {
+    stdin: input === undefined ? 'ignore' : Buffer.from(input),
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
   const timer = setTimeout(() => child.kill(), REMOTE_TIMEOUT_MS);
   try {
     const [stdout, stderr] = await Promise.all([
@@ -100,8 +111,13 @@ async function spawnRemote(args: string[]): Promise<RemoteResult> {
   }
 }
 
-async function runRigshelf(alias: string, command: string, run: RemoteRunner): Promise<string> {
-  const result = await run(sshArguments(alias, command));
+async function runRigshelf(
+  alias: string,
+  command: string,
+  run: RemoteRunner,
+  input?: string,
+): Promise<string> {
+  const result = await run(sshArguments(alias, command), input);
   const detail = result.stderr.trim().split('\n').at(-1)?.slice(0, 300) || `exit ${result.code}`;
   if (result.code === 0) return result.stdout;
   if (result.code === 255) throw new Error(`Could not connect to ${alias}: ${detail}`);
@@ -116,12 +132,7 @@ export async function remoteInventory(
   alias: string,
   options: { run?: RemoteRunner; roots?: string[] } = {},
 ): Promise<MachineInventory> {
-  const roots = options.roots || [];
-  for (const root of roots)
-    if (!REMOTE_ROOT.test(root) || root.split('/').includes('..'))
-      throw new Error(
-        `Remote roots must be absolute paths of letters, digits, ., _, - and /: ${root.slice(0, 80)}`,
-      );
+  const roots = checkedRoots(options.roots);
   const output = await runRigshelf(
     alias,
     ['rigshelf machine inventory --json', ...roots.map((root) => `--root ${root}`)].join(' '),
@@ -152,4 +163,70 @@ export async function remoteDoctor(
       `${alias} returned a doctor report this version cannot read. Install the same Rigshelf version on both machines.`,
     );
   }
+}
+
+const PreparedSchema = z.object({
+  library: z.object({ entries: z.number().int().min(0) }),
+  directives: z.object({
+    added: z.array(z.string().max(100)),
+    replaced: z.array(z.string().max(100)),
+    kept: z.array(z.string().max(100)),
+  }),
+  projects: z
+    .array(
+      z.object({
+        repository: z.string().max(300),
+        path: z.string().max(4096).optional(),
+        planId: z.string().regex(PLAN_ID).optional(),
+        files: z.number().int().min(0).optional(),
+        warnings: z.array(z.string().max(2000)).max(200).optional(),
+        error: z.string().max(2000).optional(),
+      }),
+    )
+    .max(300),
+});
+export type PreparedSync = z.infer<typeof PreparedSchema>;
+
+function checkedRoots(roots: string[] = []): string[] {
+  for (const root of roots)
+    if (!REMOTE_ROOT.test(root) || root.split('/').includes('..'))
+      throw new Error(
+        `Remote roots must be absolute paths of letters, digits, ., _, - and /: ${root.slice(0, 80)}`,
+      );
+  return roots;
+}
+
+export async function remotePrepare(
+  alias: string,
+  request: unknown,
+  options: { roots?: string[]; replaceDirectives?: boolean; run?: RemoteRunner } = {},
+): Promise<PreparedSync> {
+  const input = JSON.stringify(request);
+  if (input.length > MAX_BUNDLE_BYTES) throw new Error('The sync bundle exceeds 256 MiB.');
+  const command = [
+    'rigshelf machine prepare --json',
+    ...(options.replaceDirectives ? ['--replace-directives'] : []),
+    ...checkedRoots(options.roots).map((root) => `--root ${root}`),
+  ].join(' ');
+  const output = await runRigshelf(alias, command, options.run || spawnRemote, input);
+  try {
+    return PreparedSchema.parse(JSON.parse(output));
+  } catch {
+    throw new Error(
+      `${alias} returned a sync review this version cannot read. Install the same Rigshelf version on both machines.`,
+    );
+  }
+}
+
+export async function remoteApply(
+  alias: string,
+  planId: string,
+  options: { run?: RemoteRunner } = {},
+): Promise<{ status: string; fileCount?: number }> {
+  if (!PLAN_ID.test(planId)) throw new Error('Expected a plan ID from machine sync.');
+  const output = await runRigshelf(alias, `rigshelf apply ${planId}`, options.run || spawnRemote);
+  return z
+    .object({ status: z.string().max(40), fileCount: z.number().int().optional() })
+    .passthrough()
+    .parse(JSON.parse(output));
 }

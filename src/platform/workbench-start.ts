@@ -10,6 +10,7 @@ export function openWorkbenchServer(
   requestedPort?: number,
   resetAccess = false,
   publicPort?: number,
+  remoteName?: string,
 ): {
   server: WorkbenchServer;
   moved: boolean;
@@ -19,7 +20,7 @@ export function openWorkbenchServer(
   for (let offset = 0; offset < attempts; offset++) {
     try {
       return {
-        server: startServer(store, first + offset, { resetAccess, publicPort }),
+        server: startServer(store, first + offset, { resetAccess, publicPort, remoteName }),
         moved: offset > 0,
       };
     } catch (error) {

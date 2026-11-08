@@ -31,12 +31,14 @@ export function AppNavigation({
   onSearch,
   onGuide,
   onRefresh,
+  remote,
 }: {
   page: Page;
   navigate: (page: Page) => void;
   onSearch: () => void;
   onGuide: () => void;
   onRefresh: () => void;
+  remote?: string;
 }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const previousPage = useRef(page);
@@ -71,7 +73,13 @@ export function AppNavigation({
       >
         <BrandMark size={26} />
         <span>{brand.name}</span>
-        <small>{t('Local workspace')}</small>
+        {remote ? (
+          <small className="experience-remote" title={remote}>
+            {t('Remote: {{name}}', { name: remote })}
+          </small>
+        ) : (
+          <small>{t('Local workspace')}</small>
+        )}
       </button>
       <nav className="experience-nav" aria-label={t('Main navigation')}>
         {navigation.slice(0, 3).map((item) => (
@@ -169,6 +177,11 @@ export function AppNavigation({
           <Settings2 size={17} />
         </button>
       </div>
+      {remote && (
+        <p className="experience-remote-line" title={remote}>
+          {t('Remote: {{name}}', { name: remote })}
+        </p>
+      )}
     </header>
   );
 }

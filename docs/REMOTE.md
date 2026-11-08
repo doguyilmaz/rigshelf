@@ -1,6 +1,6 @@
 # Remote machines (proposal)
 
-Status: phase 1 (read-only inventory, compare and doctor, `rigshelf machine`) and remote control (`rigshelf ui --on`) are available in the CLI. Applying changes to another machine remains a proposal.
+Status: available in the CLI: read-only inventory, compare and doctor; `machine sync`/`machine apply` for project kits, the Library they use and directives; and `rigshelf ui --on` with a remote badge. Per-project memory sync and a Machines view in the workbench remain to do.
 
 ## Problem
 
@@ -37,7 +37,8 @@ Each request is one remote command that prints JSON:
 | Command on the machine | Purpose |
 | --- | --- |
 | `rigshelf machine inventory --json [--root /dir]` | Read-only manifest: global and project items with path-independent keys and digests. No file bodies. Without a configured root that exists, it searches the home folder. |
-| `rigshelf machine apply --bundle -` | Apply a reviewed bundle read from stdin through the plan engine; returns the plan and journal IDs. |
+| `rigshelf machine prepare --json [--replace-directives] [--root /dir]` | Reads a sync bundle on stdin: imports the sent Library entries additively, adds missing directives (replaces differing ones only with `--replace-directives`) and prepares one setup plan per clone matched by repository. No project file is written. |
+| `rigshelf apply <plan-id>` | Applies one prepared plan with the usual preconditions, journal and rollback. |
 | `rigshelf machine doctor --json` | Environment checks listed below. |
 
 ## Matching projects
@@ -71,15 +72,15 @@ Rigshelf version on both sides; harness CLIs present on the server; Codex projec
 
 Separate from sync, and later:
 
-1. `rigshelf ui --on <alias> [--port L] [--remote-port R]` runs `rigshelf ui --port R --attached --public-port L` on the server and forwards `127.0.0.1:L` to it with `ssh -L`. The printed `http://rigshelf.localhost:L/#access=…` URL carries the server's own access key. The remote workbench accepts only loopback hosts for its two ports and stops when the SSH connection closes (Ctrl-C). Nothing new listens beyond loopback on either machine. A remote badge in the workbench is still to do.
+1. `rigshelf ui --on <alias> [--port L] [--remote-port R]` runs `rigshelf ui --port R --attached --public-port L` on the server and forwards `127.0.0.1:L` to it with `ssh -L`. The printed `http://rigshelf.localhost:L/#access=…` URL carries the server's own access key. The remote workbench accepts only loopback hosts for its two ports and stops when the SSH connection closes (Ctrl-C). Nothing new listens beyond loopback on either machine. The header shows `Remote: <host>` while the workbench is opened this way, on its own line on narrow screens.
 2. Tailscale Serve (tailnet only, never Funnel) is documented for users who already run Tailscale.
 3. Cloudflare Tunnel or ngrok are not built in. The workbench accepts only loopback hosts; supporting a public hostname would require enforced Cloudflare Access with origin-side JWT validation, which is a larger trust change than this product needs.
 
 ## Phases
 
 1. Read-only `machine inventory`, `machine compare <alias>` and `machine doctor <alias>` in the CLI (done); a Machines view in the workbench.
-2. Apply a reviewed bundle on the server, starting with Library and project kits.
-3. `rigshelf ui --on <alias>` (done; the remote badge remains).
+2. `rigshelf machine sync <alias>` sends each applied kit and prepares plans on the server; `--apply` or `rigshelf machine apply <alias> <plan-id>` applies them (done for kits, Library and directives).
+3. `rigshelf ui --on <alias>` with the remote badge (done).
 4. Both directions and per-project memory re-mapping.
 
 ## Decisions (2026-11-08)

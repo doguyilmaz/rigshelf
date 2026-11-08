@@ -1308,5 +1308,6 @@
   "This is a saved reference or recipe. Automatic Skill import is available for supported GitHub repositories; website content is not fetched by AI.": "This is a saved reference or recipe. Automatic Skill import is available for supported GitHub repositories; website content is not fetched by AI.",
   "Preview uses no model, network request or installer. Saving checks supported sources online.": "Preview uses no model, network request or installer. Saving checks supported sources online.",
   "Snapshot for {{name}}": "Snapshot for {{name}}",
-  "Choose a saved Snapshot, then Review setup to inspect the file differences. No project files change here.": "Choose a saved Snapshot, then Review setup to inspect the file differences. No project files change here."
+  "Choose a saved Snapshot, then Review setup to inspect the file differences. No project files change here.": "Choose a saved Snapshot, then Review setup to inspect the file differences. No project files change here.",
+  "Remote: {{name}}": "Remote: {{name}}"
 }
