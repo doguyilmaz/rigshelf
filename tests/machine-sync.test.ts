@@ -466,3 +466,22 @@ test('everything mode adds settings, global Skills and memory for every project,
   ]);
   expect(JSON.stringify(request)).not.toContain('oauthAccount');
 });
+
+test('projects the server has no clone of send nothing, not even local files', async () => {
+  const { laptop } = await machines();
+  const matched = join(laptop.root, 'matched');
+  const other = join(laptop.root, 'other');
+  await repository(matched, 'git@github.com:owner/matched.git');
+  await repository(other, 'git@github.com:owner/other.git');
+  await Bun.write(join(matched, 'CLAUDE.local.md'), 'Matched notes\n');
+  await Bun.write(join(other, 'CLAUDE.local.md'), 'Unmatched notes\n');
+  const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.root], {
+    onlyRepositories: ['github.com/owner/matched'],
+    globalGuidance: false,
+  });
+  expect(request.projects.map((project) => project.repository)).toEqual([
+    'github.com/owner/matched',
+  ]);
+  expect(JSON.stringify(request)).not.toContain('Unmatched notes');
+  expect(skipped).toContainEqual({ name: 'other', reason: 'no matching project on the server' });
+});

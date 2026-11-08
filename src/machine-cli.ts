@@ -16,7 +16,7 @@ import {
   remoteReadyUrl,
   tunnelArguments,
 } from './core/machine-ssh';
-import { buildSyncRequest, prepareSync } from './core/machine-sync';
+import { buildSyncRequest, prepareSync, serverRepositories } from './core/machine-sync';
 import type { Store } from './core/store';
 
 const MAX_MANIFEST_BYTES = 32 * 1024 * 1024;
@@ -202,7 +202,9 @@ export async function runMachineCommand(
   }
   if (action === 'sync') {
     if (!alias) throw new Error('machine sync needs an SSH host alias.');
+    const remote = await remoteInventory(alias, { roots: values['remote-root'] });
     const sync = await buildSyncRequest(store, await inventoryRoots(store, values.root), {
+      onlyRepositories: serverRepositories(remote),
       memory: values.memory
         ?.split(',')
         .map((value) => value.trim())

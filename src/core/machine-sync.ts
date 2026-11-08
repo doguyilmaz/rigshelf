@@ -8,7 +8,7 @@ import { ignoredDirectories } from './inventory-paths';
 import { readKit } from './kit';
 import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import { readLocalBytes } from './local-files';
-import { machineProjects } from './machine-inventory';
+import { type MachineInventory, machineProjects } from './machine-inventory';
 import { claudeMemoryKey } from './memory-locations';
 import { type Change, type Plan, ProvidersSchema, type Rule, RuleSchema } from './model';
 import { rootIdentity } from './ownership';
@@ -244,6 +244,10 @@ async function collectMemory(home: string, project: string, budget: FileBudget) 
   return files;
 }
 
+export function serverRepositories(inventory: MachineInventory): string[] {
+  return inventory.projects.flatMap((project) => (project.repository ? [project.repository] : []));
+}
+
 export async function buildSyncRequest(
   store: Store,
   roots: string[],
@@ -255,6 +259,8 @@ export async function buildSyncRequest(
     globalGuidance?: boolean;
     globalSettings?: boolean;
     globalSkills?: boolean;
+    /** Repository keys the server has a clone of; other projects are never read. */
+    onlyRepositories?: Iterable<string>;
   } = {},
 ): Promise<{
   request: SyncRequest;
@@ -268,9 +274,14 @@ export async function buildSyncRequest(
   const withheld: Withheld[] = [];
   const budget = new FileBudget(withheld);
   const projects: SyncRequest['projects'] = [];
+  const onServer = options.onlyRepositories && new Set(options.onlyRepositories);
   for (const project of await machineProjects(roots)) {
     if (!project.repository) {
       skipped.push({ name: project.name, reason: 'no Git origin to match on the server' });
+      continue;
+    }
+    if (onServer && !onServer.has(project.repository)) {
+      skipped.push({ name: project.name, reason: 'no matching project on the server' });
       continue;
     }
     const kit = await readKit(project.path).catch(() => undefined);

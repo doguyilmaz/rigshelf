@@ -13,7 +13,7 @@ import {
   remoteInventory,
   remotePrepare,
 } from './machine-ssh';
-import { buildSyncRequest } from './machine-sync';
+import { buildSyncRequest, serverRepositories } from './machine-sync';
 import type { Store } from './store';
 
 const gitHosts = new Set(['github.com', 'gitlab.com', 'bitbucket.org']);
@@ -79,7 +79,9 @@ export async function machineRoute(
   }
   if (action === 'sync') {
     const { alias, memory, replaceDirectives, ...scope } = SyncInput.parse(input);
+    const remote = await remoteInventory(alias, { run });
     const sync = await buildSyncRequest(store, await inventoryRoots(store), {
+      onlyRepositories: serverRepositories(remote),
       memory,
       home,
       ...scope,

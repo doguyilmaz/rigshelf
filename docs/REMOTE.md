@@ -43,7 +43,7 @@ Each request is one remote command that prints JSON:
 
 ## Matching projects
 
-Projects match by repository key: the normalized `origin` URL read from `.git/config` (no `git` process), plus the workspace path inside the repository. A folder name or absolute path never decides the match. Unmatched projects can be paired manually; the pairing and the path mapping are stored per machine.
+Projects match by repository key: the normalized `origin` URL read from `.git/config` (no `git` process), plus the workspace path inside the repository. A folder name or absolute path never decides the match. Sync reads the server inventory first and sends only projects the server has a clone of; files from other projects never leave the machine. Unmatched projects can be paired manually; the pairing and the path mapping are stored per machine.
 
 ## What is compared
 
