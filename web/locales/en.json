@@ -1358,5 +1358,11 @@
   "Also copy global configuration (optional)": "Also copy global configuration (optional)",
   "Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)": "Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)",
   "Claude Code settings (~/.claude/settings.json)": "Claude Code settings (~/.claude/settings.json)",
-  "Global Skills folders": "Global Skills folders"
+  "Global Skills folders": "Global Skills folders",
+  "Use in every project": "Use in every project",
+  "Pins this exact Snapshot in the base Preset. Each project still gets its own copy, and machine sync carries it.": "Pins this exact Snapshot in the base Preset. Each project still gets its own copy, and machine sync carries it.",
+  "Add to every project": "Add to every project",
+  "Remove from every project": "Remove from every project",
+  "Removed from every project. Existing projects keep it until their next setup.": "Removed from every project. Existing projects keep it until their next setup.",
+  "Added to every project. New setups and the next setup of each project include it.": "Added to every project. New setups and the next setup of each project include it."
 }

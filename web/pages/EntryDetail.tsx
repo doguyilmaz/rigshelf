@@ -39,6 +39,59 @@ interface FileContent {
 }
 type Props = PageProps & { id: string; onClose: () => void };
 
+/** Pinning in the root Preset adds this exact Snapshot to every project kit, which machine sync then carries per project. */
+function EveryProjectAction({
+  state,
+  refresh,
+  notify,
+  entryId,
+}: Props & { entryId: string }): ReactNode {
+  const [busy, setBusy] = useState(false);
+  const base = state.presets.find((preset) => preset.id === 'base');
+  if (!base) return null;
+  const pinned = base.entryIds.includes(entryId);
+  async function toggle(): Promise<void> {
+    if (!base) return;
+    setBusy(true);
+    try {
+      const entryIds = pinned
+        ? base.entryIds.filter((id) => id !== entryId)
+        : [...base.entryIds, entryId];
+      await api(`presets/${apiId(base.id)}`, 'PATCH', {
+        value: { ...base, entryIds },
+        expected: base,
+      });
+      await refresh();
+      notify(
+        t(
+          pinned
+            ? 'Removed from every project. Existing projects keep it until their next setup.'
+            : 'Added to every project. New setups and the next setup of each project include it.',
+        ),
+      );
+    } catch (error) {
+      notify((error as Error).message, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="entry-kit-action">
+      <div>
+        <strong>{t('Use in every project')}</strong>
+        <small>
+          {t(
+            'Pins this exact Snapshot in the base Preset. Each project still gets its own copy, and machine sync carries it.',
+          )}
+        </small>
+      </div>
+      <Button variant="secondary" disabled={busy} onClick={() => void toggle()}>
+        {t(pinned ? 'Remove from every project' : 'Add to every project')}
+      </Button>
+    </div>
+  );
+}
+
 export function EntryDetail(props: Props): ReactNode {
   const [selected, setSelected] = useState(props.id);
   const [dirty, setDirty] = useState(false);
@@ -79,6 +132,9 @@ export function EntryDetail(props: Props): ReactNode {
             )}
           </Button>
         </div>
+      )}
+      {['skill', 'mcp'].includes(metadata.kind) && (
+        <EveryProjectAction {...props} entryId={selected} />
       )}
       {versions.length > 1 && (
         <label className="version-picker" htmlFor="snapshot-version">

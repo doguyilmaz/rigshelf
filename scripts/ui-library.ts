@@ -92,6 +92,18 @@ try {
   await page.keyboard.press('Escape');
   await detail.getByRole('button', { name: 'Save relationships', exact: true }).click();
   await expect.poll(() => data.store.entry(expo.id)?.tags.includes('platform:backend')).toBe(true);
+  await detail.getByRole('button', { name: 'Add to every project', exact: true }).click();
+  await expect
+    .poll(() =>
+      data.store.get<{ entryIds: string[] }>('preset', 'base')?.entryIds.includes(expo.id),
+    )
+    .toBe(true);
+  await detail.getByRole('button', { name: 'Remove from every project', exact: true }).click();
+  await expect
+    .poll(() =>
+      data.store.get<{ entryIds: string[] }>('preset', 'base')?.entryIds.includes(expo.id),
+    )
+    .toBe(false);
   await detail.getByRole('button', { name: 'Close dialog', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'No items match these filters', exact: true }),

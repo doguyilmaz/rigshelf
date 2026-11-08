@@ -762,3 +762,20 @@ describe('portability, credentials and automation', () => {
     );
   });
 });
+
+test('a Snapshot pinned in the base Preset is selected for projects of every stack', async () => {
+  const value = await fixture();
+  const { store, project } = value;
+  const shared = sampleSkill(store, 'house-rules');
+  const base = store.get<{ id: string; entryIds: string[] }>('preset', 'base')!;
+  store.put('preset', { ...base, entryIds: [...base.entryIds, shared.id] });
+  for (const manifest of [
+    { name: 'package.json', text: JSON.stringify({ dependencies: { expo: '56' } }) },
+    { name: 'go.mod', text: 'module x\n\nrequire github.com/gin-gonic/gin v1.10.0\n' },
+  ]) {
+    await Bun.write(join(project, manifest.name), manifest.text);
+    const { recommendations } = recommend(store, await detectProject(project));
+    expect(recommendations.find((item) => item.entry.id === shared.id)?.selected).toBe(true);
+  }
+  await value.cleanup();
+});
