@@ -18,6 +18,7 @@ import {
   tunnelArguments,
 } from '../src/core/machine-ssh';
 import { claudeMemoryKey } from '../src/core/memory-locations';
+import { formatSyncReport } from '../src/machine-cli';
 
 const cleanups: string[] = [];
 afterEach(async () => {
@@ -277,4 +278,48 @@ test('sync sends the bundle on stdin and applies only plan IDs on the server', a
       { run: async () => ({ code: 0, stdout: '{"projects":"x"}', stderr: '' }) },
     ),
   ).rejects.toThrow('cannot read');
+});
+
+test('the summary details matched projects and collapses unmatched ones into one line per side', () => {
+  const empty = { same: 0, different: 0, 'missing-remote': 0, 'missing-local': 0 };
+  const unmatched = Array.from({ length: 12 }, (_, index) => ({
+    repository: null,
+    local: `local-${index}`,
+    remote: null,
+    matchedBy: null,
+    rows: [],
+    groups: {},
+  }));
+  const text = formatSyncReport(
+    {
+      global: { rows: [], groups: {} },
+      projects: [
+        {
+          repository: 'github.com/owner/app',
+          local: 'app',
+          remote: 'app',
+          matchedBy: 'repository',
+          rows: [],
+          groups: { memory: { ...empty, 'missing-remote': 2 } },
+        },
+        ...unmatched,
+        {
+          repository: 'github.com/owner/srv',
+          local: null,
+          remote: 'srv-only',
+          matchedBy: null,
+          rows: [],
+          groups: {},
+        },
+      ],
+    },
+    'this machine',
+    'box',
+  );
+  expect(text).toContain('app  (github.com/owner/app)\n  memory: 2 missing there');
+  expect(text).toContain(
+    'Only on this machine (12): local-0, local-1, local-2, local-3, local-4, local-5, local-6, local-7 and 4 more',
+  );
+  expect(text).toContain('Only on box (1): srv-only');
+  expect(text).not.toContain('(only on this machine)');
 });

@@ -74,26 +74,42 @@ function manual(section: SyncSection): string[] {
     .map((row) => `    ${row.action === 'remap' ? 'remap paths' : 'set up by hand'}: ${row.key}`);
 }
 
+const LISTED_NAMES = 8;
+
+function namesLine(label: string, names: string[]): string[] {
+  if (!names.length) return [];
+  const shown = names.slice(0, LISTED_NAMES).join(', ');
+  const more = names.length > LISTED_NAMES ? ` and ${names.length - LISTED_NAMES} more` : '';
+  return ['', `${label} (${names.length}): ${shown}${more}`];
+}
+
 export function formatSyncReport(report: SyncReport, here: string, there: string): string {
   const lines = [
     `${here} → ${there}`,
     `Global  ${groupLine(report.global) || 'nothing found'}`,
     ...manual(report.global),
   ];
-  for (const project of report.projects) {
-    const name = project.local ?? project.remote;
-    const where = !project.remote
-      ? `only on ${here}`
-      : !project.local
-        ? `only on ${there}`
-        : project.matchedBy === 'name'
-          ? 'matched by folder name'
-          : project.repository;
-    lines.push('', `${name}  (${where})`);
-    if (project.local && project.remote)
-      lines.push(`  ${groupLine(project) || 'nothing found'}`, ...manual(project));
+  for (const project of report.projects.filter((value) => value.local && value.remote)) {
+    const where = project.matchedBy === 'name' ? 'matched by folder name' : project.repository;
+    lines.push(
+      '',
+      `${project.local}  (${where})`,
+      `  ${groupLine(project) || 'nothing found'}`,
+      ...manual(project),
+    );
   }
-  lines.push('', 'Details for every item: add --json.');
+  lines.push(
+    ...namesLine(
+      `Only on ${here}`,
+      report.projects.flatMap((value) => (value.local && !value.remote ? [value.local] : [])),
+    ),
+    ...namesLine(
+      `Only on ${there}`,
+      report.projects.flatMap((value) => (value.remote && !value.local ? [value.remote] : [])),
+    ),
+    '',
+    'Details for every item: add --json.',
+  );
   return `${lines.join('\n')}\n`;
 }
 
