@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "rigshelf",
+  "version": "0.1.0",
+  "description": "Set up project-scoped Skills, MCP servers and guidance for coding agents from your private Rigshelf library.",
+  "author": { "name": "Dogu Yilmaz" },
+  "homepage": "https://github.com/doguyilmaz/rigshelf",
+  "repository": "https://github.com/doguyilmaz/rigshelf",
+  "license": "MIT",
+  "keywords": ["skills", "mcp", "agents", "project-setup"]
+}

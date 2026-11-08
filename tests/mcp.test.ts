@@ -51,7 +51,7 @@ test('MCP item reads never expose parsed legacy credential metadata', async () =
       stderr: 'pipe',
     }),
   );
-  const result = await client.callTool({ name: 'kitfold_item', arguments: { id: legacy.id } });
+  const result = await client.callTool({ name: 'rigshelf_item', arguments: { id: legacy.id } });
   expect(result.isError).not.toBe(true);
   expect(JSON.stringify(result)).not.toContain('private-fixture');
   const parsed = JSON.parse((result.content as { text: string }[])[0]!.text) as { entry: Entry };
@@ -85,7 +85,7 @@ test('read-only MCP can restore private returning choices without applying again
     }),
   );
   const result = await client.callTool({
-    name: 'kitfold_recommend',
+    name: 'rigshelf_recommend',
     arguments: { projectPath: data.project, restorePrevious: true },
   });
   expect(result.isError).not.toBe(true);
@@ -227,7 +227,7 @@ test('setup plans use documented native formats and add a canonical bridge only 
       'base64',
     ).toString(),
   );
-  expect(claude.mcpServers['filtered-server'].command).toBe('kitfold');
+  expect(claude.mcpServers['filtered-server'].command).toBe('rigshelf');
   const codex = Buffer.from(
     plan.changes.find((change) => change.path === '.codex/config.toml')!.after!,
     'base64',
@@ -261,21 +261,21 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
   );
   const names = (await client.listTools()).tools.map((tool) => tool.name);
   expect(client.getServerVersion()?.name).toBe('rigshelf');
-  expect(names).toContain('kitfold_recommend');
-  expect(names).toContain('kitfold_plan');
-  expect(names).toContain('kitfold_backup_review');
-  expect(names).not.toContain('kitfold_backup_apply');
+  expect(names).toContain('rigshelf_recommend');
+  expect(names).toContain('rigshelf_plan');
+  expect(names).toContain('rigshelf_backup_review');
+  expect(names).not.toContain('rigshelf_backup_apply');
   const backups = await client.callTool({
-    name: 'kitfold_backup_review',
+    name: 'rigshelf_backup_review',
     arguments: { action: 'destinations' },
   });
   expect(backups.isError).not.toBe(true);
   expect(JSON.stringify(backups.content)).toContain('[]');
-  expect(names).not.toContain('kitfold_apply');
-  expect(names).not.toContain('kitfold_save_preset');
-  expect(names).not.toContain('kitfold_save_rule');
-  expect(names).toContain('kitfold_pending_drafts');
-  expect(names).toContain('kitfold_propose_draft');
+  expect(names).not.toContain('rigshelf_apply');
+  expect(names).not.toContain('rigshelf_save_preset');
+  expect(names).not.toContain('rigshelf_save_rule');
+  expect(names).toContain('rigshelf_pending_drafts');
+  expect(names).toContain('rigshelf_propose_draft');
   const draft = startAiDraft(data.store, {
     task: 'text',
     intent: 'format',
@@ -283,12 +283,12 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
     runner: 'session',
   });
   const offered = await client.callTool({
-    name: 'kitfold_draft_request',
+    name: 'rigshelf_draft_request',
     arguments: { id: draft.id },
   });
   expect(JSON.stringify(offered)).toContain('Format this fixture note.');
   const proposed = await client.callTool({
-    name: 'kitfold_propose_draft',
+    name: 'rigshelf_propose_draft',
     arguments: {
       id: draft.id,
       proposal: {
@@ -300,9 +300,9 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
   });
   expect(proposed.isError).not.toBe(true);
   expect(aiDraft(data.store, draft.id).state).toBe('ready');
-  expect(names).toContain('kitfold_project_files');
+  expect(names).toContain('rigshelf_project_files');
   const listing = await client.callTool({
-    name: 'kitfold_project_files',
+    name: 'rigshelf_project_files',
     arguments: { projectId: project.id, limit: 1 },
   });
   expect(JSON.stringify(listing)).not.toContain('unique fixture memory body');
@@ -314,7 +314,7 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
   expect(files.total).toBe(1);
   expect(files.files[0]!.path).toBe('MEMORY.md');
   const document = await client.callTool({
-    name: 'kitfold_project_document',
+    name: 'rigshelf_project_document',
     arguments: { projectId: project.id, documentId: files.files[0]!.documentId },
   });
   expect(JSON.stringify(document)).toContain('unique fixture memory body');
@@ -334,7 +334,7 @@ test('writable MCP supports create-only definitions and checked edits without gr
     }),
   );
   const documented = new Set(
-    (await Bun.file(new URL('../docs/MCP.md', import.meta.url)).text()).match(/kitfold_[a-z_]+/g),
+    (await Bun.file(new URL('../docs/MCP.md', import.meta.url)).text()).match(/rigshelf_[a-z_]+/g),
   );
   const exposed = new Set((await client.listTools()).tools.map((tool) => tool.name));
   expect([...documented].sort()).toEqual([...exposed].sort());
@@ -359,8 +359,13 @@ test('writable MCP supports create-only definitions and checked edits without gr
     provenance: 'Fixture',
   };
   for (const [name, kind, value, revised] of [
-    ['kitfold_save_preset', 'preset', preset, { ...preset, description: 'Explicit checked edit.' }],
-    ['kitfold_save_rule', 'rule', rule, { ...rule, content: 'Explicit checked edit.' }],
+    [
+      'rigshelf_save_preset',
+      'preset',
+      preset,
+      { ...preset, description: 'Explicit checked edit.' },
+    ],
+    ['rigshelf_save_rule', 'rule', rule, { ...rule, content: 'Explicit checked edit.' }],
   ] as const) {
     expect(
       (await client.callTool({ name, arguments: { ...value, createOnly: true } })).isError,
@@ -370,7 +375,7 @@ test('writable MCP supports create-only definitions and checked edits without gr
     ).toBe(true);
     expect(data.store.get(kind, value.id)).toEqual(value);
     const read = await client.callTool({
-      name: kind === 'preset' ? 'kitfold_presets' : 'kitfold_rules',
+      name: kind === 'preset' ? 'rigshelf_presets' : 'rigshelf_rules',
       arguments: { id: value.id },
     });
     const readDefinition = JSON.parse((read.content as { type: string; text: string }[])[0]!.text);
@@ -439,7 +444,7 @@ test('MCP pages directives and large plan metadata without exposing bulk file bo
     }),
   );
   const rules = await client.callTool({
-    name: 'kitfold_rules',
+    name: 'rigshelf_rules',
     arguments: { scope: 'pagination', offset: 30, limit: 30 },
   });
   const rows = JSON.parse((rules.content as { text: string }[])[0]!.text) as { id: string }[];
@@ -447,7 +452,7 @@ test('MCP pages directives and large plan metadata without exposing bulk file bo
   expect(rows[0]!.id).toBe('page-30');
   expect(JSON.stringify(rules)).not.toContain('private fixture body');
   const result = await client.callTool({
-    name: 'kitfold_plan_changes',
+    name: 'rigshelf_plan_changes',
     arguments: { planId: plan.id, offset: 50, limit: 50 },
   });
   expect(result.isError).not.toBe(true);
@@ -462,7 +467,7 @@ test('MCP pages directives and large plan metadata without exposing bulk file bo
   expect(page.changes[0]).toMatchObject({ index: 50, path: 'guides/50.md' });
   expect(JSON.stringify(result)).not.toContain('private body');
   const preview = await client.callTool({
-    name: 'kitfold_plan_file',
+    name: 'rigshelf_plan_file',
     arguments: { planId: plan.id, index: page.changes[0]!.index },
   });
   expect(JSON.stringify(preview)).toContain('private body 50');

@@ -45,7 +45,7 @@ Discovery stores document metadata and provenance, not memory or instruction bod
 
 External and shared guidance is read-only in the project editor. Local authored guidance retains digest-bound review plans, apply and rollback. Promoting selected guidance to a reusable directive is explicit and defaults to project scope. Catalog indexing never adds these files to an agent's context or enables automatic promotion.
 
-Read-only MCP tools `kitfold_projects` and `kitfold_project_files` expose paginated metadata. `kitfold_project_document` explicitly reads one inventoried file through the same domain operation as HTTP. Arbitrary absolute-path reads are not accepted. Private project paths and document indexes are excluded from portable library exports.
+Read-only MCP tools `rigshelf_projects` and `rigshelf_project_files` expose paginated metadata. `rigshelf_project_document` explicitly reads one inventoried file through the same domain operation as HTTP. Arbitrary absolute-path reads are not accepted. Private project paths and document indexes are excluded from portable library exports.
 
 ## Preserve the previous index
 

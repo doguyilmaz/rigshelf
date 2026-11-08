@@ -40,7 +40,7 @@ const publicFiles = [
   'THIRD_PARTY_NOTICES.md',
   'web/public/fonts/instrumentsans-OFL.txt',
   'web/public/fonts/newsreader-OFL.txt',
-  'skills/kitfold/SKILL.md',
+  'plugin/skills/rigshelf/SKILL.md',
   ...documents.map((name) => `docs/${name}.md`),
 ];
 

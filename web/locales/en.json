@@ -839,7 +839,7 @@
   "Uses a draft request in your connected Rigshelf MCP session. Ask the agent to answer the pending request.": "Uses a draft request in your connected Rigshelf MCP session. Ask the agent to answer the pending request.",
   "Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.": "Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.",
   "Includes up to 80 library names, tags and descriptions for matching suggestions.": "Includes up to 80 library names, tags and descriptions for matching suggestions.",
-  "Waiting for your connected agent. Use kitfold_pending_drafts and kitfold_propose_draft in that session.": "Waiting for your connected agent. Use kitfold_pending_drafts and kitfold_propose_draft in that session.",
+  "Waiting for your connected agent. Use rigshelf_pending_drafts and rigshelf_propose_draft in that session.": "Waiting for your connected agent. Use rigshelf_pending_drafts and rigshelf_propose_draft in that session.",
   "Copy agent request": "Copy agent request",
   "Waiting for Agent": "Waiting for Agent",
   "Preparing your draft…": "Preparing your draft…",

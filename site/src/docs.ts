@@ -127,7 +127,7 @@ export const guides = [
   },
   {
     slug: 'integration-skill',
-    source: 'skills/kitfold/SKILL.md',
+    source: 'plugin/skills/rigshelf/SKILL.md',
     title: 'Integration Skill',
     group: 'Reference',
     description: 'The optional Skill for working with the catalog through MCP.',

@@ -70,7 +70,7 @@ Native Plugin entries can carry optional `plugin` metadata with format `kitfold-
 
 Project inspection can return `previousSetup` metadata from an existing private ownership record bound to the current directory identity: exact entry IDs, Harnesses, brief, Preset ID and whether the current regular, bounded manifest matches the reviewed bytes. It grants no new authority. The optional `restorePrevious` request flag defaults to false; opting in restores reviewed requirements/a still-available Preset for inspection, while ordinary explicit requirement updates stay independent. A copied repository manifest cannot create this private previous-setup state. Missing/changed/linked manifests remain a separate status and never enable automation. Existing schema-1 data and project manifests remain unchanged.
 
-`kitfold_recommend` exposes the same optional `restorePrevious` flag on a read/plan MCP connection. Use it for an unchanged returning brief; leave it false when supplying new requirements. The returned choices can seed an explicit plan, but reading/restoring them creates no plan, ownership, trust or automation grant.
+`rigshelf_recommend` exposes the same optional `restorePrevious` flag on a read/plan MCP connection. Use it for an unchanged returning brief; leave it false when supplying new requirements. The returned choices can seed an explicit plan, but reading/restoring them creates no plan, ownership, trust or automation grant.
 
 ## Local workbench access and tab recovery
 

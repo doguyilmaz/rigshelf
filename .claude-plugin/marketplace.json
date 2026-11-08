@@ -1,0 +1,12 @@
+{
+  "name": "rigshelf",
+  "description": "Rigshelf plugin for Claude Code",
+  "owner": { "name": "Dogu Yilmaz" },
+  "plugins": [
+    {
+      "name": "rigshelf",
+      "source": "./plugin",
+      "description": "Set up project-scoped Skills, MCP servers and guidance for coding agents from your private Rigshelf library."
+    }
+  ]
+}

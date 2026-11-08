@@ -479,10 +479,10 @@ export function AiAssistPanel({
           {job?.state === 'waiting' && (
             <Notice>
               {t(
-                'Waiting for your connected agent. Use kitfold_pending_drafts and kitfold_propose_draft in that session.',
+                'Waiting for your connected agent. Use rigshelf_pending_drafts and rigshelf_propose_draft in that session.',
               )}{' '}
               <CopyButton
-                text={`Prepare the pending Rigshelf draft ${job.id}. Read kitfold_draft_request, follow its output schema, and submit with kitfold_propose_draft. Do not save or apply anything.`}
+                text={`Prepare the pending Rigshelf draft ${job.id}. Read rigshelf_draft_request, follow its output schema, and submit with rigshelf_propose_draft. Do not save or apply anything.`}
                 label={t('Copy agent request')}
               />
             </Notice>

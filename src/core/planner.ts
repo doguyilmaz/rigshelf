@@ -312,7 +312,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
         );
         compatibleMcp[name] = bridgeDefinition(path);
         warnings.push(
-          `${spec.name} / ${name}: Rigshelf MCP bridge required. ${reason} The kitfold command must be on your PATH.`,
+          `${spec.name} / ${name}: Rigshelf MCP bridge required. ${reason} The rigshelf command must be on your PATH.`,
         );
       } else compatibleMcp[name] = definition;
     }

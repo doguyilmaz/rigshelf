@@ -25,8 +25,7 @@ Storage directory names are explicit compatibility keys, independent of the muta
 | Old executable and environment override | `kitfold`, `KITFOLD_DATA_DIR` | Keep existing invocations usable. |
 | Existing library/archive format | `kitfold-library`, schema 1; native Plugin format key | Data identifiers remain stable, independent of display name. |
 | Project kit, bridge files, guidance markers and write/recovery locks | `.kitfold/…`, `kitfold:begin/end`, `.kitfold-write.lock` | Renaming these without a versioned ownership/recovery transition could orphan authored files or pending work. |
-| Managed MCP forwarding bridge executable | `kitfold mcp-proxy` | Existing generated plans/configuration retain their supported alias; `bun link` registers both commands. This is distinct from the new catalog connection snippet. |
-| MCP tool names and integration Skill ID | `kitfold_*`, `skills/kitfold` | Keep existing agent requests and installed integrations valid without registering duplicate tools or adding context. |
+| Managed MCP forwarding bridge executable | `kitfold mcp-proxy` in configuration written before 0.1.0 | New plans write `rigshelf mcp-proxy`; the `kitfold` alias keeps older bridges working until the next plan updates them. |
 | Browser access/preferences, internal draft events, private chooser variables and redaction placeholders | Existing `kitfold` keys | These are state/protocol identifiers, not product labels. No browser-state reset is required. |
 | Historical prototypes, research receipts and naming comparisons | Dated historical context | Not current UI or fresh availability claims. |
 

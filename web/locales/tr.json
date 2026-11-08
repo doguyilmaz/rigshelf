@@ -839,7 +839,7 @@
   "Uses a draft request in your connected Rigshelf MCP session. Ask the agent to answer the pending request.": "Bağlı Rigshelf MCP oturumunda bir taslak isteği oluşturur. Agent’tan bekleyen isteği yanıtlamasını iste.",
   "Sends this request and the current fields to {{provider}}. CLI login and usage limits apply.": "Bu isteği ve mevcut alanları {{provider}} ile paylaşır. CLI oturumu ve kullanım limitleri geçerlidir.",
   "Includes up to 80 library names, tags and descriptions for matching suggestions.": "Önerileri eşleştirmek için Library’den en fazla 80 öğenin adı, etiketi ve açıklaması eklenir.",
-  "Waiting for your connected agent. Use kitfold_pending_drafts and kitfold_propose_draft in that session.": "Bağlı Agent bekleniyor. O oturumda kitfold_pending_drafts ve kitfold_propose_draft araçlarını kullan.",
+  "Waiting for your connected agent. Use rigshelf_pending_drafts and rigshelf_propose_draft in that session.": "Bağlı Agent bekleniyor. O oturumda rigshelf_pending_drafts ve rigshelf_propose_draft araçlarını kullan.",
   "Copy agent request": "Agent isteğini kopyala",
   "Waiting for Agent": "Agent bekleniyor",
   "Preparing your draft…": "Taslağın hazırlanıyor…",

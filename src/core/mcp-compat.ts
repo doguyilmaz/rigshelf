@@ -40,7 +40,7 @@ export function bridgeReason(definition: Mcp, provider: Provider): string | unde
 export function bridgeDefinition(path: string): Mcp {
   return {
     transport: 'stdio',
-    command: 'kitfold',
+    command: 'rigshelf',
     args: ['mcp-proxy', '--file', path],
     env: {},
     headers: {},
