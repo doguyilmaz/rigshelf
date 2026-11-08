@@ -96,6 +96,33 @@ const genericTerms = new Set([
   'api',
 ]);
 const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const containsParts = (name: string, term: string) => `-${name}-`.includes(`-${term}-`);
+const genericSegments = new Set([
+  'test',
+  'cli',
+  'core',
+  'compat',
+  'components',
+  'utils',
+  'types',
+  'config',
+  'schema',
+  'node',
+  'react',
+  'vue',
+  'native',
+  'client',
+  'server',
+  'runtime',
+  'plugin',
+  'kit',
+]);
+function dependencyTerm(name: string): string | undefined {
+  if (name.startsWith('@types/')) return;
+  const last = name.split('/').at(-1)!;
+  const scope = name.startsWith('@') ? name.slice(1).split('/')[0] : undefined;
+  return normalize(scope && genericSegments.has(normalize(last)) ? scope : last);
+}
 interface ScoreContext {
   selectors: string[];
   explicit: Map<string, number>;
@@ -103,6 +130,7 @@ interface ScoreContext {
   dependencies: string[];
   terms: string[];
   presetId: string;
+  stacks: Set<string>;
 }
 type RankedRecommendation = Recommendation & { targets: string[] };
 function scoreEntry(entry: Omit<Entry, 'body'>, context: ScoreContext): RankedRecommendation {
@@ -121,13 +149,17 @@ function scoreEntry(entry: Omit<Entry, 'body'>, context: ScoreContext): RankedRe
     reasons.push('Explicit preset selection');
   }
   for (const dependency of context.dependencies)
-    if (name.includes(dependency)) {
+    if (
+      name === dependency ||
+      (containsParts(name, dependency) &&
+        (dependency.includes('-') || context.stacks.has(dependency)))
+    ) {
       score += name === dependency ? 120 : 70;
       reasons.push(`Detected dependency: ${dependency}`);
       targets.push(`technology:${dependency}`);
     }
   for (const term of context.terms)
-    if (name === term || name.includes(term) || entry.tags.includes(term)) {
+    if (containsParts(name, term) || entry.tags.includes(term)) {
       score += name === term ? 100 : 60;
       reasons.push(`Matches requirement: ${term}`);
       targets.push(`technology:${term}`);
@@ -177,7 +209,7 @@ export function recommend(
   const selectors = [...new Set(chain.flatMap((preset) => preset.selectors))];
   const dependencies = [
     ...new Set([
-      ...project.dependencies.map((name) => normalize(name.split('/').at(-1)!)),
+      ...project.dependencies.map(dependencyTerm).filter((name): name is string => Boolean(name)),
       ...project.stacks.filter((tag) =>
         ['better-auth', 'clerk', 'firebase', 'sentry', 'react-query', 'cloudflare'].includes(tag),
       ),
@@ -188,7 +220,15 @@ export function recommend(
   ]
     .map(normalize)
     .filter((term) => term.length >= 3 && !genericTerms.has(term));
-  const context = { selectors, explicit, existing, dependencies, terms, presetId };
+  const context = {
+    selectors,
+    explicit,
+    existing,
+    dependencies,
+    terms,
+    presetId,
+    stacks: new Set(project.stacks),
+  };
   const catalog = store
     .entries(true)
     .filter((entry) => !entry.archived || existing.has(entry.id) || explicit.has(entry.id));
@@ -203,7 +243,7 @@ export function recommend(
   const seen = new Set<string>();
   const warnings: string[] = [];
   const recommendations: Recommendation[] = [];
-  let newPicks = 0;
+  let automaticPicks = 0;
   const coveredTargets = new Set<string>();
   for (const value of ranked) {
     const key = `${value.entry.kind}:${slug(value.entry.name)}`;
@@ -225,14 +265,14 @@ export function recommend(
       !value.selected &&
       (explicit.has(value.entry.id) ||
         (value.score >= 55 &&
-          newPicks < 10 &&
+          automaticPicks < 10 &&
           value.targets.some((target) => !coveredTargets.has(target)))) &&
       !value.entry.findings.some((finding) => finding.level === 'block') &&
       !needsReview(value.entry)
     ) {
       value.selected = true;
-      if (!explicit.has(value.entry.id)) newPicks++;
-    }
+      if (!explicit.has(value.entry.id)) automaticPicks++;
+    } else if (value.selected && !explicit.has(value.entry.id)) automaticPicks++;
     if (value.selected) for (const target of value.targets) coveredTargets.add(target);
     const { targets: _targets, ...recommendation } = value;
     recommendations.push(recommendation);

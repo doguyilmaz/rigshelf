@@ -85,3 +85,65 @@ test('explicit CLI manifests select terminal guidance across Go, Swift and JavaS
   );
   expect(matchingPreset(await detectProject(js.project))).toBe('cli');
 });
+test('reads packages declared by package.json workspaces and pnpm-workspace.yaml', async () => {
+  const { project } = await setup();
+  await Bun.write(
+    join(project, 'package.json'),
+    JSON.stringify({ private: true, workspaces: { packages: ['libs/*', '!libs/ignored'] } }),
+  );
+  await Bun.write(
+    join(project, 'libs/mobile/package.json'),
+    JSON.stringify({ dependencies: { expo: '56' } }),
+  );
+  await Bun.write(join(project, 'pnpm-workspace.yaml'), 'packages:\n  - "tools/*"\n  - docs\n');
+  await Bun.write(
+    join(project, 'tools/api/package.json'),
+    JSON.stringify({ dependencies: { hono: '4' } }),
+  );
+  await Bun.write(
+    join(project, 'docs/package.json'),
+    JSON.stringify({ dependencies: { nuxt: '4' } }),
+  );
+  const detected = await detectProject(project);
+  expect(detected.stacks).toEqual(expect.arrayContaining(['expo', 'hono', 'nuxt', 'vue']));
+  expect(detected.workspaces?.map((workspace) => workspace.path).sort()).toEqual([
+    'docs',
+    'libs/mobile',
+    'tools/api',
+  ]);
+});
+test('collects Python and Go module dependencies', async () => {
+  const { project } = await setup();
+  await Bun.write(
+    join(project, 'pyproject.toml'),
+    '[project]\nname = "x"\ndependencies = ["FastAPI>=0.110", "sqlalchemy[asyncio]~=2.0"]\n\n[tool.poetry.dependencies]\npython = "^3.12"\nhttpx = "*"\n',
+  );
+  await Bun.write(
+    join(project, 'requirements.txt'),
+    '# pinned\nDjango==5.1 ; python_version>"3.10"\n-r base.txt\n',
+  );
+  await mkdir(join(project, 'server'));
+  await Bun.write(
+    join(project, 'server/go.mod'),
+    'module x\n\nrequire github.com/spf13/cobra v1.8.0\nrequire (\n\tgithub.com/gin-gonic/gin v1.10.0 // indirect\n)\n',
+  );
+  const detected = await detectProject(project);
+  expect(detected.dependencies).toEqual(
+    expect.arrayContaining([
+      'fastapi',
+      'sqlalchemy',
+      'httpx',
+      'django',
+      'github.com/gin-gonic/gin',
+    ]),
+  );
+  expect(detected.dependencies).not.toContain('python');
+  expect(detected.stacks).toEqual(expect.arrayContaining(['python', 'backend']));
+});
+test('an oversized Python manifest becomes a warning instead of failing detection', async () => {
+  const { project } = await setup();
+  await Bun.write(join(project, 'requirements.txt'), 'x\n'.repeat(400_000));
+  const detected = await detectProject(project);
+  expect(detected.stacks).toContain('python');
+  expect(detected.warnings?.join('\n')).toContain('requirements.txt');
+});

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, open, rename, unlink } from 'node:fs/promises';
+import { lstat, mkdir, open, rename, rmdir, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { detectProject } from './detect';
 import { parseKit, readKit } from './kit';
@@ -10,7 +10,7 @@ import { planFile } from './plan-limits';
 import { projectMcpFile } from './project-config';
 import { preserveProjectInventory } from './project-inventory';
 import { adapter } from './providers';
-import { assertWritePath, checkedProject, hash, now, slug } from './safety';
+import { assertWritePath, checkedProject, hash, now, safeRelative, slug } from './safety';
 import type { Store } from './store';
 
 export async function verifyChanges(plan: Plan, direction: 'apply' | 'rollback'): Promise<void> {
@@ -77,6 +77,22 @@ export async function writeChange(
   }
 }
 
+async function stillMissing(plan: Plan): Promise<string[]> {
+  const missing: string[] = [];
+  for (const path of plan.createdDirectories || [])
+    if (!(await lstat(join(plan.projectPath, safeRelative(path))).catch(() => null)))
+      missing.push(path);
+  return missing;
+}
+
+async function removeCreatedDirectories(plan: Plan): Promise<void> {
+  for (const path of plan.createdDirectories || []) {
+    const target = join(plan.projectPath, safeRelative(path));
+    const stats = await lstat(target).catch(() => null);
+    if (stats?.isDirectory()) await rmdir(target).catch(() => undefined);
+  }
+}
+
 interface Journal {
   id: string;
   direction: 'apply' | 'rollback';
@@ -110,6 +126,7 @@ async function applyChanges(
         failures.push(change.path);
       }
     }
+    if (journal.direction === 'apply' && !failures.length) await removeCreatedDirectories(plan);
     store.put('journal', {
       ...journal,
       state: failures.length ? 'needs-recovery' : 'reverted',
@@ -155,15 +172,18 @@ export async function executePlan(
   await mkdir(plan.projectPath, { recursive: true });
   plan.rootIdentity = await rootIdentity(plan.projectPath);
   const lockPath = join(plan.projectPath, '.kitfold-write.lock');
-  const lock = await open(lockPath, 'wx', 0o600).catch(() => {
+  const lock = await open(lockPath, 'wx', 0o600).catch((error) => {
     throw new Error(
-      'A project write is already in progress. Use recover after inspecting an interrupted operation.',
+      error.code === 'EEXIST'
+        ? 'A project write is already in progress. Use recover after inspecting an interrupted operation.'
+        : `The project folder is not writable (${error.code}). Check its permissions and try again.`,
     );
   });
   try {
     await lock.writeFile(JSON.stringify({ pid: process.pid, planId: plan.id, direction }));
     await guard?.();
     await verifyChanges(plan, direction);
+    if (direction === 'apply') plan.createdDirectories = await stillMissing(plan);
     store.put('plan', plan);
     const journal: Journal = {
       id: plan.id,
@@ -174,6 +194,7 @@ export async function executePlan(
     };
     store.put('journal', journal);
     await applyChanges(store, plan, journal, guard);
+    if (direction === 'rollback') await removeCreatedDirectories(plan);
     await syncOwnership(store, plan, direction);
     await syncInstallations(store, plan);
     plan.status = direction === 'apply' ? 'applied' : 'rolled-back';

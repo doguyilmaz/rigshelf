@@ -1,8 +1,19 @@
 import { readdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
+import { parse as parseToml } from '@iarna/toml';
+import { parse as parseYaml } from 'yaml';
 import { instructionNames } from './inventory-paths';
 import type { Project } from './model';
-import { hash, now } from './safety';
+import { hash, now, safeRelative } from './safety';
+
+const safeWorkspace = (path: string) => {
+  try {
+    safeRelative(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export { ignoredDirectories } from './inventory-paths';
 
@@ -29,6 +40,7 @@ const packageStacks: Record<string, string[]> = {
   next: ['nextjs', 'web'],
   astro: ['astro', 'web'],
   vue: ['vue', 'web'],
+  nuxt: ['nuxt', 'vue', 'web'],
   svelte: ['svelte', 'web'],
   vite: ['web'],
   hono: ['hono', 'backend'],
@@ -76,9 +88,44 @@ async function readPackage(path: string, facts: Facts): Promise<string[]> {
   }
 }
 
+const MAX_WORKSPACE_CANDIDATES = 64;
+
+async function declaredWorkspacePatterns(path: string): Promise<string[]> {
+  const patterns: string[] = [];
+  try {
+    const manifest = JSON.parse((await readText(join(path, 'package.json'))) || '{}');
+    const declared = Array.isArray(manifest.workspaces)
+      ? manifest.workspaces
+      : manifest.workspaces?.packages;
+    if (Array.isArray(declared)) patterns.push(...declared);
+  } catch {}
+  try {
+    const pnpm = parseYaml((await readText(join(path, 'pnpm-workspace.yaml'))) || '{}');
+    if (Array.isArray(pnpm?.packages)) patterns.push(...pnpm.packages);
+  } catch {}
+  return patterns.filter(
+    (pattern): pattern is string =>
+      typeof pattern === 'string' && !pattern.startsWith('!') && !pattern.includes('**'),
+  );
+}
+
+async function expandWorkspacePattern(path: string, pattern: string): Promise<string[]> {
+  const clean = pattern.replace(/^\.\//, '').replace(/\/$/, '');
+  if (!clean.endsWith('/*')) return clean.includes('*') ? [] : [clean];
+  const parent = clean.slice(0, -2);
+  if (parent.includes('*')) return [];
+  const entries = await readdir(join(path, parent), { withFileTypes: true }).catch(() => []);
+  return entries
+    .filter((entry) => entry.isDirectory() && !ignoredDirectories.has(entry.name))
+    .map((entry) => `${parent}/${entry.name}`);
+}
+
 async function readWorkspaces(path: string, facts: Facts): Promise<void> {
   const parents = ['apps', 'packages', 'services'];
   const candidates = new Set(['web', 'api', 'server', 'backend', 'frontend', 'app', 'site', 'src']);
+  for (const pattern of await declaredWorkspacePatterns(path))
+    for (const relativePath of await expandWorkspacePattern(path, pattern))
+      if (safeWorkspace(relativePath)) candidates.add(relativePath);
   for (const parent of parents)
     for (const entry of await readdir(join(path, parent), { withFileTypes: true }).catch(
       () => [],
@@ -86,10 +133,10 @@ async function readWorkspaces(path: string, facts: Facts): Promise<void> {
       if (entry.isDirectory() && !ignoredDirectories.has(entry.name))
         candidates.add(`${parent}/${entry.name}`);
     }
-  for (const relativePath of [...candidates].slice(0, 64)) {
+  for (const relativePath of [...candidates].slice(0, MAX_WORKSPACE_CANDIDATES)) {
     const child = join(path, relativePath);
     const stacks = await readPackage(child, facts);
-    const go = await goStacks(child);
+    const go = await goStacks(child, facts);
     stacks.push(...go);
     addStacks(facts, go);
     if (stacks.length) facts.workspaces.push({ name: relativePath, path: relativePath, stacks });
@@ -137,20 +184,79 @@ async function readNative(path: string, facts: Facts): Promise<void> {
     if (/compose\.desktop/.test(gradle)) addStacks(facts, ['kotlin', 'desktop']);
     if (/iosArm64|iosSimulatorArm64/.test(gradle)) addStacks(facts, ['ios', 'mobile']);
   }
-  addStacks(facts, await goStacks(path));
+  addStacks(facts, await goStacks(path, facts));
   if (await exists(join(path, 'Cargo.toml'))) addStacks(facts, ['rust']);
-  if (
-    (await exists(join(path, 'pyproject.toml'))) ||
-    (await exists(join(path, 'requirements.txt')))
-  )
-    addStacks(facts, ['python']);
+  await readPython(path, facts);
   if (names.some((name) => /\.(?:csproj|sln|fsproj)$/.test(name)))
     addStacks(facts, ['dotnet', 'backend']);
 }
 
-async function goStacks(path: string): Promise<string[]> {
+const pythonBackends = new Set(['fastapi', 'django', 'flask', 'starlette', 'litestar']);
+const goFrameworks: Record<string, string> = {
+  'github.com/gin-gonic/gin': 'gin',
+  'github.com/labstack/echo': 'echo',
+  'github.com/gofiber/fiber': 'fiber',
+  'github.com/go-chi/chi': 'chi',
+};
+const pythonName = (requirement: string) =>
+  requirement
+    .trim()
+    .match(/^[A-Za-z0-9][A-Za-z0-9._-]*/)?.[0]
+    .toLowerCase()
+    .replace(/[._]+/g, '-');
+
+async function readManifest(path: string, name: string, facts: Facts): Promise<string | undefined> {
+  try {
+    return await readText(join(path, name));
+  } catch {
+    facts.warnings.push(
+      `${name} is too large to inspect. Use requirements or a preset to guide setup.`,
+    );
+    return '';
+  }
+}
+
+async function readPython(path: string, facts: Facts): Promise<void> {
+  const pyproject = await readManifest(path, 'pyproject.toml', facts);
+  const requirements = await readManifest(path, 'requirements.txt', facts);
+  if (pyproject === undefined && requirements === undefined) return;
+  const names: string[] = [];
+  if (pyproject)
+    try {
+      const manifest = parseToml(pyproject) as {
+        project?: { dependencies?: unknown };
+        tool?: { poetry?: { dependencies?: Record<string, unknown> } };
+      };
+      if (Array.isArray(manifest.project?.dependencies))
+        names.push(...manifest.project.dependencies.filter((value) => typeof value === 'string'));
+      names.push(
+        ...Object.keys(manifest.tool?.poetry?.dependencies || {}).filter(
+          (name) => name !== 'python',
+        ),
+      );
+    } catch {
+      facts.warnings.push(
+        'Could not parse pyproject.toml. Use requirements or a preset to guide setup.',
+      );
+    }
+  for (const line of (requirements || '').split('\n'))
+    if (!/^\s*(?:#|-)/.test(line)) names.push(line);
+  const dependencies = names.map(pythonName).filter((name): name is string => Boolean(name));
+  for (const name of dependencies) facts.dependencies.add(name);
+  addStacks(facts, ['python']);
+  const backends = dependencies.filter((name) => pythonBackends.has(name));
+  if (backends.length) addStacks(facts, ['backend', ...backends]);
+}
+
+async function goStacks(path: string, facts: Facts): Promise<string[]> {
   const manifest = await readText(join(path, 'go.mod'));
   if (!manifest) return [];
+  for (const [module, stack] of Object.entries(goFrameworks))
+    if (manifest.includes(module)) addStacks(facts, [stack]);
+  for (const [, module] of manifest.matchAll(
+    /^\s*(?:require\s+)?([a-z0-9.-]+\.[a-z]+\/[^\s]+)\s+v\S+/gm,
+  ))
+    facts.dependencies.add(module);
   return [
     'go',
     /(?:github\.com\/(?:spf13\/cobra|urfave\/cli|charmbracelet\/(?:bubbletea|huh)))/.test(manifest)

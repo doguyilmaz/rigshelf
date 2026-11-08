@@ -235,6 +235,7 @@ export interface Plan {
   ownershipAfter?: import('./kit').Kit;
   manifestHash?: string;
   requiresAdoption?: boolean;
+  createdDirectories?: string[];
 }
 export const SettingsSchema = z.object({
   roots: z.array(z.string().min(1)).max(20),

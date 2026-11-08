@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { lstat, readlink } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { detectProject, readText } from './detect';
 import { guidanceFindings } from './guidance';
@@ -40,11 +40,42 @@ async function claudeLinksToAgents(projectPath: string): Promise<boolean> {
   return resolve(projectPath, await readlink(link)) === join(projectPath, 'AGENTS.md');
 }
 
+const CODEX_GUIDANCE_BYTES = 32 * 1024;
+
+async function codexGuidanceWarnings(projectPath: string, planned: string): Promise<string[]> {
+  const warnings: string[] = [];
+  const override = await readText(join(projectPath, 'AGENTS.override.md'));
+  if (override?.trim())
+    warnings.push(
+      'Codex reads AGENTS.override.md instead of AGENTS.md in this folder, so it will not see the Rigshelf guidance block.',
+    );
+  const agents = Buffer.from(planned, 'base64');
+  if (agents.length > CODEX_GUIDANCE_BYTES)
+    warnings.push(
+      `AGENTS.md is ${Math.ceil(agents.length / 1024)} KiB; Codex reads 32 KiB of project guidance by default (project_doc_max_bytes), so text near the end, including the Rigshelf block, may be dropped.`,
+    );
+  return warnings;
+}
+
+async function missingDirectories(projectPath: string, changes: Change[]): Promise<string[]> {
+  const missing = new Set<string>();
+  for (const change of changes) {
+    if (change.before !== null) continue;
+    for (let path = dirname(change.path); path !== '.'; path = dirname(path)) {
+      if (missing.has(path)) continue;
+      if (await lstat(join(projectPath, path)).catch(() => null)) break;
+      missing.add(path);
+    }
+  }
+  return [...missing].sort((left, right) => right.split('/').length - left.split('/').length);
+}
+
 const START = '<!-- kitfold:begin -->';
 const END = '<!-- kitfold:end -->';
 export function managedBlock(before: string | null, content: string): string {
-  const block = `${START}\n${content.trim()}\n${END}`;
-  if (!before) return `${block}\n`;
+  const eol = before?.includes('\r\n') ? '\r\n' : '\n';
+  const block = `${START}\n${content.trim()}\n${END}`.replace(/\r?\n/g, eol);
+  if (!before) return `${block}${eol}`;
   const start = before.indexOf(START),
     end = before.indexOf(END);
   if (
@@ -54,7 +85,7 @@ export function managedBlock(before: string | null, content: string): string {
   )
     throw new Error('Malformed or duplicate Rigshelf directive markers.');
   return start < 0
-    ? `${before.trimEnd()}\n\n${block}\n`
+    ? `${before.trimEnd()}${eol}${eol}${block}${eol}`
     : before.slice(0, start) + block + before.slice(end + END.length);
 }
 
@@ -158,13 +189,14 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     const bytes = await planFile(await assertWritePath(projectPath, resolved));
     if (!bytes) return 'install';
     const current = bytes.toString('base64');
-    if (current === content || input.replaceExisting || previousHashes[resolved] === hash(bytes))
-      return 'install';
+    if (current === content || input.replaceExisting) return 'install';
+    if (current === upstream) return 'adopt';
+    if (previousHashes[resolved] === hash(bytes)) return 'install';
     if (previousHashes[resolved])
       throw new Error(
         `Existing file differs: ${resolved}. Rigshelf will not overwrite an unmanaged or locally modified skill.`,
       );
-    return current === upstream ? 'adopt' : 'conflict';
+    return 'conflict';
   }
   async function add(
     path: string,
@@ -329,14 +361,14 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
         spec.instructions === 'CLAUDE.md' && (await claudeLinksToAgents(projectPath));
       const instructions = sharesAgents ? 'AGENTS.md' : spec.instructions;
       const before = await readText(await assertWritePath(projectPath, instructions));
-      const content =
-        !sharesAgents &&
-        spec.instructions === 'CLAUDE.md' &&
-        input.providers.some((value) =>
-          ['codex', 'opencode', 'antigravity', 'grok', 'kiro'].includes(value),
-        )
+      const importsAgents = !sharesAgents && spec.instructions === 'CLAUDE.md';
+      const content = !importsAgents
+        ? rules
+        : input.providers.some((value) => adapter(value).instructions === 'AGENTS.md')
           ? '@AGENTS.md'
-          : rules;
+          : (await readText(join(projectPath, 'AGENTS.md')))?.trim()
+            ? `@AGENTS.md\n\n${rules}`
+            : rules;
       await add(
         instructions,
         Buffer.from(managedBlock(before ?? null, content)).toString('base64'),
@@ -345,6 +377,8 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
       );
     }
   }
+  if (input.includeRules && input.providers.includes('codex'))
+    warnings.push(...(await codexGuidanceWarnings(projectPath, intended.get('AGENTS.md') || '')));
   const hashes: Record<string, string> = { ...previousHashes };
   for (const [path, content] of intended) hashes[path] = hash(Buffer.from(content, 'base64'));
   for (const [path, expectedHash] of Object.entries(previousHashes))
@@ -414,6 +448,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     'Record pinned kit and managed file hashes',
     true,
   );
+  const createdDirectories = await missingDirectories(projectPath, [...changes.values()]);
   const plan: Plan = {
     id: randomUUID(),
     projectPath,
@@ -431,6 +466,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     ownershipAfter: JSON.parse(manifest),
     manifestHash: hash(manifest),
     requiresAdoption: !ownership,
+    createdDirectories,
   };
   store.put('plan', plan);
   store.event('setup.planned', `Prepared ${plan.changes.length} file changes for ${project.name}`);

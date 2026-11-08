@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { chmod, lstat, mkdir, stat, symlink } from 'node:fs/promises';
+import { chmod, lstat, mkdir, readdir, stat, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { exportLibrary, importLibrary } from '../src/core/backup';
 import { detectProject } from '../src/core/detect';
@@ -207,6 +207,12 @@ describe('brownfield projects', () => {
     expect(plan.entries).toEqual([entry.id]);
     expect(plan.changes.map((change) => change.path)).toEqual(['AGENTS.md', '.kitfold/kit.json']);
     expect(plan.warnings.join('\n')).not.toContain('Kept existing');
+    await executePlan(store, plan.id, 'apply');
+    const again = await createPlan(store, request(project, [entry.id], { providers: ['codex'] }));
+    expect(again.changes.map((change) => change.path)).toEqual([]);
+    expect(
+      await Bun.file(join(project, '.agents/skills/build-a-hono-server/SKILL.md')).text(),
+    ).toBe(original);
   });
 
   test('keeps a different unmanaged revision for one harness and still installs the others', async () => {
@@ -243,6 +249,67 @@ describe('brownfield projects', () => {
     await executePlan(store, plan.id, 'apply');
     expect((await lstat(join(project, 'CLAUDE.md'))).isSymbolicLink()).toBe(true);
     expect(await Bun.file(join(project, 'AGENTS.md')).text()).toStartWith('# Team\n');
+  });
+
+  test('a Claude-only setup imports an authored AGENTS.md that a new CLAUDE.md would otherwise hide', async () => {
+    const { store, project } = await setup();
+    await Bun.write(join(project, 'AGENTS.md'), '# Team rules\n');
+    const plan = await createPlan(store, request(project, [], { providers: ['claude'] }));
+    const claude = plan.changes.find((change) => change.path === 'CLAUDE.md');
+    const text = Buffer.from(claude?.after || '', 'base64').toString();
+    expect(text).toContain('@AGENTS.md');
+    expect(text).toContain('## Project guidance');
+    const fresh = await setup();
+    const empty = await createPlan(
+      fresh.store,
+      request(fresh.project, [], { providers: ['claude'] }),
+    );
+    const created = empty.changes.find((change) => change.path === 'CLAUDE.md');
+    expect(Buffer.from(created?.after || '', 'base64').toString()).not.toContain('@AGENTS.md');
+  });
+
+  test('warns when Codex would not read the managed AGENTS.md block', async () => {
+    const { store, project } = await setup();
+    await Bun.write(join(project, 'AGENTS.override.md'), '# Override\n');
+    const shadowed = await createPlan(store, request(project, [], { providers: ['codex'] }));
+    expect(shadowed.warnings.join('\n')).toContain('AGENTS.override.md');
+    await Bun.write(join(project, 'AGENTS.override.md'), '');
+    await Bun.write(join(project, 'AGENTS.md'), `# Team\n${'Guidance line.\n'.repeat(2600)}`);
+    const large = await createPlan(store, request(project, [], { providers: ['codex'] }));
+    expect(large.warnings.join('\n')).toContain('32 KiB');
+  });
+
+  test('the managed block follows the CRLF line endings of authored guidance', async () => {
+    const { store, project } = await setup();
+    await Bun.write(join(project, 'AGENTS.md'), '# Team\r\n\r\nUse tabs.\r\n');
+    const plan = await createPlan(store, request(project, [], { providers: ['codex'] }));
+    const agents = plan.changes.find((change) => change.path === 'AGENTS.md');
+    const text = Buffer.from(agents?.after || '', 'base64').toString();
+    expect(text).toStartWith('# Team\r\n\r\nUse tabs.');
+    expect(/[^\r]\n/.test(text)).toBe(false);
+  });
+
+  test('rollback removes directories created by setup and keeps pre-existing empty ones', async () => {
+    const { store, project } = await setup();
+    const skill = sampleSkill(store);
+    await mkdir(join(project, '.claude/skills'), { recursive: true });
+    const plan = await createPlan(store, request(project, [skill.id]));
+    await executePlan(store, plan.id, 'apply');
+    await executePlan(store, plan.id, 'rollback');
+    expect((await readdir(project)).sort()).toEqual(['.claude']);
+    expect(await readdir(join(project, '.claude'))).toEqual(['skills']);
+    expect(await readdir(join(project, '.claude/skills'))).toEqual([]);
+  });
+
+  test('an unwritable project reports a permission problem, not a concurrent write', async () => {
+    const { store, project } = await setup();
+    const plan = await createPlan(store, request(project, [], { providers: ['codex'] }));
+    await chmod(project, 0o555);
+    try {
+      await expect(executePlan(store, plan.id, 'apply')).rejects.toThrow('not writable');
+    } finally {
+      await chmod(project, 0o755);
+    }
   });
 
   test('a locally edited managed skill blocks the next plan instead of being silently kept', async () => {
@@ -338,6 +405,57 @@ describe('direct local inventory and scoped recommendations', () => {
       route(store, 'PUT', 'presets', { ...(base as object), parentId: 'expo' }),
     ).rejects.toThrow('cycle');
     expect(store.get<{ parentId: string | null }>('preset', 'base')?.parentId).toBeNull();
+  });
+
+  test('dependency matching uses whole name parts and ignores generic package segments', async () => {
+    const { store, project } = await setup();
+    const unrelated = [
+      'display-glasses-with-jetpack-compose-glimmer',
+      'investment-committee-memo',
+      'jest-test-runner',
+      'node-repl',
+      'login-plugin-guide',
+      'optimize-text-mesh-pro',
+      'generate-a-uuid',
+    ].map((name) => sampleSkill(store, name).id);
+    const query = sampleSkill(store, 'react-query-patterns');
+    const hono = sampleSkill(store, 'build-a-hono-server');
+    const gin = sampleSkill(store, 'gin-handlers');
+    await Bun.write(
+      join(project, 'package.json'),
+      JSON.stringify({
+        dependencies: { immer: '10', mitt: '3', hono: '4', '@tanstack/react-query': '5' },
+        devDependencies: { '@playwright/test': '1', '@types/node': '22' },
+      }),
+    );
+    await Bun.write(
+      join(project, 'server/go.mod'),
+      'module x\n\nrequire (\n\tgithub.com/gin-gonic/gin v1.10.0\n\tgolang.org/x/text v0.20.0\n\tgithub.com/google/uuid v1.6.0\n)\n',
+    );
+    const { recommendations } = recommend(store, await detectProject(project));
+    const ids = recommendations.map((value) => value.entry.id);
+    for (const id of unrelated) expect(ids).not.toContain(id);
+    expect(ids).toEqual(expect.arrayContaining([query.id, hono.id, gin.id]));
+  });
+
+  test('running the default setup again keeps the same focused kit', async () => {
+    const { store, project } = await setup();
+    const names = 'abcdefghijkl'.split('').map((letter) => `lib-${letter}`);
+    for (const name of names) sampleSkill(store, name);
+    await Bun.write(
+      join(project, 'package.json'),
+      JSON.stringify({ dependencies: Object.fromEntries(names.map((name) => [name, '1'])) }),
+    );
+    const selected = async () =>
+      recommend(store, await detectProject(project))
+        .recommendations.filter((value) => value.selected)
+        .map((value) => value.entry.id)
+        .sort();
+    const first = await selected();
+    expect(first).toHaveLength(10);
+    const plan = await createPlan(store, request(project, first, { providers: ['codex'] }));
+    await executePlan(store, plan.id, 'apply');
+    expect(await selected()).toEqual(first);
   });
 
   test('specific scopes follow global rules regardless of numeric priority', async () => {
