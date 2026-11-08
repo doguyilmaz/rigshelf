@@ -5260,3 +5260,81 @@ label {
     max-height: none;
   }
 }
+
+.machine-page {
+  display: grid;
+  gap: 16px;
+  max-width: 980px;
+}
+.machine-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.machine-toolbar > :first-child {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+.machine-card {
+  display: grid;
+  gap: 10px;
+  background: #fafafa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+.machine-card h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 15px;
+}
+.machine-card h3 small {
+  font-weight: 400;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.machine-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.machine-muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.machine-memory {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.machine-details summary {
+  cursor: pointer;
+  font-size: 13px;
+}
+.machine-details ul,
+.machine-plans {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.machine-details li,
+.machine-plans li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.machine-details code,
+.machine-plans strong {
+  overflow-wrap: anywhere;
+}

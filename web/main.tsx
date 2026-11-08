@@ -36,6 +36,9 @@ const Settings = lazy(() =>
 const Backups = lazy(() =>
   import('./pages/Backups').then((module) => ({ default: module.Backups })),
 );
+const Machines = lazy(() =>
+  import('./pages/Machines').then((module) => ({ default: module.Machines })),
+);
 
 import { Setup } from './pages/Setup';
 import './styles.css';
@@ -50,7 +53,8 @@ export type Page =
   | 'directives'
   | 'activity'
   | 'settings'
-  | 'backups';
+  | 'backups'
+  | 'machines';
 export interface PageProps {
   state: AppState;
   refresh: () => Promise<void>;
@@ -89,6 +93,7 @@ function initialPage(): Page {
     'activity',
     'settings',
     'backups',
+    'machines',
   ].includes(page)
     ? (page as Page)
     : 'setup';
@@ -281,6 +286,7 @@ function App(): ReactNode {
             {page === 'directives' && <Directives {...props} />}{' '}
             {page === 'settings' && <Settings {...props} />}
             {page === 'backups' && <Backups {...props} />}{' '}
+            {page === 'machines' && <Machines {...props} />}
             {page === 'activity' && <Activity {...props} />}
           </Suspense>
         </main>

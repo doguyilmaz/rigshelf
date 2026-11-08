@@ -1,9 +1,12 @@
-import { lstat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { readLocalBytes } from './core/local-files';
 import { compareInventories, type SyncReport, type SyncSection } from './core/machine-compare';
 import { machineDoctor } from './core/machine-doctor';
-import { buildMachineInventory, parseMachineInventory } from './core/machine-inventory';
+import {
+  buildMachineInventory,
+  inventoryRoots,
+  parseMachineInventory,
+} from './core/machine-inventory';
 import {
   type PreparedSync,
   remoteApply,
@@ -41,14 +44,6 @@ interface MachineOptions {
   apply?: boolean;
   'replace-directives'?: boolean;
   memory?: string;
-}
-
-async function localRoots(store: Store, roots?: string[]): Promise<string[]> {
-  const candidates = roots?.length ? roots : store.settings().roots;
-  const existing = [];
-  for (const root of candidates)
-    if ((await lstat(root).catch(() => undefined))?.isDirectory()) existing.push(root);
-  return existing.length ? existing : [homedir()];
 }
 
 const label: Record<string, string> = {
@@ -174,14 +169,19 @@ export async function runMachineCommand(
     const input = await Bun.stdin.text();
     if (input.length > MAX_SYNC_INPUT_BYTES) throw new Error('The sync bundle exceeds 256 MiB.');
     return {
-      result: await prepareSync(store, JSON.parse(input), await localRoots(store, values.root), {
-        replaceDirectives: values['replace-directives'],
-      }),
+      result: await prepareSync(
+        store,
+        JSON.parse(input),
+        await inventoryRoots(store, values.root),
+        {
+          replaceDirectives: values['replace-directives'],
+        },
+      ),
     };
   }
   if (action === 'sync') {
     if (!alias) throw new Error('machine sync needs an SSH host alias.');
-    const sync = await buildSyncRequest(store, await localRoots(store, values.root), {
+    const sync = await buildSyncRequest(store, await inventoryRoots(store, values.root), {
       memory: values.memory
         ?.split(',')
         .map((value) => value.trim())
@@ -208,7 +208,7 @@ export async function runMachineCommand(
     return {
       result: await buildMachineInventory({
         home: homedir(),
-        roots: await localRoots(store, values.root),
+        roots: await inventoryRoots(store, values.root),
       }),
     };
   if (action === 'doctor') {
@@ -221,7 +221,7 @@ export async function runMachineCommand(
     if (!alias && !values.manifest)
       throw new Error('machine compare needs an SSH host alias or --manifest.');
     const [local, remote] = await Promise.all([
-      buildMachineInventory({ home: homedir(), roots: await localRoots(store, values.root) }),
+      buildMachineInventory({ home: homedir(), roots: await inventoryRoots(store, values.root) }),
       values.manifest
         ? readLocalBytes(values.manifest, MAX_MANIFEST_BYTES).then((bytes) =>
             parseMachineInventory(bytes.toString('utf8')),

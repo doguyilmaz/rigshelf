@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { lstat, readdir, realpath } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { z } from 'zod';
 import { VERSION } from '../version';
@@ -7,6 +8,7 @@ import { ignoredDirectories, instructionNames, skillPaths } from './inventory-pa
 import { readLocalBytes } from './local-files';
 import { claudeMemoryKey } from './memory-locations';
 import { redact } from './safety';
+import type { Store } from './store';
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_ITEMS = 50_000;
@@ -256,6 +258,14 @@ async function findProjects(root: string, depth = 0, out: string[] = []): Promis
     if (entry.isDirectory() && !entry.name.startsWith('.') && !ignoredDirectories.has(entry.name))
       await findProjects(join(root, entry.name), depth + 1, out);
   return out;
+}
+
+export async function inventoryRoots(store: Store, roots?: string[]): Promise<string[]> {
+  const candidates = roots?.length ? roots : store.settings().roots;
+  const existing = [];
+  for (const root of candidates)
+    if ((await lstat(root).catch(() => undefined))?.isDirectory()) existing.push(root);
+  return existing.length ? existing : [homedir()];
 }
 
 export async function machineProjects(

@@ -7,6 +7,7 @@ import { Automation } from './core/automation';
 import { closeBackupJobs } from './core/backup-jobs';
 import type { BackupTransportFactory } from './core/backup-transport';
 import { DefinitionConflict } from './core/definitions';
+import type { RemoteRunner } from './core/machine-ssh';
 import { inside } from './core/safety';
 import { inventoryScan } from './core/scan-lifecycle';
 import { route } from './core/service';
@@ -43,6 +44,8 @@ export function startServer(
     backupTransport?: BackupTransportFactory;
     publicPort?: number;
     remoteName?: string;
+    machineRunner?: RemoteRunner;
+    machineHome?: string;
   } = {},
 ): WorkbenchServer {
   let token = '';
@@ -184,6 +187,8 @@ export function startServer(
                   aiDriver: options.aiDriver,
                   signal: request.signal,
                   backupTransport: options.backupTransport,
+                  machineRunner: options.machineRunner,
+                  machineHome: options.machineHome,
                 });
         if (url.pathname.startsWith('/api/automation/')) await automation.sync();
         if (options.remoteName && url.pathname === '/api/state' && request.method === 'GET')

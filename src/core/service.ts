@@ -35,6 +35,8 @@ import { entryView } from './entry-view';
 import { guidanceFindings } from './guidance';
 import { createCustomSkill, importSkillDirectory } from './ingest';
 import { inventoryHistory, readInventoryBaseline } from './inventory-baselines';
+import { machineRoute } from './machine-routes';
+import type { RemoteRunner } from './machine-ssh';
 import { checkedMcpDefinition } from './mcp-definition';
 import {
   type Entry,
@@ -112,6 +114,8 @@ export async function route(
     aiDriver?: AiDriver;
     signal?: AbortSignal;
     backupTransport?: BackupTransportFactory;
+    machineRunner?: RemoteRunner;
+    machineHome?: string;
   } = {},
 ): Promise<unknown> {
   const segments = path.split('/').map((segment) => decodeURIComponent(segment));
@@ -121,6 +125,8 @@ export async function route(
   )
     throw new Error('Invalid API route.');
   const [resource, id, action] = segments;
+  if (resource === 'machines' && segments.length <= 2)
+    return machineRoute(store, method, id, input, options.machineRunner, options.machineHome);
   if (id) RecordIdSchema.parse(id);
   if (method === 'POST' && resource === 'sources' && id === 'preview' && segments.length === 2)
     return previewSource(input);

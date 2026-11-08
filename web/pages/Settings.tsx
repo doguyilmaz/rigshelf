@@ -366,6 +366,9 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
             )}
             <div className="button-row">
               <Button onClick={() => navigate('backups')}>{t('Manage backups')}</Button>
+              <Button variant="secondary" onClick={() => navigate('machines')}>
+                {t('Machines')}
+              </Button>
               <BackupReviewPanel disabled={busy} onDownload={exportData} notify={notify} />
               <Button variant="secondary" onClick={() => file.current?.click()} disabled={busy}>
                 <Upload size={14} />

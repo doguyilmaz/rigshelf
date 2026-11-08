@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { type MachineDoctor, parseMachineDoctor } from './machine-doctor';
 import { type MachineInventory, parseMachineInventory } from './machine-inventory';
 
-const HOST_ALIAS = /^[A-Za-z0-9][A-Za-z0-9._-]{0,252}$/;
+export const HOST_ALIAS = /^[A-Za-z0-9][A-Za-z0-9._-]{0,252}$/;
 const REMOTE_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_BYTES = 32 * 1024 * 1024;
 const INSTALL_HINT = 'brew install doguyilmaz/tap/rigshelf, or bunx @doguyilmaz/rigshelf';
