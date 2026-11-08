@@ -1,4 +1,4 @@
-import { chmod, copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,22 +6,12 @@ import { parseArgs } from 'node:util';
 import { VERSION } from '../src/version';
 import { dependencyNotices } from './dependency-notices';
 import { type Delivery, writeReleaseArchive } from './release-archive';
+import { bundleCli, compileNative, type NativeTarget, nativeTargets } from './release-build';
 import { installReadme, stageNativeDocuments, stagePublicFiles } from './release-content';
 import { assertReleasePrivacy, releaseDirectory, releaseTree } from './release-files';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const output = join(root, '.local/releases');
-const nativeTargets = [
-  'bun-darwin-arm64',
-  'bun-darwin-x64',
-  'bun-linux-arm64',
-  'bun-linux-x64',
-  'bun-linux-arm64-musl',
-  'bun-linux-x64-musl',
-  'bun-windows-arm64',
-  'bun-windows-x64',
-] as const;
-type NativeTarget = (typeof nativeTargets)[number];
 
 function launcher(command: string): string {
   return `#!/bin/sh
@@ -45,16 +35,7 @@ exec ${command}
 }
 
 async function portable(stage: string): Promise<void> {
-  const built = await Bun.build({
-    entrypoints: [join(root, 'src/cli.ts')],
-    target: 'bun',
-    minify: true,
-    env: 'disable',
-    sourcemap: 'none',
-    outdir: join(stage, 'bin'),
-    naming: 'rigshelf.js',
-  });
-  if (!built.success) throw new Error(built.logs.map(String).join('\n'));
+  await bundleCli(root, join(stage, 'bin'));
   await writeFile(join(stage, 'bunfig.toml'), '# Packaged runtime configuration.\n');
   await writeFile(
     join(stage, 'bin/rigshelf'),
@@ -93,35 +74,13 @@ async function native(
   executable: string | undefined,
 ): Promise<void> {
   const name = target.includes('windows') ? 'rigshelf.exe' : 'rigshelf';
-  const command = [
-    process.execPath,
-    'build',
-    'rigshelf.js',
-    '--compile',
-    `--target=${target}`,
-    '--asset',
-    'dist',
-    '--outfile',
+  await compileNative(
+    portableStage,
+    join(portableStage, 'bin/rigshelf.js'),
+    target,
     join(nativeStage, name),
-    '--minify',
-    '--env=disable',
-    '--no-compile-autoload-dotenv',
-    '--no-compile-autoload-bunfig',
-    '--no-compile-autoload-tsconfig',
-    '--no-compile-autoload-package-json',
-  ];
-  const runtime =
-    executable ||
-    (target === `bun-${process.platform}-${process.arch}` ? process.execPath : undefined);
-  if (runtime) command.push(`--compile-executable-path=${resolve(runtime)}`);
-  await copyFile(join(portableStage, 'bin/rigshelf.js'), join(portableStage, 'rigshelf.js'));
-  try {
-    const child = Bun.spawn(command, { cwd: portableStage, stdout: 'inherit', stderr: 'inherit' });
-    if ((await child.exited) !== 0) throw new Error('Native compilation failed.');
-  } finally {
-    await rm(join(portableStage, 'rigshelf.js'), { force: true });
-  }
-  await chmod(join(nativeStage, name), 0o755);
+    executable,
+  );
   if (!target.includes('windows'))
     await writeFile(join(nativeStage, 'kitfold'), launcher('"$location/rigshelf" "$@"'), {
       mode: 0o755,
