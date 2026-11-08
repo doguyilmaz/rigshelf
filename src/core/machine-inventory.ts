@@ -117,11 +117,25 @@ async function hashFile(
   const info = await lstat(path).catch(() => undefined);
   if (!info?.isFile() || info.size > MAX_FILE_BYTES) return;
   const bytes = await readLocalBytes(path, MAX_FILE_BYTES);
+  const privacy = privacyOf(key, bytes, roots, scanSecrets);
   return {
-    digest: createHash('sha256').update(bytes).digest('hex'),
+    digest: createHash('sha256')
+      .update(
+        privacy === 'machine-specific' ? withoutMachinePaths(bytes.toString('utf8'), roots) : bytes,
+      )
+      .digest('hex'),
     bytes: bytes.length,
-    privacy: privacyOf(key, bytes, roots, scanSecrets),
+    privacy,
   };
+}
+
+/** `roots[0]` is the home folder; project and scan roots usually sit inside it, so they are replaced first. */
+function withoutMachinePaths(text: string, roots: string[]): string {
+  const [home, ...others] = roots;
+  const replaced = [...others]
+    .sort((left, right) => right.length - left.length)
+    .reduce((value, root) => value.split(root).join('\0root\0'), text);
+  return home ? replaced.split(home).join('\0home\0') : replaced;
 }
 
 async function folderFiles(folder: string, base = folder, out: string[] = []): Promise<string[]> {

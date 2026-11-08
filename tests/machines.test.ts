@@ -324,3 +324,30 @@ test('the summary details matched projects and collapses unmatched ones into one
   expect(text).toContain('Only on box (1): srv-only');
   expect(text).not.toContain('(only on this machine)');
 });
+
+test('a file that differs only by each machine’s own paths compares as in sync', async () => {
+  const root = await temporary();
+  const laptop = join(root, 'laptop');
+  const server = join(root, 'server');
+  const laptopProject = join(laptop, 'code/app');
+  const serverProject = join(server, 'srv/app');
+  await repository(laptopProject, 'git@github.com:owner/app.git');
+  await repository(serverProject, 'https://github.com/owner/app');
+  await Bun.write(
+    join(laptopProject, 'CLAUDE.local.md'),
+    `Run ${laptopProject}/bin and ${join(laptop, 'home')}/tools\n`,
+  );
+  await Bun.write(
+    join(serverProject, 'CLAUDE.local.md'),
+    `Run ${serverProject}/bin and ${join(server, 'home')}/tools\n`,
+  );
+  await Bun.write(join(laptopProject, 'AGENTS.md'), `Docs at ${laptopProject}/docs\n`);
+  await Bun.write(join(serverProject, 'AGENTS.md'), `Docs at ${serverProject}/handbook\n`);
+  const report = compareInventories(
+    await buildMachineInventory({ home: join(laptop, 'home'), roots: [join(laptop, 'code')] }),
+    await buildMachineInventory({ home: join(server, 'home'), roots: [join(server, 'srv')] }),
+  );
+  const status = Object.fromEntries(report.projects[0]!.rows.map((row) => [row.key, row.status]));
+  expect(status['CLAUDE.local.md']).toBe('same');
+  expect(status['AGENTS.md']).toBe('different');
+});
