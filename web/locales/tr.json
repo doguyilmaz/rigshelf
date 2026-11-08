@@ -1333,7 +1333,7 @@
   "On {{alias}}: {{platform}} · agents: {{agents}}": "{{alias}}: {{platform}} · agent'lar: {{agents}}",
   "none": "yok",
   "Global": "Global",
-  "Global items are compared only; servers stay project-scoped.": "Global öğeler yalnızca karşılaştırılır; sunucular proje bazlı kalır.",
+  "Global guidance syncs by default; settings and Skills only when you choose them below.": "Global yönergeler varsayılan olarak senkronlanır; ayarlar ve Skills yalnızca aşağıda seçerseniz.",
   "matched by folder name": "klasör adıyla eşleşti",
   "Include memory in sync": "Memory'yi eşitlemeye dahil et",
   "Only on this machine": "Yalnızca bu makinede",

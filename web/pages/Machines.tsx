@@ -270,7 +270,9 @@ export function Machines({ notify }: PageProps): ReactNode {
                 <h3>{t('Global')}</h3>
                 <GroupBadges section={compared.report.global} />
                 <p className="machine-muted">
-                  {t('Global items are compared only; servers stay project-scoped.')}
+                  {t(
+                    'Global guidance syncs by default; settings and Skills only when you choose them below.',
+                  )}
                 </p>
                 <Differences section={compared.report.global} />
               </section>
