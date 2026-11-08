@@ -1,24 +1,28 @@
 # Validation record
 
-Updated 2026-11-07. Results cover exercised fixtures and source revisions; they do not establish that the application or third-party content is defect-free.
+Updated 2026-11-08. Results cover exercised fixtures and source revisions; they do not establish that the application or third-party content is defect-free.
 
 The checked remediation is recorded in `68d3072` and `70fe22e`; the delivery implementation is `3c8ae35`, and the separate website implementation is `6cf5e48`, with the redesigned landing page in `7fb8bbf`, initial scrolling/readability corrections in `210e6b9` and the Search, graphics and documentation layout corrections in `763b735`. The frozen audit below describes the earlier baseline separately.
+
+The current project-workflow, model-selection and custom-discovery implementation is `0523265`. Its isolated acceptance record is [workflow verification](WORKFLOW-AUDIT.md).
 
 ## Current development checks
 
 | Check | Observed result |
 | --- | --- |
 | `bun run format` | Pass; no remaining formatter errors. |
-| `bun run verify` | Pass: strict TypeScript, locale validation, 252 unit/integration tests across 38 files, production build. |
-| English/Turkish catalogs | 1,276 matching messages and interpolation names; technical vocabulary preserved. |
+| `bun run verify` | Pass: strict TypeScript, locale validation, 258 unit/integration tests across 39 files, production build. |
+| English/Turkish catalogs | 1,310 matching messages and interpolation names; technical vocabulary preserved. |
 | `bun run lint` | Pass. |
-| `bun audit --json` | No known advisories reported for the locked dependency tree on 2026-11-07. |
-| `bun run test:ui` | Pass: all 23 Chromium suites completed in one final run. |
-| Portable and standalone delivery | Final extraction/CLI/UI/API/MCP smoke passed on macOS arm64 and isolated Linux arm64, including the legacy MCP corrections. |
+| `bun audit --json` | No known advisories reported for the locked dependency tree on 2026-11-08. |
+| `bun run test:ui` | Pass: all 24 Chromium suites completed in one final run, including the new daily workflow checks. |
+| Portable and standalone delivery | The current workflow revision was repackaged in a disposable checkout; portable and native macOS arm64 extraction/CLI/UI/API/MCP smoke passed. Earlier delivery acceptance also passed on isolated Linux arm64; that platform was not rerun for this delta. |
 | Astro website | 21 canonical guides and the preserved comparison page; 52 responsive/accessibility cases and 150 internal link/fragment targets passed under production CSP. Seven homepage reading-size cases, 70 project/Harness variants and 56 documentation reading cases passed. Every guide retains 18px prose, 15px code and 16px tables at desktop and 320px; installation/data pages also pass seven widths. Rendered installation commands match their canonical source. Memory-only clipboard and denied-access fixtures verify exact copying and manual selection; keyboard scrolling remains inside code/tables. Search checks cover immediate input focus, featured guides without an index request, pointer exit/reopen races, late results, clear, arrow/Enter/IME behavior, dark/light themes, short/mobile viewports and scroll/focus retention. Section checks cover smooth pointer progress, header clearance, keyboard/reduced motion, mobile-menu navigation, Back restoration and wheel interruption. Software WebGL covered desktop/mobile framing at device scale 2, delayed initialization, interrupted transitions, stopped idle/offscreen/overlay frames, immediate keyboard changes and context-loss recovery. JavaScript-free navigation and readable commands passed; no page errors or external requests were observed. |
 | Website motion units | Four tests passed: nearest equivalent rotation, repeated visibility notifications, pause/resume timing and one drag draw per frame with queued-draw cancellation. |
 
 The browser rerun updated two fixture assumptions: MCP save assertions read the explicitly selected private Snapshot, and the disposable dev checkout includes its required data input. The complete suite then passed with all assertions intact. Layout checks cover nine viewport sizes in English/Turkish; modal, scroll/focus, independent file reading and populated Include/Exclude controls were also inspected in fixture screenshots.
+
+The 2026-11-08 [workflow review](WORKFLOW-AUDIT.md) adds a six-Harness install/revision/remove/rollback case, remote update/pin/rollback evidence, explicit custom-profile project memory, no-model source previews and in-kit Snapshot selection. AI UI checks use a fixture driver: Haiku/Luna starting choices, per-Provider switch-away/back retention, an explicit saved Provider default in a fresh browser context, proposal/adoption/save separation and read-only native MCP setup for connected Agents. New views passed responsive/Axe checks through 320px, including Turkish controls. Source review retained no new security finding; this is ordinary development evidence, separate from the frozen qualified audit. Installed CLI help was checked, but live account/model quota acceptance was not run. Astro check/build also passed after the canonical documentation update.
 
 Website destination checks also cover documentation-to-Harness navigation at 1280×800, 1920×1440, 1440×1600 and 390×844, including reload and Back/Forward. The section starts at the sticky header's bottom edge and fills the remaining viewport without adjacent light strips; the root matches its dark background. A separate JavaScript-disabled check exercises the tall-screen fragment destination.
 

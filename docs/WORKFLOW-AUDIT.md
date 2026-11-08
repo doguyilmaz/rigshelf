@@ -21,10 +21,10 @@ Passing fixtures establish the exercised behavior, not universal discovery, vend
 
 ## Initial source observations
 
-- Current AI authoring provides native Claude/Codex, Ollama, compatible API profiles and connected-Agent MCP requests. Kiro/OpenCode/Antigravity are currently connected-Agent routes rather than unattended native runners.
-- AI source formatting currently turns supplied links/commands into fields; source research and import remain later explicit steps. It does not read arbitrary supplied websites during generation.
-- Claude/Codex model fields can remain empty and inherit the native default. This does not ensure the requested lightweight model preference.
-- Discovery has explicit default/environment/Aims roots and bounded known AI layouts. Undocumented application stores and conversation databases are excluded; additional storage coverage must be explicit and testable.
+- AI authoring initially provided native Claude/Codex, Ollama, compatible API profiles and connected-Agent MCP requests. Kiro/OpenCode/Antigravity used connected-Agent routes rather than unattended native runners.
+- AI source formatting turned supplied links/commands into fields; source research and import were later explicit steps. It did not read arbitrary supplied websites during generation.
+- Claude/Codex model fields could remain empty and inherit the native default, without a visible lightweight choice.
+- Discovery had explicit default/environment/Aims roots and bounded known AI layouts. Undocumented application stores and conversation databases were excluded; additional storage coverage needed an explicit, testable route.
 
 ## Changes made
 
@@ -40,5 +40,7 @@ Passing fixtures establish the exercised behavior, not universal discovery, vend
 `bun run verify` passed strict TypeScript, 1,310 English/Turkish messages, 258 unit/integration tests across 39 files and the production build. `bun run lint`, Astro check/build and the locked dependency audit passed; the dependency audit returned no known advisory. The new browser journeys cover source previews at 1440/768/390/320px, connected-Agent and custom-folder views at desktop/320px, Turkish controls, explicit AI adoption/save, exact model requests to a fixture driver and exact kit revision selection.
 
 Final complete UI suite status is recorded in [validation](VALIDATION.md). Private evidence stays in `.local/qa/workflow-audit`, `.local/qa/daily-workflows` and the existing per-suite directories. These are normal development checks. The earlier qualified security evidence remains separate in [security review](SECURITY-REVIEW.md).
+
+All 24 UI suites completed in one final run. Portable and native macOS arm64 packages were also built and smoke-tested in a disposable checkout, covering manifests/checksums, an unrelated working directory, CLI/compatibility launcher, exact UI assets, private API access, real stdio MCP and its filtered bridge. The workflow acceptance document is now included in the package's explicit public-document list. Existing release archives were not overwritten, nothing was published, and the disposable dependency/build copies were removed after the check.
 
 No live model billing/authentication request, native Plugin installer, imported recipe, real project setup, backup upload or global installation change was performed. Installed Claude/Codex/Kiro/agy/OpenCode help is metadata evidence only; Ollama's binary was absent during inspection, and its service/model state was not inferred from that. Direct unattended Kiro/OpenCode/agy runners still require accepted isolation and live platform/account coverage. Their current route is an explicitly connected MCP session, with model choice owned by that Agent. Unknown manager databases and current versions of remote MCP servers/native Plugins are not asserted as covered or up to date.

@@ -1,6 +1,6 @@
 # Security review
 
-Reviewed 2026-11-07. This record separates the frozen security audit from subsequent remediation and product verification. It is not a safety certification for imported content or every supported provider.
+Reviewed 2026-11-08. This record separates the frozen security audit from subsequent remediation and product verification. It is not a safety certification for imported content or every supported provider.
 
 ## Audit result
 
@@ -29,6 +29,8 @@ The final delta review identified legacy MCP argument/command/query channels tha
 Codex final output is read through the bounded regular-file reader before temporary-directory cleanup. Planned replacements, removals and rollback recheck current bytes and root identity after awaited guards. Document edits use the same UTF-8 byte limit as lazy reads. Release inputs, including dependency notices, reject links and use bounded descriptor reads. Dedicated release installs use copied dependency files; CI actions are pinned and artifact preparation has no publication permission.
 
 ## Trust boundaries and limits
+
+The 2026-11-08 workflow delta received source review and ordinary isolated development tests, not another qualified adversarial audit. Custom AI roots are private Settings with explicit bounded native formats; broad home/filesystem, private account, dependency and runtime roots are refused. Source preview parses bounded data without network/catalog/project effects. Neither operation grants project ownership, trust or automation. Tests exercise globally stored project memory without importing auth/session fixtures, and confirm that custom paths remain outside portable exports. AI model choices remain bounded data, native invocations keep their existing restrictions, connected draft setup offers no write tools, and changed proposals still require explicit adoption/save. No new security finding was retained in this scoped review. Live vendor auth/quotas and undocumented manager databases remain outside that fixture evidence.
 
 Rigshelf is a same-OS-user local application. Catalog reads are intentionally shared; writable MCP roots bound project writes, not catalog tenancy. HTTP uses loopback, Host/Origin checks and a private access capability. Imported definitions and project manifests do not grant ownership, trust, automation or backup authority. Workbench-owned cancellation/shutdown drains its jobs; automatic writes recheck current project and exact Snapshot approval.
 
