@@ -43,7 +43,7 @@ Each request is one remote command that prints JSON:
 
 ## Matching projects
 
-Projects match by repository key: the normalized `origin` URL read from `.git/config` (no `git` process), plus the workspace path inside the repository. A folder name or absolute path never decides the match. Sync reads the server inventory first and sends only projects the server has a clone of; files from other projects never leave the machine. Unmatched projects can be paired manually; the pairing and the path mapping are stored per machine.
+Projects match by repository key: the normalized `origin` URL read from `.git/config` (no `git` process). Projects without an origin on either side are compared by folder name but never synced; a folder name or absolute path never decides a sync. Sync reads the server inventory first and sends only projects the server has a clone of; files from other projects never leave the machine. When one machine has several checkouts of a repository, only the first is sent and the others are reported. Not yet supported: kits applied in a subfolder of a repository (monorepo workspaces) and manual pairing of unmatched projects.
 
 ## What is compared
 
@@ -77,7 +77,7 @@ Rigshelf version on both sides; harness CLIs present on the server; Codex projec
 | Rigshelf agent with its own TLS port | New keys and certificates to issue, rotate and revoke | A new public or VPN listener | Rejected: a second authentication system to secure |
 | Cloudflare Tunnel or ngrok to the workbench | Cloudflare Access policies / OAuth | Public hostname | Rejected for built-in use; see Remote control |
 
-Hardening in the implementation: host aliases are validated before they reach `ssh` and `--` separates them from options; remote commands come from a fixed set (`machine inventory|doctor|prepare`, `apply <plan-id>`, `ui --port … --attached --public-port …`) with validated roots and UUID plan IDs; `BatchMode`, connect and keep-alive timeouts, `ForwardAgent=no` and `ClearAllForwardings` (except the one loopback forward of `ui --on`) are always set; output is size-limited and every remote answer is schema-validated before use; bundles carry no credentials, and credential-like files are withheld. Writes happen only through plans on the receiving machine, with preconditions, journal and rollback.
+Hardening in the implementation: host aliases are validated before they reach `ssh` and `--` separates them from options; remote commands come from a fixed set (`machine inventory|doctor|prepare`, `apply <plan-id>`, `ui --port … --attached --public-port …`) with validated roots and UUID plan IDs; `BatchMode`, connect and keep-alive timeouts and `ForwardAgent=no` are always set, and `ClearAllForwardings` is set for every command except `ui --on` (it would also clear that command's own loopback forward, so forwards from your `~/.ssh/config` stay active there); output is size-limited and every remote answer is schema-validated before use; bundles carry no credentials: credential-like files (keys, tokens, database URLs with passwords, secret-named values, secret CLI flags) are withheld, and files that approve MCP servers or hold Codex trust are refused by both machines. Text from the server is stripped of control characters before it reaches the terminal. Writes happen only through plans on the receiving machine, with preconditions, journal and rollback.
 
 ## Remote control
 
