@@ -92,6 +92,34 @@ export function remoteReadyUrl(output: string, port: number): string | undefined
   return url && Number(url[2]) === port ? url[1] : undefined;
 }
 
+/** Drops control characters so text from another machine cannot move the cursor, recolor or set the clipboard. */
+export function printable(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(/[^\P{Cc}\n\t]/gu, '');
+}
+
+const MAX_ERROR_BYTES = 64 * 1024;
+
+/** Reads at most `limit` bytes, stopping the child instead of buffering an unbounded stream. */
+async function readCapped(
+  stream: ReadableStream<Uint8Array>,
+  limit: number,
+  stop: () => void,
+): Promise<{ text: string; overflow: boolean }> {
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = stream.getReader();
+  for (let part = await reader.read(); !part.done; part = await reader.read()) {
+    size += part.value.byteLength;
+    if (size > limit) {
+      stop();
+      await reader.cancel();
+      return { text: '', overflow: true };
+    }
+    chunks.push(part.value);
+  }
+  return { text: Buffer.concat(chunks).toString('utf8'), overflow: false };
+}
+
 async function spawnRemote(args: string[], input?: string): Promise<RemoteResult> {
   const child = Bun.spawn(args, {
     stdin: input === undefined ? 'ignore' : Buffer.from(input),
@@ -100,12 +128,13 @@ async function spawnRemote(args: string[], input?: string): Promise<RemoteResult
   });
   const timer = setTimeout(() => child.kill(), REMOTE_TIMEOUT_MS);
   try {
+    const stop = () => child.kill();
     const [stdout, stderr] = await Promise.all([
-      new Response(child.stdout).text(),
-      new Response(child.stderr).text(),
+      readCapped(child.stdout, MAX_OUTPUT_BYTES, stop),
+      readCapped(child.stderr, MAX_ERROR_BYTES, stop),
     ]);
-    if (stdout.length > MAX_OUTPUT_BYTES) throw new Error('The remote response is too large.');
-    return { code: await child.exited, stdout, stderr };
+    if (stdout.overflow || stderr.overflow) throw new Error('The remote response is too large.');
+    return { code: await child.exited, stdout: stdout.text, stderr: stderr.text };
   } finally {
     clearTimeout(timer);
   }
@@ -118,7 +147,8 @@ async function runRigshelf(
   input?: string,
 ): Promise<string> {
   const result = await run(sshArguments(alias, command), input);
-  const detail = result.stderr.trim().split('\n').at(-1)?.slice(0, 300) || `exit ${result.code}`;
+  const detail =
+    printable(result.stderr).trim().split('\n').at(-1)?.slice(0, 300) || `exit ${result.code}`;
   if (result.code === 0) return result.stdout;
   if (result.code === 255) throw new Error(`Could not connect to ${alias}: ${detail}`);
   if (result.code === 127 || /command not found|not found: rigshelf/.test(result.stderr))

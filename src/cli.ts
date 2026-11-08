@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { backupHelp, runBackupCommand } from './backup-cli';
 import { readImport, setupProject, writeExport } from './cli-operations';
 import { readRecord } from './core/local-files';
+import { printable } from './core/machine-ssh';
 import { PresetSchema, ProviderSchema, RuleSchema } from './core/model';
 import { approveProject } from './core/ownership';
 import { filePreview, planView } from './core/plan-view';
@@ -141,7 +142,7 @@ async function main(): Promise<void> {
           values,
           positionals.slice(3),
         );
-        if (machine.text) process.stdout.write(machine.text);
+        if (machine.text) process.stdout.write(printable(machine.text));
         result = machine.result;
         break;
       }

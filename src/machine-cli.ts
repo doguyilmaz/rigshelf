@@ -9,6 +9,7 @@ import {
 } from './core/machine-inventory';
 import {
   type PreparedSync,
+  printable,
   remoteApply,
   remoteDoctor,
   remoteInventory,
@@ -316,7 +317,11 @@ export async function openRemoteWorkbench(
   process.off('SIGINT', stop);
   process.off('SIGTERM', stop);
   if (!ready) {
-    const detail = `${output}\n${await stderr}`.trim().split(/\r?\n/).filter(Boolean).at(-1);
+    const detail = printable(`${output}\n${await stderr}`)
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .at(-1);
     throw new Error(`Could not open Rigshelf on ${alias}: ${detail || `ssh exited with ${code}`}`);
   }
   return code;

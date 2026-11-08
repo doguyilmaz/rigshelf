@@ -9,6 +9,7 @@ import {
   repositoryKey,
 } from '../src/core/machine-inventory';
 import {
+  printable,
   remoteApply,
   remoteDoctor,
   remoteInventory,
@@ -350,4 +351,15 @@ test('a file that differs only by each machine’s own paths compares as in sync
   const status = Object.fromEntries(report.projects[0]!.rows.map((row) => [row.key, row.status]));
   expect(status['CLAUDE.local.md']).toBe('same');
   expect(status['AGENTS.md']).toBe('different');
+});
+
+test('server text cannot drive the local terminal', async () => {
+  expect(printable('ok\x1b]52;c;aGk=\x07\x1b[2Kdone\r\nnext\u009b31m')).toBe(
+    'ok]52;c;aGk=[2Kdone\nnext31m',
+  );
+  await expect(
+    remoteDoctor('box', {
+      run: async () => ({ code: 1, stdout: '', stderr: 'boom\x1b[2K\x07spoof' }),
+    }),
+  ).rejects.toThrow('Rigshelf on box failed: boom[2Kspoof');
 });
