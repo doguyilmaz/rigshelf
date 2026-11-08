@@ -190,7 +190,7 @@ const PreparedSchema = z.object({
       }),
     )
     .max(300),
-  globalGuidance: z
+  global: z
     .array(
       z.object({
         root: z.string().max(20),
@@ -199,8 +199,7 @@ const PreparedSchema = z.object({
         error: z.string().max(2000).optional(),
       }),
     )
-    .max(10)
-    .default([]),
+    .max(10),
 });
 export type PreparedSync = z.infer<typeof PreparedSchema>;
 

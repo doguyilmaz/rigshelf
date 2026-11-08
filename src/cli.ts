@@ -101,6 +101,8 @@ async function main(): Promise<void> {
       memory: { type: 'string' },
       'skip-local-files': { type: 'boolean' },
       'global-guidance': { type: 'boolean' },
+      'global-settings': { type: 'boolean' },
+      'global-skills': { type: 'boolean' },
     },
   });
   if (values.version) {

@@ -111,7 +111,11 @@ export function Machines({ notify }: PageProps): ReactNode {
   const [alias, setAlias] = useState('');
   const [compared, setCompared] = useState<Compared>();
   const [memory, setMemory] = useState<string[]>([]);
-  const [globalGuidance, setGlobalGuidance] = useState(false);
+  const [scope, setScope] = useState({
+    globalGuidance: false,
+    globalSettings: false,
+    globalSkills: false,
+  });
   const [prepared, setPrepared] = useState<Prepared>();
   const [busy, setBusy] = useState<'check' | 'sync' | 'apply'>();
   const [confirm, setConfirm] = useState(false);
@@ -153,7 +157,7 @@ export function Machines({ notify }: PageProps): ReactNode {
     });
   const prepare = () =>
     run('sync', async () =>
-      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, memory, globalGuidance })),
+      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, memory, ...scope })),
     );
   const planIds = prepared
     ? [
@@ -162,7 +166,7 @@ export function Machines({ notify }: PageProps): ReactNode {
           project.localPlanId,
           project.memoryPlanId,
         ]),
-        ...prepared.prepared.globalGuidance.map((guidance) => guidance.planId),
+        ...prepared.prepared.global.map((guidance) => guidance.planId),
       ].filter((id): id is string => Boolean(id))
     : undefined;
   const apply = () =>
@@ -282,14 +286,27 @@ export function Machines({ notify }: PageProps): ReactNode {
                 label={t('Only on {{alias}}', { alias })}
                 values={names(compared.report.projects, 'remote')}
               />
-              <label className="machine-memory">
-                <input
-                  type="checkbox"
-                  checked={globalGuidance}
-                  onChange={(event) => setGlobalGuidance(event.target.checked)}
-                />
-                {t('Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)')}
-              </label>
+              <fieldset className="machine-scope">
+                <legend>{t('Also copy global configuration (optional)')}</legend>
+                {(
+                  [
+                    ['globalGuidance', 'Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)'],
+                    ['globalSettings', 'Claude Code settings (~/.claude/settings.json)'],
+                    ['globalSkills', 'Global Skills folders'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label className="machine-memory" key={key}>
+                    <input
+                      type="checkbox"
+                      checked={scope[key]}
+                      onChange={(event) =>
+                        setScope((current) => ({ ...current, [key]: event.target.checked }))
+                      }
+                    />
+                    {t(label)}
+                  </label>
+                ))}
+              </fieldset>
               <p className="machine-muted">
                 {t(
                   'Local agent files that Git does not track are included. Private local settings stay on this machine.',
@@ -326,7 +343,7 @@ export function Machines({ notify }: PageProps): ReactNode {
                     {project.memoryError && <span>{project.memoryError}</span>}
                   </li>
                 ))}
-                {prepared.prepared.globalGuidance.map((guidance) => (
+                {prepared.prepared.global.map((guidance) => (
                   <li key={guidance.root}>
                     <strong>~/{guidance.root}</strong>
                     <span>

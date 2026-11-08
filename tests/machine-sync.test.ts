@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { chmod, mkdir, stat } from 'node:fs/promises';
+import { chmod, mkdir, stat, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildSyncRequest, prepareSync } from '../src/core/machine-sync';
 import { claudeMemoryKey } from '../src/core/memory-locations';
@@ -263,10 +263,52 @@ test('untracked local agent files and opted-in global guidance reach the server;
   );
   expect((await stat(join(clone, '.claude/hooks/check.sh'))).mode & 0o100).toBe(0o100);
   expect(await Bun.file(join(clone, '.claude/rules/team.md')).exists()).toBe(false);
-  const [guidance] = prepared.globalGuidance;
+  const [guidance] = prepared.global;
   expect(guidance).toMatchObject({ root: '.claude', files: 1 });
   await executePlan(server, guidance!.planId!, 'apply');
   expect(await Bun.file(join(serverHome, '.claude/CLAUDE.md')).text()).toBe(
     `Notes in ${serverHome}/notes.\n`,
   );
+});
+
+test('opted-in global settings and Skills copy per harness folder; account and trust files are refused', async () => {
+  const { laptop, server, serverRoot } = await machines();
+  await mkdir(serverRoot, { recursive: true });
+  await Bun.write(
+    join(laptop.home, '.claude/settings.json'),
+    `{"hooks":{"Stop":"${laptop.home}/bin/notify"}}\n`,
+  );
+  await Bun.write(join(laptop.home, '.claude/skills/review/SKILL.md'), '---\nname: review\n---\n');
+  await Bun.write(join(laptop.home, '.agents/skills/linked/SKILL.md'), '---\nname: linked\n---\n');
+  await symlink('../../.agents/skills/linked', join(laptop.home, '.claude/skills/linked'));
+  const serverHome = join(laptop.root, 'server-home');
+  await mkdir(join(serverHome, '.claude'), { recursive: true });
+  const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.root], {
+    home: laptop.home,
+    localFiles: false,
+    globalSettings: true,
+    globalSkills: true,
+  });
+  expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`).sort()).toEqual([
+    '.agents/skills/linked/SKILL.md',
+    '.claude/settings.json',
+    '.claude/skills/linked/SKILL.md',
+    '.claude/skills/review/SKILL.md',
+  ]);
+  expect(withheld.map((value) => value.name)).toEqual(
+    expect.arrayContaining(['~/.claude.json', '~/.codex/config.toml']),
+  );
+  const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
+    home: serverHome,
+  });
+  const byRoot = Object.fromEntries(prepared.global.map((value) => [value.root, value]));
+  expect(byRoot['.agents']?.error).toContain('install that agent first');
+  expect(byRoot['.claude']?.files).toBe(3);
+  await executePlan(server, byRoot['.claude']!.planId!, 'apply');
+  expect(await Bun.file(join(serverHome, '.claude/settings.json')).text()).toBe(
+    `{"hooks":{"Stop":"${serverHome}/bin/notify"}}\n`,
+  );
+  expect(await Bun.file(join(serverHome, '.claude/skills/linked/SKILL.md')).exists()).toBe(true);
+  await executePlan(server, byRoot['.claude']!.planId!, 'rollback');
+  expect(await Bun.file(join(serverHome, '.claude/settings.json')).exists()).toBe(false);
 });

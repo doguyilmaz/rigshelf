@@ -5338,3 +5338,16 @@ label {
 .machine-plans strong {
   overflow-wrap: anywhere;
 }
+
+.machine-scope {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.machine-scope legend {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}

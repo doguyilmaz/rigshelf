@@ -50,6 +50,7 @@ test('machine routes compare, prepare and apply through the injected runner', as
           library: { entries: 0 },
           directives: { added: [], replaced: [], kept: [] },
           projects: [],
+          global: [],
         }),
         stderr: '',
       };

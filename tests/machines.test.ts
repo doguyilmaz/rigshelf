@@ -242,7 +242,7 @@ test('sync sends the bundle on stdin and applies only plan IDs on the server', a
         warnings: [],
       },
     ],
-    globalGuidance: [],
+    global: [],
   };
   const result = await remotePrepare(
     'box',

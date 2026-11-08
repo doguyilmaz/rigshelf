@@ -1353,7 +1353,10 @@
   "MCP": "MCP",
   "Applying…": "Uygulanıyor…",
   "Apply": "Uygula",
-  "Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)": "Global yönergeleri dahil et (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)",
   "Local agent files that Git does not track are included. Private local settings stay on this machine.": "Git'in izlemediği yerel agent dosyaları dahil edilir. Özel yerel ayarlar bu makinede kalır.",
-  "local files: {{count}}": "yerel dosyalar: {{count}}"
+  "local files: {{count}}": "yerel dosyalar: {{count}}",
+  "Also copy global configuration (optional)": "Global yapılandırmayı da kopyala (isteğe bağlı)",
+  "Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)": "Global yönergeler (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)",
+  "Claude Code settings (~/.claude/settings.json)": "Claude Code ayarları (~/.claude/settings.json)",
+  "Global Skills folders": "Global Skills klasörleri"
 }

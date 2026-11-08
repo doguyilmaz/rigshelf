@@ -84,7 +84,7 @@ const machineRunner: RemoteRunner = async (args, input) => {
           memoryFiles: 1,
         },
       ],
-      globalGuidance: [{ root: '.claude', planId: guidancePlanId, files: 1 }],
+      global: [{ root: '.claude', planId: guidancePlanId, files: 1 }],
     });
   return reply({ status: 'applied', fileCount: 4 });
 };
@@ -129,9 +129,7 @@ try {
   await project.getByText('2 differences').click();
   await expect(project.getByText('.claude/skills/guide', { exact: true })).toBeVisible();
   await project.getByLabel('Include memory in sync').check();
-  await page
-    .getByLabel('Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)')
-    .check();
+  await page.getByLabel('Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)').check();
   await audit('compare-1440');
   await page.getByRole('button', { name: 'Prepare sync', exact: true }).click();
   await expect(page.getByText('4 file changes')).toBeVisible();
@@ -145,7 +143,7 @@ try {
     requests.find((value) => value.command.includes('machine prepare'))!.input!,
   );
   expect(prepared.projects[0].memory).toEqual([]);
-  expect(prepared.globalGuidance).toBeUndefined();
+  expect(prepared.globalFiles).toBeUndefined();
 
   expect(requests.some((value) => value.command.includes('rigshelf apply'))).toBe(false);
   await page.getByRole('button', { name: 'Apply on build-box', exact: true }).click();

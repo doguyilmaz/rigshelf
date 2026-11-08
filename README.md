@@ -83,6 +83,7 @@ bun run rigshelf rollback <plan-id>
 bun run rigshelf connection --agents claude,codex
 bun run rigshelf machine compare my-server   # read-only sync status over your ~/.ssh/config
 bun run rigshelf machine sync my-server      # plans there for kits and untracked local agent files; add --apply
+                                             # opt in: --memory app --global-guidance --global-settings --global-skills
 bun run rigshelf ui --on my-server           # that server's workbench here, through an SSH tunnel
 ```
 

@@ -1353,7 +1353,10 @@
   "MCP": "MCP",
   "Applying…": "Applying…",
   "Apply": "Apply",
-  "Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)": "Include global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)",
   "Local agent files that Git does not track are included. Private local settings stay on this machine.": "Local agent files that Git does not track are included. Private local settings stay on this machine.",
-  "local files: {{count}}": "local files: {{count}}"
+  "local files: {{count}}": "local files: {{count}}",
+  "Also copy global configuration (optional)": "Also copy global configuration (optional)",
+  "Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)": "Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)",
+  "Claude Code settings (~/.claude/settings.json)": "Claude Code settings (~/.claude/settings.json)",
+  "Global Skills folders": "Global Skills folders"
 }

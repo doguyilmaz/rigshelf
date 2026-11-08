@@ -68,6 +68,17 @@ Each item has one status and one suggested action:
 
 Rigshelf version on both sides; harness CLIs present on the server; Codex project trust and Claude Code project MCP approval (reported, never granted remotely); required environment variable names present; `PATH` for non-interactive shells; free disk space for a planned bundle; clock skew.
 
+## Transport security
+
+| Option | Authentication | Exposure | Decision |
+| --- | --- | --- | --- |
+| System `ssh` (chosen) | The user's keys, agent, `~/.ssh/config` and host key verification | No new listener; only the fixed Rigshelf commands run remotely | One transport for sync and remote control |
+| Tailscale SSH | Tailnet identity and ACLs | Tailnet only | Works unchanged when the host alias resolves through Tailscale; nothing Rigshelf-specific to add |
+| Rigshelf agent with its own TLS port | New keys and certificates to issue, rotate and revoke | A new public or VPN listener | Rejected: a second authentication system to secure |
+| Cloudflare Tunnel or ngrok to the workbench | Cloudflare Access policies / OAuth | Public hostname | Rejected for built-in use; see Remote control |
+
+Hardening in the implementation: host aliases are validated before they reach `ssh` and `--` separates them from options; remote commands come from a fixed set (`machine inventory|doctor|prepare`, `apply <plan-id>`, `ui --port … --attached --public-port …`) with validated roots and UUID plan IDs; `BatchMode`, connect and keep-alive timeouts, `ForwardAgent=no` and `ClearAllForwardings` (except the one loopback forward of `ui --on`) are always set; output is size-limited and every remote answer is schema-validated before use; bundles carry no credentials, and credential-like files are withheld. Writes happen only through plans on the receiving machine, with preconditions, journal and rollback.
+
 ## Remote control
 
 Separate from sync, and later:
@@ -85,6 +96,6 @@ Separate from sync, and later:
 
 ## Decisions (2026-11-08)
 
-- **Scope:** making a server match copies each matched project's kit (Skills, MCP, guidance), the Library with directives, and the project's local agent files that Git does not track (`CLAUDE.local.md`, `.claude/rules|agents|commands|hooks|skills`, untracked Skill folders and MCP configuration). Private local settings (`settings.local.json`, `.env*`) and credential-like files are reported, never copied. Global Skills are compared and shown but not copied, keeping servers project-scoped like the laptop. Global guidance (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`) is copied only with `--global-guidance`; account and settings files stay hand-set because they hold machine paths and credentials.
+- **Scope:** making a server match copies each matched project's kit (Skills, MCP, guidance), the Library with directives, and the project's local agent files that Git does not track (`CLAUDE.local.md`, `.claude/rules|agents|commands|hooks|skills`, untracked Skill folders and MCP configuration). Private local settings (`settings.local.json`, `.env*`) and credential-like files are reported, never copied. Global configuration is off by default, keeping servers project-scoped like the laptop, and each part is an explicit opt-in: `--global-guidance` (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`), `--global-settings` (`~/.claude/settings.json`, credential-checked and path re-mapped) and `--global-skills` (each harness's global Skill folders, following linked Skill folders). Each harness folder gets its own plan and must already exist on the server. `~/.claude.json` and `~/.codex/config.toml` are refused: they hold account state and per-path project trust, and granting trust on a server stays the user's decision there.
 - **Memory:** off by default. It is enabled per project, then re-mapped to the server's project path; it is never copied byte for byte.
 - **Harnesses:** a server receives the same harness formats the project uses on the laptop (Claude Code, Codex, OpenCode, Kiro, Grok and the rest of the supported set), so the plan on the server mirrors the laptop's selection.

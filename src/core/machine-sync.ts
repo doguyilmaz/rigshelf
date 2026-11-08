@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { lstat, readdir } from 'node:fs/promises';
+import { lstat, readdir, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, relative } from 'node:path';
 import { z } from 'zod';
@@ -18,9 +18,9 @@ import type { Store } from './store';
 
 const MAX_SYNC_PROJECTS = 300;
 const MAX_DIRECTIVES = 1000;
-const MAX_COPY_FILES = 3000;
+const MAX_COPY_FILES = 10_000;
 const MAX_FILE_BYTES = 1024 * 1024;
-const MAX_BUNDLE_FILE_BYTES = 64 * 1024 * 1024;
+const MAX_BUNDLE_FILE_BYTES = 128 * 1024 * 1024;
 const GIT_TIMEOUT_MS = 15_000;
 
 /** Agent configuration that a clone does not bring when it is not committed. */
@@ -48,13 +48,27 @@ const localFiles = [
   '.grok/config.toml',
   '.agents/mcp_config.json',
 ];
-const guidanceFiles: [GuidanceRoot, string][] = [
+const globalRoots = [
+  '.claude',
+  '.agents',
+  '.codex',
+  '.kiro',
+  '.gemini',
+  '.grok',
+  '.config/opencode',
+] as const;
+type GlobalRoot = (typeof globalRoots)[number];
+const globalGuidanceFiles: [GlobalRoot, string][] = [
   ['.claude', 'CLAUDE.md'],
   ['.codex', 'AGENTS.md'],
   ['.gemini', 'GEMINI.md'],
 ];
+const globalSettingsFiles: [GlobalRoot, string][] = [['.claude', 'settings.json']];
 const privateName = /(^|\/)(?:settings\.local\.json|\.env(?:\.[^/]*)?)$/;
-type GuidanceRoot = '.claude' | '.codex' | '.gemini';
+const refusedGlobalSettings = [
+  ['~/.claude.json', 'Holds Claude Code account and project trust; sign in on the server instead.'],
+  ['~/.codex/config.toml', 'Holds Codex project trust; trust projects on the server yourself.'],
+];
 
 const SafePath = z
   .string()
@@ -91,9 +105,9 @@ const SyncRequestSchema = z.object({
   library: z.unknown(),
   sourceHome: z.string().min(1).max(4096),
   projects: z.array(ProjectRequest).max(MAX_SYNC_PROJECTS),
-  globalGuidance: z
-    .array(CopiedFile.extend({ root: z.enum(['.claude', '.codex', '.gemini']) }))
-    .max(guidanceFiles.length)
+  globalFiles: z
+    .array(CopiedFile.extend({ root: z.enum(globalRoots) }))
+    .max(MAX_COPY_FILES)
     .optional(),
 });
 export type SyncRequest = z.infer<typeof SyncRequestSchema>;
@@ -113,7 +127,7 @@ export interface PreparedProject {
   localFiles?: number;
   localError?: string;
 }
-export interface PreparedGuidance {
+export interface PreparedGlobal {
   root: string;
   planId?: string;
   files?: number;
@@ -203,6 +217,19 @@ async function collectLocalFiles(
   return files;
 }
 
+/** Lists `skills/<name>/…` files, following a Skill folder that is a link inside the same home. */
+async function skillFiles(root: string): Promise<string[]> {
+  const files: string[] = [];
+  const entries = await readdir(join(root, 'skills'), { withFileTypes: true }).catch(() => []);
+  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+    const folder = await realpath(join(root, 'skills', entry.name)).catch(() => undefined);
+    if (!folder || !(await lstat(folder)).isDirectory()) continue;
+    for (const path of await folderFiles(folder, '.')) files.push(`skills/${entry.name}/${path}`);
+  }
+  return files;
+}
+
 async function collectMemory(home: string, project: string, budget: FileBudget) {
   const folder = join(home, '.claude/projects', claudeMemoryKey(project), 'memory');
   const files: CopiedFiles = [];
@@ -221,6 +248,8 @@ export async function buildSyncRequest(
     memory?: string[];
     localFiles?: boolean;
     globalGuidance?: boolean;
+    globalSettings?: boolean;
+    globalSkills?: boolean;
   } = {},
 ): Promise<{
   request: SyncRequest;
@@ -273,12 +302,20 @@ export async function buildSyncRequest(
       ...(memory ? { memory } : {}),
     });
   }
-  const globalGuidance: NonNullable<SyncRequest['globalGuidance']> = [];
+  const globalFiles: NonNullable<SyncRequest['globalFiles']> = [];
+  const addGlobal = async (root: GlobalRoot, path: string, scanSecrets: boolean) => {
+    const read = await budget.read(join(home, root, path), `~/${root}/${path}`, scanSecrets);
+    if (read) globalFiles.push({ root, path, ...read });
+  };
   if (options.globalGuidance)
-    for (const [root, path] of guidanceFiles) {
-      const read = await budget.read(join(home, root, path), `~/${root}/${path}`, true);
-      if (read) globalGuidance.push({ root, path, ...read });
-    }
+    for (const [root, path] of globalGuidanceFiles) await addGlobal(root, path, true);
+  if (options.globalSettings) {
+    for (const [root, path] of globalSettingsFiles) await addGlobal(root, path, true);
+    for (const [name, reason] of refusedGlobalSettings) budget.hold(name!, reason!);
+  }
+  if (options.globalSkills)
+    for (const root of globalRoots)
+      for (const path of await skillFiles(join(home, root))) await addGlobal(root, path, false);
   const exported = exportLibrary(store);
   const wanted = new Set(projects.flatMap((project) => project.kit?.entryIds ?? []));
   const entries = exported.entries.filter((value) => wanted.has(value.entry.id));
@@ -308,7 +345,7 @@ export async function buildSyncRequest(
       },
       sourceHome: home,
       projects,
-      ...(globalGuidance.length ? { globalGuidance } : {}),
+      ...(globalFiles.length ? { globalFiles } : {}),
     },
     skipped,
     withheld,
@@ -493,9 +530,9 @@ export async function prepareSync(
     }
     projects.push(result);
   }
-  const globalGuidance: PreparedGuidance[] = [];
-  for (const root of new Set((request.globalGuidance ?? []).map((file) => file.root))) {
-    const files = (request.globalGuidance ?? []).filter((file) => file.root === root);
+  const global: PreparedGlobal[] = [];
+  for (const root of new Set((request.globalFiles ?? []).map((file) => file.root))) {
+    const files = (request.globalFiles ?? []).filter((file) => file.root === root);
     const copied = await copyResult(async () =>
       copyPlan(
         store,
@@ -506,10 +543,10 @@ export async function prepareSync(
         '',
         files,
         [[request.sourceHome, home]],
-        'Copy global agent guidance from the other machine',
+        'Copy global agent configuration from the other machine',
       ),
     );
-    globalGuidance.push({ root, ...copied });
+    global.push({ root, ...copied });
   }
-  return { library: { entries: library.entries }, directives, projects, globalGuidance };
+  return { library: { entries: library.entries }, directives, projects, global };
 }
