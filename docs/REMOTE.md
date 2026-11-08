@@ -1,6 +1,6 @@
 # Remote machines (proposal)
 
-Status: phase 1 (read-only inventory, compare and doctor) is available in the CLI as `rigshelf machine`. Later phases remain a proposal.
+Status: phase 1 (read-only inventory, compare and doctor, `rigshelf machine`) and remote control (`rigshelf ui --on`) are available in the CLI. Applying changes to another machine remains a proposal.
 
 ## Problem
 
@@ -71,7 +71,7 @@ Rigshelf version on both sides; harness CLIs present on the server; Codex projec
 
 Separate from sync, and later:
 
-1. `rigshelf ui --on <alias>` starts the remote workbench on its loopback, forwards it with `ssh -L` and opens `http://rigshelf.localhost:<port>` locally with a clear remote badge. Nothing new is exposed; this is the recommended path.
+1. `rigshelf ui --on <alias> [--port L] [--remote-port R]` runs `rigshelf ui --port R --attached --public-port L` on the server and forwards `127.0.0.1:L` to it with `ssh -L`. The printed `http://rigshelf.localhost:L/#access=…` URL carries the server's own access key. The remote workbench accepts only loopback hosts for its two ports and stops when the SSH connection closes (Ctrl-C). Nothing new listens beyond loopback on either machine. A remote badge in the workbench is still to do.
 2. Tailscale Serve (tailnet only, never Funnel) is documented for users who already run Tailscale.
 3. Cloudflare Tunnel or ngrok are not built in. The workbench accepts only loopback hosts; supporting a public hostname would require enforced Cloudflare Access with origin-side JWT validation, which is a larger trust change than this product needs.
 
@@ -79,7 +79,7 @@ Separate from sync, and later:
 
 1. Read-only `machine inventory`, `machine compare <alias>` and `machine doctor <alias>` in the CLI (done); a Machines view in the workbench.
 2. Apply a reviewed bundle on the server, starting with Library and project kits.
-3. `rigshelf ui --on <alias>`.
+3. `rigshelf ui --on <alias>` (done; the remote badge remains).
 4. Both directions, global items and optional memory re-mapping.
 
 ## Open questions

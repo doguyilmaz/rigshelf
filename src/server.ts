@@ -41,13 +41,19 @@ export function startServer(
     aiDriver?: AiDriver;
     resetAccess?: boolean;
     backupTransport?: BackupTransportFactory;
+    publicPort?: number;
   } = {},
 ): WorkbenchServer {
   let token = '';
   const root = resolve(
     fileURLToPath(new URL(Bun.isStandaloneExecutable ? './dist' : '../dist', import.meta.url)),
   );
-  const hosts = [`rigshelf.localhost:${port}`, `127.0.0.1:${port}`, `localhost:${port}`];
+  const publicPort = options.publicPort ?? port;
+  const hosts = [
+    `rigshelf.localhost:${publicPort}`,
+    ...new Set([port, publicPort].flatMap((value) => [`127.0.0.1:${value}`, `localhost:${value}`])),
+    `rigshelf.localhost:${port}`,
+  ];
   const origins = hosts.map((host) => `http://${host}`);
   const base = origins[0];
   const directoryPicker = createDirectoryPicker(options.chooseDirectory);

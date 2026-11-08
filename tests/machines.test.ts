@@ -8,7 +8,13 @@ import {
   parseMachineInventory,
   repositoryKey,
 } from '../src/core/machine-inventory';
-import { remoteDoctor, remoteInventory, sshArguments } from '../src/core/machine-ssh';
+import {
+  remoteDoctor,
+  remoteInventory,
+  remoteReadyUrl,
+  sshArguments,
+  tunnelArguments,
+} from '../src/core/machine-ssh';
 import { claudeMemoryKey } from '../src/core/memory-locations';
 
 const cleanups: string[] = [];
@@ -190,4 +196,31 @@ test('a remote doctor answer is validated and returned flat', async () => {
       run: async () => ({ code: 0, stdout: '{"here":{"rigshelf":1}}', stderr: '' }),
     }),
   ).rejects.toThrow('cannot read');
+});
+
+test('a remote workbench tunnel forwards one loopback port and runs only the fixed ui command', () => {
+  const args = tunnelArguments('build-box', 47480);
+  expect(args).not.toContain('-tt');
+  expect(args).toContain('ExitOnForwardFailure=yes');
+  expect(args[args.indexOf('-L') + 1]).toBe('127.0.0.1:47480:127.0.0.1:47480');
+  expect(args.at(-1)).toBe(
+    `exec "$SHELL" -lc 'rigshelf ui --port 47480 --attached --public-port 47480'`,
+  );
+  const moved = tunnelArguments('build-box', 47480, 47500);
+  expect(moved[moved.indexOf('-L') + 1]).toBe('127.0.0.1:47480:127.0.0.1:47500');
+  expect(moved.at(-1)).toContain('--port 47500 --attached --public-port 47480');
+  expect(() => tunnelArguments('box', 80)).toThrow('port');
+  expect(() => tunnelArguments('-oProxyCommand=x', 47480)).toThrow('host alias');
+  expect(
+    remoteReadyUrl(
+      `Rigshelf is ready at http://rigshelf.localhost:47480/#access=${'a'.repeat(64)}\r\n`,
+      47480,
+    ),
+  ).toBe(`http://rigshelf.localhost:47480/#access=${'a'.repeat(64)}`);
+  expect(
+    remoteReadyUrl(
+      `Rigshelf is ready at http://rigshelf.localhost:47999/#access=${'a'.repeat(64)}`,
+      47480,
+    ),
+  ).toBeUndefined();
 });

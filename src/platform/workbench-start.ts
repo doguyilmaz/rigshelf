@@ -9,6 +9,7 @@ export function openWorkbenchServer(
   store: Store,
   requestedPort?: number,
   resetAccess = false,
+  publicPort?: number,
 ): {
   server: WorkbenchServer;
   moved: boolean;
@@ -17,7 +18,10 @@ export function openWorkbenchServer(
   const attempts = requestedPort === undefined && !resetAccess ? MAX_PORT_ATTEMPTS : 1;
   for (let offset = 0; offset < attempts; offset++) {
     try {
-      return { server: startServer(store, first + offset, { resetAccess }), moved: offset > 0 };
+      return {
+        server: startServer(store, first + offset, { resetAccess, publicPort }),
+        moved: offset > 0,
+      };
     } catch (error) {
       if (!(error instanceof Error) || !('code' in error) || error.code !== 'EADDRINUSE')
         throw error;

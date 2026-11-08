@@ -292,3 +292,58 @@ test('the workbench opens at rigshelf.localhost and still refuses other hosts an
     (await request('rigshelf.localhost', `http://other.localhost:${access.port}`)).status,
   ).toBe(403);
 });
+
+test('a tunnelled workbench accepts its public port and prints the URL for it', async () => {
+  const value = await fixture();
+  cleanup.push(() => value.cleanup());
+  const remotePort = randomInt(48000, 52000);
+  const publicPort = randomInt(52001, 56000);
+  const server = startServer(value.store, remotePort, { publicPort });
+  cleanup.unshift(async () => {
+    await server.stop(true);
+  });
+  type Link = { upstream?: Bun.Socket; pending: Uint8Array[] };
+  const forwarder = Bun.listen<Link>({
+    hostname: '127.0.0.1',
+    port: publicPort,
+    socket: {
+      open(client) {
+        client.data = { pending: [] };
+        void Bun.connect({
+          hostname: '127.0.0.1',
+          port: remotePort,
+          socket: {
+            data(_, chunk) {
+              client.write(chunk);
+            },
+            close() {
+              client.end();
+            },
+          },
+        }).then((upstream) => {
+          client.data.upstream = upstream;
+          for (const chunk of client.data.pending.splice(0)) upstream.write(chunk);
+        });
+      },
+      data(client, chunk) {
+        if (client.data.upstream) client.data.upstream.write(chunk);
+        else client.data.pending.push(chunk);
+      },
+      close(client) {
+        client.data.upstream?.end();
+      },
+    },
+  });
+  cleanup.unshift(async () => forwarder.stop(true));
+  const access = new URL(server.accessUrl);
+  expect(access.host).toBe(`rigshelf.localhost:${publicPort}`);
+  const token = new URLSearchParams(access.hash.slice(1)).get('access')!;
+  const state = await fetch(`http://127.0.0.1:${publicPort}/api/state`, {
+    headers: { host: access.host, origin: access.origin, 'x-kitfold-token': token },
+  });
+  expect(state.status).toBe(200);
+  const foreign = await fetch(`http://127.0.0.1:${publicPort}/api/state`, {
+    headers: { host: `rigshelf.localhost:${publicPort + 1}`, 'x-kitfold-token': token },
+  });
+  expect(foreign.status).toBe(403);
+});

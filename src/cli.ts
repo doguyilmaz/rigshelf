@@ -14,7 +14,7 @@ import { seed } from './core/seeds';
 import { route } from './core/service';
 import { Store } from './core/store';
 import { checkProject, watchProject } from './core/watch';
-import { machineHelp, runMachineCommand } from './machine-cli';
+import { machineHelp, openRemoteWorkbench, runMachineCommand } from './machine-cli';
 import { serveMcp } from './mcp';
 import { serveProxy } from './mcp-proxy';
 import { openWorkbenchServer } from './platform/workbench-start';
@@ -92,6 +92,10 @@ async function main(): Promise<void> {
       'remote-root': { type: 'string', multiple: true },
       manifest: { type: 'string' },
       json: { type: 'boolean' },
+      on: { type: 'string' },
+      attached: { type: 'boolean' },
+      'public-port': { type: 'string' },
+      'remote-port': { type: 'string' },
     },
   });
   if (values.version) {
@@ -142,10 +146,30 @@ async function main(): Promise<void> {
         const port = values.port === undefined ? 47471 : Number(values.port);
         if (!Number.isInteger(port) || port < 1024 || port > 65535)
           throw new Error('Choose a port between 1024 and 65535.');
+        if (values.on) {
+          store.close();
+          persistent = true;
+          const remotePort =
+            values['remote-port'] === undefined ? undefined : Number(values['remote-port']);
+          process.exitCode = await openRemoteWorkbench(
+            values.on,
+            values.port === undefined ? undefined : port,
+            remotePort,
+          );
+          break;
+        }
+        const publicPort =
+          values['public-port'] === undefined ? undefined : Number(values['public-port']);
+        if (
+          publicPort !== undefined &&
+          (!Number.isInteger(publicPort) || publicPort < 1024 || publicPort > 65535)
+        )
+          throw new Error('Choose a public port between 1024 and 65535.');
         const { server, moved } = openWorkbenchServer(
           store,
           values.port === undefined ? undefined : port,
           values['reset-access'],
+          publicPort,
         );
         persistent = true;
         let closing = false;
@@ -170,6 +194,10 @@ async function main(): Promise<void> {
         };
         process.once('SIGINT', close);
         process.once('SIGTERM', close);
+        if (values.attached) {
+          process.stdin.once('end', close);
+          process.stdin.resume();
+        }
         process.stdout.write(
           `${moved ? 'The default port was occupied; using another available local port.\n' : ''}Rigshelf is ready at ${server.accessUrl}\nPrivate data: ${store.directory}\nOpen this URL in your browser. Keep it private.\n`,
         );

@@ -13,30 +13,76 @@ export interface RemoteResult {
 }
 export type RemoteRunner = (args: string[]) => Promise<RemoteResult>;
 
-/** Runs a fixed Rigshelf command through the remote login shell so Homebrew and Bun installs are on PATH. */
-export function sshArguments(alias: string, command: string): string[] {
+const baseOptions = [
+  '-o',
+  'BatchMode=yes',
+  '-o',
+  'ConnectTimeout=15',
+  '-o',
+  'ServerAliveInterval=15',
+  '-o',
+  'ForwardAgent=no',
+];
+
+function checkedAlias(alias: string): string {
   if (!HOST_ALIAS.test(alias))
     throw new Error(
       'Choose an SSH host alias from ~/.ssh/config (letters, digits, dot, dash or underscore).',
     );
-  if (!/^rigshelf [a-z -]+(?: --root \/[A-Za-z0-9._/-]{1,255})*$/.test(command))
+  return alias;
+}
+
+/** Runs a fixed Rigshelf command through the remote login shell so Homebrew and Bun installs are on PATH. */
+function remoteCommand(command: string): string {
+  if (
+    !/^rigshelf [a-z -]+(?: --root \/[A-Za-z0-9._/-]{1,255})*$/.test(command) &&
+    !/^rigshelf ui --port \d{4,5} --attached --public-port \d{4,5}$/.test(command)
+  )
     throw new Error('Unsupported remote command.');
+  return `exec "$SHELL" -lc '${command}'`;
+}
+
+export function sshArguments(alias: string, command: string): string[] {
   return [
     'ssh',
-    '-o',
-    'BatchMode=yes',
-    '-o',
-    'ConnectTimeout=15',
-    '-o',
-    'ServerAliveInterval=15',
-    '-o',
-    'ForwardAgent=no',
+    ...baseOptions,
     '-o',
     'ClearAllForwardings=yes',
     '--',
-    alias,
-    `exec "$SHELL" -lc '${command}'`,
+    checkedAlias(alias),
+    remoteCommand(command),
   ];
+}
+
+const MIN_TUNNEL_PORT = 1024;
+const MAX_TUNNEL_PORT = 65535;
+
+export function tunnelArguments(
+  alias: string,
+  localPort: number,
+  remotePort = localPort,
+): string[] {
+  for (const port of [localPort, remotePort])
+    if (!Number.isInteger(port) || port < MIN_TUNNEL_PORT || port > MAX_TUNNEL_PORT)
+      throw new Error(`Choose a port between ${MIN_TUNNEL_PORT} and ${MAX_TUNNEL_PORT}.`);
+  return [
+    'ssh',
+    ...baseOptions,
+    '-o',
+    'ExitOnForwardFailure=yes',
+    '-L',
+    `127.0.0.1:${localPort}:127.0.0.1:${remotePort}`,
+    '--',
+    checkedAlias(alias),
+    remoteCommand(`rigshelf ui --port ${remotePort} --attached --public-port ${localPort}`),
+  ];
+}
+
+export function remoteReadyUrl(output: string, port: number): string | undefined {
+  const url = output.match(
+    /Rigshelf is ready at (http:\/\/rigshelf\.localhost:(\d+)\/#access=[a-f0-9]{64})/,
+  );
+  return url && Number(url[2]) === port ? url[1] : undefined;
 }
 
 async function spawnRemote(args: string[]): Promise<RemoteResult> {
