@@ -245,16 +245,23 @@ async function collectLocalFiles(
 }
 
 /** Lists `skills/<name>/…` files; a linked Skill folder is followed only to a Skill inside the same home. */
-async function skillFiles(home: string, root: string): Promise<string[]> {
+async function skillFiles(home: string, root: string, budget: FileBudget): Promise<string[]> {
   const files: string[] = [];
   const realHome = await realpath(home).catch(() => home);
   const entries = await readdir(join(root, 'skills'), { withFileTypes: true }).catch(() => []);
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+    const name = `~/${relative(home, root)}/skills/${entry.name}`;
     const folder = await realpath(join(root, 'skills', entry.name)).catch(() => undefined);
-    if (!folder || folder === realHome || !inside(realHome, folder)) continue;
-    if (!(await lstat(folder)).isDirectory()) continue;
-    if (!(await lstat(join(folder, 'SKILL.md')).catch(() => undefined))?.isFile()) continue;
+    if (!folder || !(await lstat(folder)).isDirectory()) continue;
+    if (folder === realHome || !inside(realHome, folder)) {
+      budget.hold(name, 'Links outside the home folder are not followed; copy it by hand.');
+      continue;
+    }
+    if (!(await lstat(join(folder, 'SKILL.md')).catch(() => undefined))?.isFile()) {
+      budget.hold(name, 'No SKILL.md at the top of this folder.');
+      continue;
+    }
     for (const path of await folderFiles(folder, '.')) files.push(`skills/${entry.name}/${path}`);
   }
   return files;
@@ -365,7 +372,8 @@ export async function buildSyncRequest(
   }
   if (all || options.globalSkills)
     for (const root of globalRoots)
-      for (const path of await skillFiles(home, join(home, root))) await addGlobal(root, path);
+      for (const path of await skillFiles(home, join(home, root), budget))
+        await addGlobal(root, path);
   const exported = exportLibrary(store);
   const wanted = new Set(projects.flatMap((project) => project.kit?.entryIds ?? []));
   const entries = exported.entries.filter((value) => wanted.has(value.entry.id));

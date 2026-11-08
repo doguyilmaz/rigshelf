@@ -531,13 +531,18 @@ test('a global Skill link is followed only to a Skill folder inside the same hom
   await symlink(laptop.home, join(laptop.home, '.claude/skills/home'));
   await symlink(join(laptop.home, 'notes'), join(laptop.home, '.claude/skills/notes'));
   await symlink(join(laptop.home, 'dev/skills/own'), join(laptop.home, '.claude/skills/own'));
-  const { request } = await buildSyncRequest(laptop.store, [], {
+  const { request, withheld } = await buildSyncRequest(laptop.store, [], {
     home: laptop.home,
     globalGuidance: false,
     globalSkills: true,
   });
   expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`)).toEqual([
     '.claude/skills/own/SKILL.md',
+  ]);
+  expect(withheld.map((value) => value.name).sort()).toEqual([
+    '~/.claude/skills/home',
+    '~/.claude/skills/notes',
+    '~/.claude/skills/outside',
   ]);
 });
 
