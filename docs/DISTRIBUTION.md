@@ -86,6 +86,12 @@ The optional Dockerfile runs the bundled CLI as an unprivileged user. Mount only
 
 Publishing a container port does not make the loopback-only workbench reachable. The container delivery is for CLI/MCP; the host portable or standalone application is the supported browser delivery. There is no automatic public listener or reverse-proxy configuration.
 
+## Releases
+
+A `vMAJOR.MINOR.PATCH` tag that matches `package.json` runs `.github/workflows/release.yml`. It verifies the tree, compiles `rigshelf` for darwin-arm64, darwin-x64, linux-arm64, linux-x64 and windows-x64 with the web interface embedded (`bun scripts/release.ts`), and opens a draft release with `checksums.txt` and provenance attestations. The [tapster](https://tapster.doguyilmaz.com) hub in `doguyilmaz/homebrew-tap` signs and notarizes the macOS binaries, publishes the release and writes the Homebrew, Scoop, apt and dnf entries. Connect the project once with `bunx @doguyilmaz/tapster add`, which adds the hub notification step.
+
+Publishing the release runs `.github/workflows/npm.yml`, which assembles `@doguyilmaz/rigshelf` (`bun scripts/npm-package.ts`) and publishes it with npm trusted publishing, so `bunx @doguyilmaz/rigshelf` needs no install. The Claude Code and Codex plugin in `plugin/` is published by the repository itself through `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`; bump `plugin/plugin.json` with `package.json`.
+
 ## Before publishing
 
 Run the normal verification, UI and package smoke suites. Review the archive inventory and checksums, qualify each advertised OS/CPU and native Harness, and establish the vulnerability-reporting contact. Supply real GitHub/S3 destinations only through the explicit connection and review flow. Packaging never publishes artifacts, creates remote services or uploads private data.
