@@ -115,6 +115,7 @@ export function Machines({ notify }: PageProps): ReactNode {
     globalGuidance: true,
     globalSettings: false,
     globalSkills: false,
+    everything: false,
   });
   const [prepared, setPrepared] = useState<Prepared>();
   const [busy, setBusy] = useState<'check' | 'sync' | 'apply'>();
@@ -293,6 +294,7 @@ export function Machines({ notify }: PageProps): ReactNode {
                     ['globalGuidance', 'Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)'],
                     ['globalSettings', 'Claude Code settings (~/.claude/settings.json)'],
                     ['globalSkills', 'Global Skills folders'],
+                    ['everything', 'Everything, including memory for every project'],
                   ] as const
                 ).map(([key, label]) => (
                   <label className="machine-memory" key={key}>

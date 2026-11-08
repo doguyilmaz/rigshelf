@@ -1364,5 +1364,6 @@
   "Add to every project": "Add to every project",
   "Remove from every project": "Remove from every project",
   "Removed from every project. Existing projects keep it until their next setup.": "Removed from every project. Existing projects keep it until their next setup.",
-  "Added to every project. New setups and the next setup of each project include it.": "Added to every project. New setups and the next setup of each project include it."
+  "Added to every project. New setups and the next setup of each project include it.": "Added to every project. New setups and the next setup of each project include it.",
+  "Everything, including memory for every project": "Everything, including memory for every project"
 }

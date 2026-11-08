@@ -31,6 +31,7 @@ Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
   rigshelf machine sync <ssh-alias> [--root /dir] [--remote-root /dir] [--replace-directives]
                         [--memory project,project] [--skip-local-files] [--apply]
                         [--skip-global-guidance] [--global-settings] [--global-skills]
+                        [--all]  everything above, including memory for every project
                                                 Prepare plans on the server for each applied project kit
   rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
   rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
@@ -49,6 +50,7 @@ interface MachineOptions {
   'skip-global-guidance'?: boolean;
   'global-settings'?: boolean;
   'global-skills'?: boolean;
+  all?: boolean;
 }
 
 const label: Record<string, string> = {
@@ -209,6 +211,7 @@ export async function runMachineCommand(
       globalGuidance: !values['skip-global-guidance'],
       globalSettings: values['global-settings'],
       globalSkills: values['global-skills'],
+      everything: values.all,
     });
     if (!sync.request.projects.length)
       return { text: `No project here has an applied Rigshelf kit with a Git origin.\n` };

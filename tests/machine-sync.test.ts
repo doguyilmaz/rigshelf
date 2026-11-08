@@ -430,3 +430,39 @@ test('global guidance is sent by default and can be left out', async () => {
   });
   expect(skipped.request.globalFiles).toBeUndefined();
 });
+
+test('everything mode adds settings, global Skills and memory for every project, never account or trust files', async () => {
+  const { laptop } = await machines();
+  await repository(laptop.project, 'git@github.com:owner/app.git');
+  const skill = sampleSkill(laptop.store, 'all-guide');
+  const plan = await createPlan(laptop.store, {
+    projectPath: laptop.project,
+    providers: ['claude'],
+    entryIds: [skill.id],
+    requirements: '',
+    includeRules: false,
+    allowReviewed: false,
+  });
+  await executePlan(laptop.store, plan.id, 'apply');
+  await Bun.write(join(laptop.home, '.claude/settings.json'), '{}\n');
+  await Bun.write(
+    join(laptop.home, '.claude/skills/everywhere/SKILL.md'),
+    '---\nname: everywhere\n---\n',
+  );
+  await Bun.write(join(laptop.home, '.claude.json'), '{"oauthAccount":{}}');
+  await Bun.write(
+    join(laptop.home, '.claude/projects', claudeMemoryKey(laptop.project), 'memory/notes.md'),
+    'note\n',
+  );
+  const { request } = await buildSyncRequest(laptop.store, [laptop.project], {
+    home: laptop.home,
+    localFiles: false,
+    everything: true,
+  });
+  expect(request.projects[0]?.memory?.map((file) => file.path)).toEqual(['notes.md']);
+  expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`).sort()).toEqual([
+    '.claude/settings.json',
+    '.claude/skills/everywhere/SKILL.md',
+  ]);
+  expect(JSON.stringify(request)).not.toContain('oauthAccount');
+});

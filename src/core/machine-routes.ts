@@ -27,6 +27,7 @@ const SyncInput = z.object({
   globalGuidance: z.boolean().default(true),
   globalSettings: z.boolean().default(false),
   globalSkills: z.boolean().default(false),
+  everything: z.boolean().default(false),
 });
 const ApplyInput = z.object({ alias: Alias, planIds: z.array(z.string().uuid()).min(1).max(600) });
 

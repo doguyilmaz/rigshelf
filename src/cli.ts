@@ -103,6 +103,7 @@ async function main(): Promise<void> {
       'skip-global-guidance': { type: 'boolean' },
       'global-settings': { type: 'boolean' },
       'global-skills': { type: 'boolean' },
+      all: { type: 'boolean' },
     },
   });
   if (values.version) {

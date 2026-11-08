@@ -250,6 +250,7 @@ export async function buildSyncRequest(
   options: {
     home?: string;
     memory?: string[];
+    everything?: boolean;
     localFiles?: boolean;
     globalGuidance?: boolean;
     globalSettings?: boolean;
@@ -262,6 +263,7 @@ export async function buildSyncRequest(
 }> {
   const home = options.home ?? homedir();
   const withMemory = new Set(options.memory ?? []);
+  const all = options.everything ?? false;
   const skipped: { name: string; reason: string }[] = [];
   const withheld: Withheld[] = [];
   const budget = new FileBudget(withheld);
@@ -282,7 +284,7 @@ export async function buildSyncRequest(
         reason: 'Git could not list tracked files; local files were not sent',
       });
     const memory =
-      withMemory.has(project.name) || withMemory.has(project.repository)
+      all || withMemory.has(project.name) || withMemory.has(project.repository)
         ? await collectMemory(home, project.path, budget)
         : undefined;
     if (!kit && !local?.length && !memory?.length) {
@@ -313,11 +315,11 @@ export async function buildSyncRequest(
   };
   if (options.globalGuidance ?? true)
     for (const [root, path] of globalGuidanceFiles) await addGlobal(root, path);
-  if (options.globalSettings) {
+  if (all || options.globalSettings) {
     for (const [root, path] of globalSettingsFiles) await addGlobal(root, path);
     for (const [name, reason] of refusedGlobalSettings) budget.hold(name!, reason!);
   }
-  if (options.globalSkills)
+  if (all || options.globalSkills)
     for (const root of globalRoots)
       for (const path of await skillFiles(join(home, root))) await addGlobal(root, path);
   const exported = exportLibrary(store);
