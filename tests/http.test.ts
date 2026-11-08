@@ -41,6 +41,15 @@ async function serverFixture(chooseDirectory?: DirectoryPickerDriver, aiDriver?:
   return { ...value, base, token, server };
 }
 
+test('a missing interface chunk returns 404 instead of serving HTML as JavaScript', async () => {
+  const data = await serverFixture();
+  const response = await fetch(`${data.base}/assets/missing-fixture-chunk.js`);
+  expect(response.status).toBe(404);
+  expect(response.headers.get('content-type')).not.toContain('text/html');
+  expect(await response.text()).not.toContain('<html');
+  expect(data.store.planSummaries()).toEqual([]);
+});
+
 test('definition collisions and stale checked edits report HTTP 409 without returning the newer body or accepting unchecked fallbacks', async () => {
   const data = await serverFixture();
   const preset = data.store.get<Preset>('preset', 'expo')!;

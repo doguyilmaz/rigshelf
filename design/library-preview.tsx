@@ -167,6 +167,7 @@ const state: AppState = {
   settings: {
     roots: [],
     scanGlobals: false,
+    aiConfigRoots: [],
     defaultProviders: ['codex'],
     aiRunner: 'none',
     aiConnections: [],

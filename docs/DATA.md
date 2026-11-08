@@ -1,5 +1,13 @@
 # Data ownership and format
 
+## Local discovery preferences and source previews
+
+Private Settings accept `aiConfigRoots`, defaulting to an empty list for older catalogs. Each strict record contains an absolute/`~/` configuration `path` (at most 4,096 characters) and one enumerated native `provider` format; at most twenty records are accepted. These records remain machine-local and outside portable library exports. They change read-only discovery, not project ownership or activation permission. `GET /api/ai-config-roots` inspects configured root metadata behind private HTTP access and reports origins/warnings; it does not read account stores or run a scan.
+
+`POST /api/sources/preview` parses the existing bounded source input schema without network requests, catalog mutation or recipe execution. Saving still uses the ordinary sources operation and explicit online research behavior. Preview state in the UI is bound to the input/name/recipe fields and is hidden when those fields change. It is not source verification, a capability Snapshot or permission to Apply.
+
+The existing browser AI preference record additionally retains model choices by runner. It holds only bounded model names, a runner and connection ID, not source input or prompts. Old single-model preferences remain readable; new native choices use the documented lightweight suggestions, with an explicit Provider default and custom-ID override.
+
 ## AI connections and reviewed exports
 
 Private Settings now have optional `aiConnections` (default empty, at most twelve distinct IDs) and the additional `compatible` AI runner. A connection contains `id`, `name`, `baseUrl`, `model` and `apiKeyEnv`, never the key value. Connection objects reject unknown fields. Credential reference names require the `RIGSHELF_AI_` prefix and have a 100-character bound. Profiles are not included in portable library exports. AI draft requests accept a bounded `connectionId`; the service resolves one saved profile before scheduling generation. Requests cannot supply or override endpoint or authentication fields. A profile's subsequent removal does not reroute its already started request. Browser preferences additionally remember the selected connection ID.

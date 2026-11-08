@@ -30,6 +30,7 @@ const documents = [
   'SECURITY-REVIEW',
   'VALIDATION',
   'WEBSITE',
+  'WORKFLOW-AUDIT',
 ];
 const publicFiles = [
   'LICENSE',

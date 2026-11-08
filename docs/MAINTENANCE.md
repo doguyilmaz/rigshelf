@@ -4,6 +4,8 @@ Library storage, upstream availability, content revision and project activation 
 
 ## Check an upstream Skill
 
+In the workbench: **Library → open a Skill → Fetch latest snapshot** imports a revision without changing installed projects. In the project's kit, items with multiple saved revisions offer **Snapshot for …**. Choose the exact revision, then **Review setup** to inspect file differences and **Apply** deliberately. Other choices from the same source/name remain available, including the prior pin; a newer saved date is not an upstream safety or freshness claim. Existing project selections never silently move to another revision when Library refreshes.
+
 ```sh
 bun run rigshelf sources
 bun run rigshelf check-source <source-id>

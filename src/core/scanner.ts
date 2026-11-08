@@ -436,7 +436,7 @@ export async function scan(
     captureInventoryBaseline(store);
     let globalPartial = false;
     const configRoots = includeGlobals
-      ? await userAiRoots(home, result.skipped, options.environment)
+      ? await userAiRoots(home, result.skipped, options.environment, store.settings().aiConfigRoots)
       : [];
     const sharedGuidance = await globalGuidance(configRoots, home);
     const nativeGlobal = includeGlobals ? await globalAiFiles(configRoots) : undefined;

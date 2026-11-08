@@ -77,6 +77,8 @@ The [MCP integration guide](docs/MCP.md) covers connection snippets, every shipp
 
 AI assistance can use your installed Claude Code/Codex CLI, local Ollama, a saved local/remote Chat Completions connection, or a pending draft answered in a connected MCP session. Generation is explicit; proposals are reviewed before use. API credentials use server environment references. See [AI assistance](docs/AI-ASSISTANCE.md) for setup and limits.
 
+Start with rough notes or paste a source command instead of filling every field. Claude/Codex panels offer Haiku/Luna as lightweight starting choices, remember models per Provider and allow exact model IDs. Connected-Agent panels include read-only MCP setup help for Kiro, OpenCode, agy and Grok. Links/commands can also go straight to a source preview without a model call. Custom manager folders belong in **Settings → Where to look → Profiles and custom AI folders**; documented native layouts are read, conversation/account databases are excluded.
+
 Automatic additions are optional. They require both current project approval and approval of each exact clean Snapshot. New revisions require a new review; revocation stops pending automatic work. Existing authored guidance is preserved. See the [automation walkthrough](docs/QUICKSTART.md#continue-and-recover).
 
 ## Data and backup

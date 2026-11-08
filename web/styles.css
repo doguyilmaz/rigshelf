@@ -1411,6 +1411,61 @@ label {
 .ai-provider-row.single {
   grid-template-columns: 1fr;
 }
+.ai-model-picker,
+.ai-config-roots .editor-form,
+.ai-session-connection {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.ai-model-picker > .inline-button {
+  justify-self: start;
+}
+.ai-model-picker .field-help {
+  margin: 0;
+}
+.ai-config-roots {
+  margin-top: 16px;
+}
+.ai-config-roots > summary,
+.ai-session-connection > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.config-root-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.config-root-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.config-root-list li > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.config-root-list code,
+.source-intake-preview code,
+.source-intake-preview pre {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.source-intake-preview {
+  padding: 16px;
+  background: var(--surface-soft, #f6f6f6);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
 .ai-assist .ai-provider-row input,
 .ai-assist .ai-provider-row .select-trigger {
   height: 40px;
@@ -1625,6 +1680,17 @@ label {
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--line);
+}
+.kit-snapshot-choice {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.kit-snapshot-choice small {
+  color: var(--muted);
+  line-height: 1.5;
 }
 .kit-entry .capability-row {
   flex: 1;

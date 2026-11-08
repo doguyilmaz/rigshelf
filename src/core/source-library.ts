@@ -9,8 +9,8 @@ import { checkSource, discoverSourceSkills } from './upstream';
 
 export const AddSourceSchema = z
   .object({
-    url: z.string().max(4096).optional(),
-    input: z.string().max(5000).optional(),
+    url: z.string().trim().max(4096).optional(),
+    input: z.string().trim().max(5000).optional(),
     name: z.string().trim().min(1).max(500).optional(),
     recipe: z.string().max(4096).default(''),
     research: z.boolean().default(true),
@@ -35,7 +35,8 @@ export function validateSourceUrl(value: string): void {
       'Use a public HTTPS source URL without credentials or secret query parameters.',
     );
 }
-export async function addSource(store: Store, raw: unknown): Promise<Source> {
+/** Parse a reference without network, catalog writes or recipe execution. */
+export function previewSource(raw: unknown): Source {
   const value = AddSourceSchema.parse(raw);
   let input = (value.input || value.url || '').trim();
   if (/^[\w.-]+\/[\w.-]+$/.test(input)) input = `https://github.com/${input}`;
@@ -47,8 +48,16 @@ export async function addSource(store: Store, raw: unknown): Promise<Source> {
     source.recipe = redact(value.recipe);
     source.recipeKind = 'explicit';
   }
-  const focus = input.match(/^https:\/\/skills\.sh\/[^/]+\/[^/]+\/([^/?#]+)/)?.[1];
-  source.focusSkill = focus || input.match(/--skill(?:=|\s+)([\w-]+)/)?.[1];
+  source.focusSkill =
+    input.match(/^https:\/\/skills\.sh\/[^/]+\/[^/]+\/([^/?#]+)/)?.[1] ||
+    input.match(/--skill(?:=|\s+)([\w-]+)/)?.[1];
+  return source;
+}
+export async function addSource(store: Store, raw: unknown): Promise<Source> {
+  const value = AddSourceSchema.parse(raw);
+  const source = previewSource(value);
+  const original = (value.input || value.url || '').trim();
+  const input = /^[\w.-]+\/[\w.-]+$/.test(original) ? `https://github.com/${original}` : original;
   const matching = source.url
     ? store
         .sources()

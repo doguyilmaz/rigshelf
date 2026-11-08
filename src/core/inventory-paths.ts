@@ -102,6 +102,6 @@ export const aiDirectoryNames = new Set([
 export interface AiConfigRoot {
   path: string;
   provider: string;
-  origin: 'default' | 'aims' | 'environment';
+  origin: 'default' | 'aims' | 'environment' | 'custom';
   memoryProjectName?: string;
 }

@@ -2,7 +2,10 @@ import { PenLine, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { AiDraftView } from '../src/core/ai-assistance';
 import type { AiDraft, AiProposal, AiRequest } from '../src/core/ai-drafts';
+import { defaultDraftModel } from '../src/core/ai-models';
 import { AiDraftPreview } from './AiDraftPreview';
+import { AiModelPicker } from './AiModelPicker';
+import { AiSessionConnection } from './AiSessionConnection';
 import { api, apiId } from './api';
 import { Button, CopyButton, Notice, Spinner } from './components';
 import { useDraftGuard } from './drafts';
@@ -29,9 +32,15 @@ export interface AiAssistProps {
   initialText?: string;
   defaultIntent?: AiRequest['intent'];
   compact?: boolean;
+  onSourceInput?: (input: string) => void;
 }
 const PREFERENCE_KEY = 'kitfold:ai-provider:v1';
-function remembered(): { runner?: AiRequest['runner']; model?: string; connectionId?: string } {
+function remembered(): {
+  runner?: AiRequest['runner'];
+  model?: string;
+  connectionId?: string;
+  models?: Record<string, string>;
+} {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(PREFERENCE_KEY) || '{}');
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -39,6 +48,14 @@ function remembered(): { runner?: AiRequest['runner']; model?: string; connectio
     return {
       runner: typeof item.runner === 'string' && isRunner(item.runner) ? item.runner : undefined,
       model: typeof item.model === 'string' && item.model.length <= 100 ? item.model : undefined,
+      models:
+        item.models && typeof item.models === 'object' && !Array.isArray(item.models)
+          ? (Object.fromEntries(
+              Object.entries(item.models).filter(
+                ([key, model]) => isRunner(key) && typeof model === 'string' && model.length <= 100,
+              ),
+            ) as Record<string, string>)
+          : {},
       connectionId:
         typeof item.connectionId === 'string' && item.connectionId.length <= 64
           ? item.connectionId
@@ -68,6 +85,7 @@ export function AiAssistPanel({
   initialText = '',
   defaultIntent = 'create',
   compact = false,
+  onSourceInput,
 }: AiAssistProps) {
   const fieldId = useId();
   const [text, setText] = useState(initialText);
@@ -78,13 +96,15 @@ export function AiAssistPanel({
   );
   const [model, setModel] = useState(
     () =>
-      remembered().model ||
+      remembered().models?.[runner] ??
+      (remembered().runner === runner ? remembered().model || undefined : undefined) ??
       (runner === settings.aiRunner
         ? runner === 'ollama'
           ? settings.ollamaModel
           : settings.aiModel
-        : ''),
+        : defaultDraftModel(runner)),
   );
+  const models = useRef(remembered().models || {});
   const [job, setJob] = useState<AiDraftView>();
   const [connectionId, setConnectionId] = useState(
     () =>
@@ -135,11 +155,13 @@ export function AiAssistPanel({
             item.id === 'compatible' ? { ...item, available: hasConnections } : item,
           ),
         );
-        if (!remembered().runner && settings.aiRunner === 'none')
-          setRunner(
+        if (!remembered().runner && settings.aiRunner === 'none') {
+          const next =
             items.find((item) => item.available && ['claude', 'codex'].includes(item.id))?.id ||
-              'session',
-          );
+            'session';
+          setRunner(next);
+          setModel(defaultDraftModel(next));
+        }
       })
       .catch(() => {
         if (live) setError(t('Could not load AI Providers. Try again.'));
@@ -224,7 +246,15 @@ export function AiAssistPanel({
       ownedJob.current = next.id;
       setJob(next);
       try {
-        localStorage.setItem(PREFERENCE_KEY, JSON.stringify({ runner, model, connectionId }));
+        localStorage.setItem(
+          PREFERENCE_KEY,
+          JSON.stringify({
+            runner,
+            model,
+            connectionId,
+            models: { ...models.current, [runner]: model },
+          }),
+        );
       } catch {
         /* Optional preference. */
       }
@@ -318,8 +348,16 @@ export function AiAssistPanel({
                 disabled={working}
                 onValueChange={(value) => {
                   if (isRunner(value)) {
+                    models.current[runner] = model;
                     setRunner(value);
-                    setModel(value === 'ollama' ? settings.ollamaModel : '');
+                    setModel(
+                      models.current[value] ??
+                        (value === 'ollama'
+                          ? settings.ollamaModel
+                          : value === settings.aiRunner
+                            ? settings.aiModel
+                            : defaultDraftModel(value)),
+                    );
                   }
                 }}
                 options={providers.map((item) => ({
@@ -348,6 +386,16 @@ export function AiAssistPanel({
                     onValueChange={setModel}
                     disabled={working}
                   />
+                ) : runner === 'claude' || runner === 'codex' ? (
+                  <AiModelPicker
+                    key={runner}
+                    showHelp={false}
+                    id={`${fieldId}-model`}
+                    runner={runner}
+                    value={model}
+                    onValueChange={setModel}
+                    disabled={working}
+                  />
                 ) : (
                   <input
                     id={`${fieldId}-model`}
@@ -361,6 +409,13 @@ export function AiAssistPanel({
               </div>
             )}
           </div>
+          {(runner === 'claude' || runner === 'codex') && (
+            <p className="field-help">
+              {t(
+                'Suggestions are not an account model list. Availability and usage depend on your CLI login. No automatic fallback to a larger model.',
+              )}
+            </p>
+          )}
           {runner === 'compatible' && (
             <div className="editor-form">
               <label htmlFor={`${fieldId}-connection`}>
@@ -389,6 +444,7 @@ export function AiAssistPanel({
               )}
             </div>
           )}
+          {runner === 'session' && <AiSessionConnection initialProvider={settings.aiRunner} />}
           <p className="field-help">
             {runner === 'session'
               ? t(
@@ -432,6 +488,15 @@ export function AiAssistPanel({
             </Notice>
           )}
           <div className="button-row">
+            {onSourceInput &&
+              !working &&
+              /^(?:https:\/\/\S+|[\w.-]+\/[\w.-]+|(?:bunx|npx|npm|bun|curl|\/plugin)\s+.+)$/s.test(
+                text.trim(),
+              ) && (
+                <Button variant="secondary" onClick={() => onSourceInput(text.trim())}>
+                  {t('Preview source without AI')}
+                </Button>
+              )}
             {working ? (
               <>
                 <Spinner

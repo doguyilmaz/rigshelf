@@ -7,6 +7,7 @@ import { shortPath } from '../api';
 import { Badge, Button, Modal, Notice, Spinner } from '../components';
 import { countText } from '../format';
 import { t } from '../i18n';
+import { KitSnapshotChoice } from '../KitSnapshotChoice';
 import { ModalPresence } from '../ModalPresence';
 import type { PageProps } from '../main';
 import { ProjectPathInput } from '../ProjectPathInput';
@@ -128,12 +129,14 @@ function WorkspaceAgents({ setup, state }: Pick<WorkspaceProps, 'setup' | 'state
 
 function WorkspaceKit({
   entries,
+  allEntries,
   recommendations,
   setup,
   add,
   inspect,
 }: {
   entries: Metadata[];
+  allEntries: Metadata[];
   recommendations: NonNullable<SetupController['detected']>['recommendations'];
   setup: SetupController;
   add: (kind?: 'skill' | 'mcp') => void;
@@ -170,14 +173,22 @@ function WorkspaceKit({
             {items.length ? (
               <div className="kit-results">
                 {items.map((entry) => (
-                  <KitRow
-                    key={entry.id}
-                    entry={entry}
-                    selected
-                    toggle={() => setup.toggleEntry(entry.id)}
-                    inspect={() => inspect(entry.id)}
-                    reason={recommendations.find((item) => item.entry.id === entry.id)?.reasons[0]}
-                  />
+                  <div key={entry.id}>
+                    <KitRow
+                      entry={entry}
+                      selected
+                      toggle={() => setup.toggleEntry(entry.id)}
+                      inspect={() => inspect(entry.id)}
+                      reason={
+                        recommendations.find((item) => item.entry.id === entry.id)?.reasons[0]
+                      }
+                    />
+                    <KitSnapshotChoice
+                      entry={entry}
+                      entries={allEntries}
+                      onChoose={setup.addEntry}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -375,6 +386,7 @@ export function ProjectWorkspace({ setup, state, navigate, active, add, inspect 
           <WorkspaceBrief {...{ setup, state, active: active && current }} />
           <WorkspaceKit
             entries={selected}
+            allEntries={state.entries}
             recommendations={detected.recommendations}
             {...{ setup, add, inspect }}
           />

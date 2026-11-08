@@ -1,8 +1,11 @@
 import { ArrowRight, HardDrive, Save, ShieldCheck, Terminal, Upload } from 'lucide-react';
 import { type FormEvent, type ReactNode, useRef, useState } from 'react';
+import { defaultDraftModel } from '../../src/core/ai-models';
 import type { ImportReview } from '../../src/core/backup';
 import type { Provider, Settings as SettingsValue } from '../../src/core/model';
+import { AiConfigRootsEditor } from '../AiConfigRootsEditor';
 import { AiConnectionEditor } from '../AiConnectionEditor';
+import { AiModelPicker } from '../AiModelPicker';
 import { accessToken, api, shortPath } from '../api';
 import { BackupReviewPanel } from '../BackupReviewPanel';
 import { Button, CopyButton, Modal, Notice, PageHeader, Spinner } from '../components';
@@ -191,6 +194,11 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
               />
               {t('Also discover global skills and MCP definitions')}
             </label>
+            <AiConfigRootsEditor
+              value={value.aiConfigRoots}
+              onChange={(roots) => update('aiConfigRoots', roots)}
+              enabled={value.scanGlobals}
+            />
           </section>
           <section className="settings-section">
             <h2>{t('Your usual agents')}</h2>
@@ -229,9 +237,13 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
                   label={t('Review provider')}
                   id="review-provider"
                   value={value.aiRunner}
-                  onValueChange={(runner) =>
-                    update('aiRunner', runner as SettingsValue['aiRunner'])
-                  }
+                  onValueChange={(runner) => {
+                    setValue((current) => ({
+                      ...current,
+                      aiRunner: runner as SettingsValue['aiRunner'],
+                      aiModel: defaultDraftModel(runner),
+                    }));
+                  }}
                   options={[
                     { value: 'none', label: t('Choose in AI panels') },
                     { value: 'session', label: t('Current Agent · MCP drafts') },
@@ -263,15 +275,19 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
                   />
                 </div>
               )}
-              {['claude', 'codex'].includes(value.aiRunner) && (
-                <label>
-                  {t('Model')}
-                  <input
+              {(value.aiRunner === 'claude' || value.aiRunner === 'codex') && (
+                <div>
+                  <label className="field-label" htmlFor="settings-ai-model">
+                    {t('Model')}
+                  </label>
+                  <AiModelPicker
+                    key={value.aiRunner}
+                    id="settings-ai-model"
+                    runner={value.aiRunner}
                     value={value.aiModel}
-                    onChange={(event) => update('aiModel', event.target.value)}
-                    placeholder={t('Provider default')}
+                    onValueChange={(model) => update('aiModel', model)}
                   />
-                </label>
+                </div>
               )}
             </div>
             <AiConnectionEditor

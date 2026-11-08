@@ -555,6 +555,8 @@ export function AddToLibrary({
   const [tags, setTags] = useState('');
   const [url, setUrl] = useState('');
   const [recipe, setRecipe] = useState('');
+  const [sourcePreview, setSourcePreview] = useState<{ source: Source; basis: string }>();
+  const sourceBasis = JSON.stringify({ url, name, recipe });
   const [localPath, setLocalPath] = useState('');
   const [busy, setBusy] = useState(false);
   const [aiDirty, setAiDirty] = useState(false);
@@ -572,6 +574,22 @@ export function AddToLibrary({
     ),
     t('New library item'),
   );
+  async function inspectSource(input = url) {
+    setBusy(true);
+    try {
+      const source = await api<Source>('sources/preview', 'POST', {
+        input,
+        name: name || undefined,
+        recipe,
+      });
+      if (mounted.current)
+        setSourcePreview({ source, basis: JSON.stringify({ url: input, name, recipe }) });
+    } catch (error) {
+      notify((error as Error).message, true);
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  }
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
     setBusy(true);
@@ -656,6 +674,15 @@ export function AddToLibrary({
           task={tab === 'custom' ? 'skill' : tab === 'mcp' ? 'mcp' : 'library'}
           defaultOpen={tab === 'assist'}
           label={tab === 'assist' ? t('Paste or describe it') : t('Fill or improve with AI')}
+          onSourceInput={
+            tab === 'assist'
+              ? (input) => {
+                  setUrl(input);
+                  setTab('source');
+                  void inspectSource(input);
+                }
+              : undefined
+          }
           current={
             tab === 'assist'
               ? ''
@@ -722,6 +749,34 @@ export function AddToLibrary({
                   'Sources can contain many skills. Add the source, then choose which skills to snapshot.',
                 )}
               </Notice>
+              <Button
+                variant="secondary"
+                disabled={busy || !url.trim()}
+                onClick={() => void inspectSource()}
+              >
+                {t('Preview source')}
+              </Button>
+              {sourcePreview && sourcePreview.basis === sourceBasis && (
+                <section className="source-intake-preview" aria-label={t('Source preview')}>
+                  <strong>{sourcePreview.source.name}</strong>
+                  <p>
+                    <code>{sourcePreview.source.url || t('Recipe only')}</code>
+                  </p>
+                  {sourcePreview.source.recipe && <pre>{sourcePreview.source.recipe}</pre>}
+                  <p>
+                    {t(
+                      sourcePreview.source.type === 'github'
+                        ? 'Save this repository, then browse and import selected Skills. Project files stay unchanged.'
+                        : 'This is a saved reference or recipe. Automatic Skill import is available for supported GitHub repositories; website content is not fetched by AI.',
+                    )}
+                  </p>
+                  <p className="field-help">
+                    {t(
+                      'Preview uses no model, network request or installer. Saving checks supported sources online.',
+                    )}
+                  </p>
+                </section>
+              )}
             </>
           )}
           {tab === 'local' && (

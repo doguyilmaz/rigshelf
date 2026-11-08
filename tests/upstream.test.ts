@@ -1,5 +1,7 @@
 import { afterEach, expect, mock, spyOn, test } from 'bun:test';
+import { join } from 'node:path';
 import { discoverSkills } from '../src/core/discovery';
+import { createPlan, executePlan } from '../src/core/planner';
 import { addSource } from '../src/core/source-library';
 import { checkSource, discoverSourceSkills, importUpstreamSkill } from '../src/core/upstream';
 import { fixture } from './helpers';
@@ -28,6 +30,50 @@ function mockFetch(
     Object.assign(implementation, { preconnect: fetch.preconnect }),
   );
 }
+
+test('remote source updates create immutable revisions and leave project pins unchanged until a reviewed upgrade', async () => {
+  const { store, project } = await setup();
+  await Bun.write(join(project, 'package.json'), '{}');
+  let revision = 'a'.repeat(40);
+  mockFetch(async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith('/commits/HEAD')) return Response.json({ sha: revision });
+    if (url.pathname.includes('/git/trees/'))
+      return Response.json({
+        truncated: false,
+        tree: [{ path: 'skills/focused/SKILL.md', type: 'blob', mode: '100644', size: 200 }],
+      });
+    if (url.hostname === 'raw.githubusercontent.com')
+      return new Response(
+        `---\nname: remote-focused\ndescription: Use for remote upgrade verification.\n---\n\nRevision ${revision.slice(0, 1)}.\n`,
+      );
+    return Response.json({ owner: { login: 'example' }, archived: false });
+  });
+  const source = await addSource(store, { input: 'example/upgrades' });
+  const first = await importUpstreamSkill(store, source.id, 'skills/focused/SKILL.md');
+  const request = (id: string) => ({
+    projectPath: project,
+    providers: ['codex'] as const,
+    entryIds: [id],
+  });
+  const initial = await createPlan(store, { ...request(first.id), providers: ['codex'] });
+  await executePlan(store, initial.id, 'apply');
+  const installedPath = join(project, '.agents/skills/remote-focused/SKILL.md');
+  const installed = await Bun.file(installedPath).text();
+  revision = 'b'.repeat(40);
+  expect((await checkSource(store, source.id)).latestRef).toBe(revision);
+  expect(await Bun.file(installedPath).text()).toBe(installed);
+  const next = await importUpstreamSkill(store, source.id, 'skills/focused/SKILL.md');
+  expect(next.id).not.toBe(first.id);
+  expect(next.upstreamRef).toBe(revision);
+  expect(store.entry(first.id)?.upstreamRef).toBe('a'.repeat(40));
+  const upgrade = await createPlan(store, { ...request(next.id), providers: ['codex'] });
+  expect(await Bun.file(installedPath).text()).toBe(installed);
+  await executePlan(store, upgrade.id, 'apply');
+  expect(await Bun.file(installedPath).text()).toContain('Revision b.');
+  await executePlan(store, upgrade.id, 'rollback');
+  expect(await Bun.file(installedPath).text()).toBe(installed);
+});
 
 test('source checks preserve edits made while remote evidence is loading', async () => {
   const { store } = await setup();

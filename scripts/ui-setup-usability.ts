@@ -178,6 +178,29 @@ try {
     'Navigating Library/Settings retains path, requirements, preset, Agents and the exact manually selected snapshot after catalog refresh.',
   );
 
+  const snapshots = page.getByLabel('Snapshot for zebra-android-review', { exact: true });
+  await snapshots.click();
+  await page
+    .getByRole('option')
+    .filter({ hasText: latest.digest.slice(0, 10) })
+    .click();
+  expect(
+    await Bun.file(join(data.project, '.agents/skills/zebra-android-review/SKILL.md')).exists(),
+  ).toBe(false);
+  await page.getByRole('button', { name: 'Review setup', exact: true }).click();
+  await review.waitFor();
+  expect(planRequests.at(-1)?.entryIds).toContain(latest.id);
+  expect(planRequests.at(-1)?.entryIds).not.toContain(manual.id);
+  await review.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await snapshots.click();
+  await page
+    .getByRole('option')
+    .filter({ hasText: manual.digest.slice(0, 10) })
+    .click();
+  checks.push(
+    'Saved Snapshot revisions can be deliberately switched inside the kit; Review uses the chosen exact revision without writing the project, and the prior revision remains selectable.',
+  );
+
   let releasePlan: () => void = () => undefined;
   const planGate = new Promise<void>((resolve) => {
     releasePlan = resolve;

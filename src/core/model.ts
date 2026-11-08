@@ -239,6 +239,34 @@ export interface Plan {
 export const SettingsSchema = z.object({
   roots: z.array(z.string().min(1)).max(20),
   scanGlobals: z.boolean(),
+  aiConfigRoots: z
+    .array(
+      z
+        .object({
+          path: z
+            .string()
+            .trim()
+            .min(1)
+            .max(4096)
+            .refine(
+              (path) => /^(?:\/|~\/|[A-Za-z]:[\\/])/.test(path),
+              'Choose an absolute AI configuration folder.',
+            ),
+          provider: z.enum([
+            'claude',
+            'codex',
+            'kiro',
+            'opencode',
+            'antigravity',
+            'gemini',
+            'grok',
+            'custom',
+          ]),
+        })
+        .strict(),
+    )
+    .max(20)
+    .default([]),
   defaultProviders: ProvidersSchema,
   aiRunner: z
     .enum([

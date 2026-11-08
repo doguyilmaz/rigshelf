@@ -11,6 +11,7 @@ import {
   listAiDrafts,
   startAiDraft,
 } from './ai-assistance';
+import { userAiRoots } from './ai-config-roots';
 import type { AiFileInventory } from './ai-files';
 import { exportLibrary, importLibrary } from './backup';
 import { reviewBackup } from './backup-review';
@@ -56,7 +57,7 @@ import { checkedProject, hash, now, redact, scanText, slug } from './safety';
 import { inventoryScan } from './scan-lifecycle';
 import { sanitizeMcp, scanProgress } from './scanner';
 import { reviseSkill } from './skill-revisions';
-import { addSource, editSource } from './source-library';
+import { addSource, editSource, previewSource } from './source-library';
 import type { Store } from './store';
 import { checkSource, discoverSourceSkills, importUpstreamSkill } from './upstream';
 import { checkProject } from './watch';
@@ -121,6 +122,18 @@ export async function route(
     throw new Error('Invalid API route.');
   const [resource, id, action] = segments;
   if (id) RecordIdSchema.parse(id);
+  if (method === 'POST' && resource === 'sources' && id === 'preview' && segments.length === 2)
+    return previewSource(input);
+  if (method === 'GET' && resource === 'ai-config-roots' && segments.length === 1) {
+    const warnings: string[] = [];
+    const roots = await userAiRoots(
+      homedir(),
+      warnings,
+      process.env,
+      store.settings().aiConfigRoots,
+    );
+    return { roots, warnings };
+  }
   if (
     [
       'backup-destinations',

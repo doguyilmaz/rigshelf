@@ -119,6 +119,8 @@ export function aiCommand(runner: 'claude' | 'codex', model: string, output: str
     '-c',
     'agents.enabled=false',
     '-c',
+    'model_reasoning_effort="low"',
+    '-c',
     'web_search="disabled"',
     '-c',
     'mcp_servers={}',

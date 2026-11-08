@@ -1,7 +1,13 @@
 import { lstat, readdir, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import { type AiConfigRoot, skillPaths } from './inventory-paths';
+import {
+  type AiConfigRoot,
+  dependencyDirectories,
+  privateRuntimeDirectories,
+  skillPaths,
+} from './inventory-paths';
+import type { Settings } from './model';
 import { inside } from './safety';
 
 const MAX_PROFILES = 128;
@@ -10,6 +16,7 @@ export async function userAiRoots(
   home: string,
   skipped: string[],
   environment: NodeJS.ProcessEnv = home === homedir() ? process.env : {},
+  custom: Settings['aiConfigRoots'] = [],
 ): Promise<AiConfigRoot[]> {
   const roots: AiConfigRoot[] = skillPaths.map(([path, provider]) => ({
     path: join(home, path.split('/')[0]!),
@@ -60,6 +67,25 @@ export async function userAiRoots(
         roots.push({ path, provider, origin: 'aims' });
       else skipped.push(`${path}: External AI profile directory excluded.`);
     }
+  }
+  const canonicalHome = await realpath(home).catch(() => resolve(home));
+  for (const root of custom) {
+    const path = resolve(root.path.startsWith('~/') ? join(home, root.path.slice(2)) : root.path);
+    const canonical = await realpath(path).catch(() => undefined);
+    if (
+      !canonical ||
+      canonical === canonicalHome ||
+      resolve(canonical, '..') === canonical ||
+      canonical
+        .split(sep)
+        .some((part) => privateRuntimeDirectories.has(part) || dependencyDirectories.has(part))
+    ) {
+      skipped.push(
+        `${path}: Choose an existing, specific AI configuration folder, not a home or filesystem root.`,
+      );
+      continue;
+    }
+    roots.push({ path, provider: root.provider, origin: 'custom' });
   }
   const seen = new Set<string>();
   const result: AiConfigRoot[] = [];

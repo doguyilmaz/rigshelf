@@ -200,6 +200,11 @@ export function startServer(
     if (!inside(root, path)) return new Response('Not found', { status: 404, headers });
     if (path !== root && (await Bun.file(path).exists()))
       return new Response(Bun.file(path), { headers });
+    if (decodedPath.startsWith('/assets/'))
+      return new Response('Interface asset not found. Reload the workbench.', {
+        status: 404,
+        headers,
+      });
     const index = Bun.file(join(root, 'index.html'));
     if (!(await index.exists()))
       return new Response('Build the web UI with bun run build, then restart.', {

@@ -43,6 +43,8 @@ Directory fields offer typed paths and a local native chooser. See [directory se
 
 Read-only inventory extends beyond generated setup paths: nested and gitignored AI locations, user-scoped Claude project memory, known global harness directories, explicit Claude/Codex config roots and known Aims profile locations are supported. Shared aliases retain their origin and are deduplicated. Account/session stores and dependency directories are excluded. [AI discovery](AI-DISCOVERY.md) records exact scope and bounds; it does not imply automatic context loading or support for arbitrary undocumented storage formats.
 
+Settings also supports twenty explicit custom configuration roots with a selected native format. Wrapper tools can reuse those known file layouts, including project memory stored under a custom Claude profile. This does not add an undocumented T3/Omni database reader or collect conversations; the selected root must actually contain supported native configuration.
+
 ## Library backup transports
 
 Backup is separate from Harness setup and AI generation. GitHub.com supports existing private repositories, initialized branches, one commit/PR per reviewed batch, explicit merge/status/closure and integrity-checked history/restore. It uses a selected fine-grained token environment reference, Git Trees/Commits/Refs and PR REST APIs. GitHub Enterprise, OAuth login and SSH are not supported. Native protection rules still apply; no force push or per-file commit is used.
