@@ -54,6 +54,7 @@ const packageStacks: Record<string, string[]> = {
   '@sentry/react-native': ['sentry'],
   typescript: ['typescript'],
   wrangler: ['cloudflare'],
+  'aws-cdk-lib': ['aws-cdk', 'backend'],
 };
 function addStacks(facts: Facts, values: string[]): void {
   for (const value of values) facts.stacks.add(value);
@@ -77,7 +78,12 @@ async function readPackage(path: string, facts: Facts): Promise<string[]> {
     if (localStacks.has('react') && !localStacks.has('react-native')) localStacks.add('web');
     if ((await exists(join(path, 'bun.lock'))) || (await exists(join(path, 'bun.lockb'))))
       localStacks.add('bun');
-    if (manifest.bin && ['object', 'string'].includes(typeof manifest.bin)) localStacks.add('cli');
+    if (
+      manifest.bin &&
+      ['object', 'string'].includes(typeof manifest.bin) &&
+      !localStacks.has('aws-cdk')
+    )
+      localStacks.add('cli');
     addStacks(facts, [...localStacks]);
     return [...localStacks];
   } catch {
@@ -133,7 +139,11 @@ async function readWorkspaces(path: string, facts: Facts): Promise<void> {
       if (entry.isDirectory() && !ignoredDirectories.has(entry.name))
         candidates.add(`${parent}/${entry.name}`);
     }
-  for (const relativePath of [...candidates].slice(0, MAX_WORKSPACE_CANDIDATES)) {
+  await inspectWorkspaces(path, [...candidates], facts);
+}
+
+async function inspectWorkspaces(path: string, candidates: string[], facts: Facts): Promise<void> {
+  for (const relativePath of candidates.slice(0, MAX_WORKSPACE_CANDIDATES)) {
     const child = join(path, relativePath);
     const stacks = await readPackage(child, facts);
     const go = await goStacks(child, facts);
@@ -141,6 +151,18 @@ async function readWorkspaces(path: string, facts: Facts): Promise<void> {
     addStacks(facts, go);
     if (stacks.length) facts.workspaces.push({ name: relativePath, path: relativePath, stacks });
   }
+}
+
+async function readFirstLevelPackages(path: string, facts: Facts): Promise<void> {
+  const entries = await readdir(path, { withFileTypes: true }).catch(() => []);
+  const folders = entries
+    .filter(
+      (entry) =>
+        entry.isDirectory() && !entry.name.startsWith('.') && !ignoredDirectories.has(entry.name),
+    )
+    .map((entry) => entry.name)
+    .sort();
+  await inspectWorkspaces(path, folders, facts);
 }
 
 async function readApple(path: string, names: string[], facts: Facts): Promise<void> {
@@ -187,8 +209,23 @@ async function readNative(path: string, facts: Facts): Promise<void> {
   addStacks(facts, await goStacks(path, facts));
   if (await exists(join(path, 'Cargo.toml'))) addStacks(facts, ['rust']);
   await readPython(path, facts);
+  if (await readUnity(path, facts)) return;
   if (names.some((name) => /\.(?:csproj|sln|fsproj)$/.test(name)))
     addStacks(facts, ['dotnet', 'backend']);
+}
+
+async function readUnity(path: string, facts: Facts): Promise<boolean> {
+  if (!(await exists(join(path, 'ProjectSettings/ProjectVersion.txt')))) return false;
+  addStacks(facts, ['unity', 'csharp', 'game']);
+  try {
+    const manifest = JSON.parse((await readText(join(path, 'Packages/manifest.json'))) || '{}');
+    for (const name of Object.keys(manifest.dependencies || {})) facts.dependencies.add(name);
+  } catch {
+    facts.warnings.push(
+      'Could not parse Packages/manifest.json. Use requirements or a preset to guide setup.',
+    );
+  }
+  return true;
 }
 
 const pythonBackends = new Set(['fastapi', 'django', 'flask', 'starlette', 'litestar']);
@@ -298,6 +335,7 @@ export async function detectProject(path: string, requirements = ''): Promise<Pr
   await readPackage(path, facts);
   await readWorkspaces(path, facts);
   await readNative(path, facts);
+  if (!facts.stacks.size) await readFirstLevelPackages(path, facts);
   readRequirements(requirements, facts);
   const documents: string[] = [];
   for (const document of [...instructionNames, '.claude/CLAUDE.md', '.claude/MEMORY.md'])

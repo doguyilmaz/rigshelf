@@ -2,8 +2,8 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { detectProject } from '../src/core/detect';
-import { matchingPreset } from '../src/core/recommend';
-import { fixture } from './helpers';
+import { matchingPreset, recommend } from '../src/core/recommend';
+import { fixture, sampleSkill } from './helpers';
 
 const cleanups: (() => Promise<void>)[] = [];
 async function setup() {
@@ -146,4 +146,60 @@ test('an oversized Python manifest becomes a warning instead of failing detectio
   const detected = await detectProject(project);
   expect(detected.stacks).toContain('python');
   expect(detected.warnings?.join('\n')).toContain('requirements.txt');
+});
+test('detects Unity projects instead of treating generated C# projects as a backend', async () => {
+  const { project, store } = await setup();
+  await Bun.write(
+    join(project, 'ProjectSettings/ProjectVersion.txt'),
+    'm_EditorVersion: 6000.0.30f1\n',
+  );
+  await Bun.write(join(project, 'Assembly-CSharp.csproj'), '<Project />');
+  await Bun.write(
+    join(project, 'Packages/manifest.json'),
+    JSON.stringify({ dependencies: { 'com.unity.render-pipelines.universal': '17.0.3' } }),
+  );
+  const detected = await detectProject(project);
+  expect(detected.stacks).toEqual(expect.arrayContaining(['unity', 'csharp']));
+  expect(detected.stacks).not.toContain('backend');
+  expect(detected.dependencies).toContain('com.unity.render-pipelines.universal');
+  const unity = sampleSkill(store, 'new-unity-project');
+  const api = sampleSkill(store, 'api-design');
+  const selected = recommend(store, detected)
+    .recommendations.filter((value) => value.selected)
+    .map((value) => value.entry.id);
+  expect(selected).toContain(unity.id);
+  expect(selected).not.toContain(api.id);
+});
+test('a folder without root manifests inspects its first-level packages', async () => {
+  const { project } = await setup();
+  for (const name of ['mapping', 'proxies'])
+    await Bun.write(
+      join(project, name, 'package.json'),
+      JSON.stringify({ dependencies: { 'aws-cdk-lib': '2', hono: '4' } }),
+    );
+  await Bun.write(
+    join(project, 'node_modules/x/package.json'),
+    JSON.stringify({ dependencies: { expo: '1' } }),
+  );
+  const detected = await detectProject(project);
+  expect(detected.workspaces?.map((workspace) => workspace.path).sort()).toEqual([
+    'mapping',
+    'proxies',
+  ]);
+  expect(detected.stacks).toContain('hono');
+  expect(detected.stacks).not.toContain('expo');
+});
+test('an AWS CDK app entry point is infrastructure, not a command-line tool', async () => {
+  const { project } = await setup();
+  await Bun.write(
+    join(project, 'package.json'),
+    JSON.stringify({
+      bin: { app: 'bin/app.js' },
+      dependencies: { 'aws-cdk-lib': '2', constructs: '10' },
+    }),
+  );
+  const detected = await detectProject(project);
+  expect(detected.stacks).toContain('aws-cdk');
+  expect(detected.stacks).not.toContain('cli');
+  expect(matchingPreset(detected)).toBe('backend');
 });

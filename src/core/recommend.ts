@@ -211,7 +211,15 @@ export function recommend(
     ...new Set([
       ...project.dependencies.map(dependencyTerm).filter((name): name is string => Boolean(name)),
       ...project.stacks.filter((tag) =>
-        ['better-auth', 'clerk', 'firebase', 'sentry', 'react-query', 'cloudflare'].includes(tag),
+        [
+          'better-auth',
+          'clerk',
+          'firebase',
+          'sentry',
+          'react-query',
+          'cloudflare',
+          'unity',
+        ].includes(tag),
       ),
     ]),
   ].filter((name) => name.length >= 3 && !genericTerms.has(name));
