@@ -144,8 +144,12 @@ function scoreEntry(entry: Omit<Entry, 'body'>, context: ScoreContext): RankedRe
       score: context.existing.has(entry.id) ? 1 : 0,
       selected: false,
     };
-  return { entry, reasons, targets, score, selected: context.existing.has(entry.id) };
+  const selected = context.existing.has(entry.id);
+  if (!selected && needsReview(entry)) reasons.push('Needs review before selection');
+  return { entry, reasons, targets, score, selected };
 }
+const needsReview = (entry: Omit<Entry, 'body'>) =>
+  entry.findings.some((finding) => finding.level === 'review');
 export function recommend(
   store: Store,
   project: Project,
@@ -223,7 +227,8 @@ export function recommend(
         (value.score >= 55 &&
           newPicks < 10 &&
           value.targets.some((target) => !coveredTargets.has(target)))) &&
-      !value.entry.findings.some((finding) => finding.level === 'block')
+      !value.entry.findings.some((finding) => finding.level === 'block') &&
+      !needsReview(value.entry)
     ) {
       value.selected = true;
       if (!explicit.has(value.entry.id)) newPicks++;

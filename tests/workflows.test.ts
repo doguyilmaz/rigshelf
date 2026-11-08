@@ -50,9 +50,13 @@ test('explicit replacement is reviewable and rollback restores an unmanaged skil
   await mkdir(join(project, '.agents/skills/project-guide'), { recursive: true });
   const original = 'Unmanaged original, including its unusual formatting.\n';
   await Bun.write(target, original);
-  await expect(
-    createPlan(store, { projectPath: project, providers: ['codex'], entryIds: [entry.id] }),
-  ).rejects.toThrow('Existing file');
+  const kept = await createPlan(store, {
+    projectPath: project,
+    providers: ['codex'],
+    entryIds: [entry.id],
+  });
+  expect(kept.entries).toEqual([]);
+  expect(kept.warnings.some((value) => value.includes('Kept existing'))).toBe(true);
   const plan = await createPlan(store, {
     projectPath: project,
     providers: ['codex'],

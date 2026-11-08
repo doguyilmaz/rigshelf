@@ -10,7 +10,7 @@ Mappings were rechecked against primary vendor documentation on 2026-11-06; see 
 
 | Harness | Skills | Guidance | MCP |
 | --- | --- | --- | --- |
-| Claude Code | `.claude/skills/<name>` | managed block in `CLAUDE.md`; references shared `AGENTS.md` when applicable | `.mcp.json` |
+| Claude Code | `.claude/skills/<name>` | managed block in `CLAUDE.md`; references shared `AGENTS.md` when applicable. A `CLAUDE.md` link to the project `AGENTS.md` stays a link and receives guidance through `AGENTS.md`; other links are refused | `.mcp.json` |
 | Codex | `.agents/skills/<name>` | `AGENTS.md` | `.codex/config.toml` |
 | Kiro | `.kiro/skills/<name>` | shared `AGENTS.md` | `.kiro/settings/mcp.json` |
 | OpenCode | `.agents/skills/<name>` | `AGENTS.md` | `opencode.json` or existing `opencode.jsonc`, preserving unrelated comments/settings |
@@ -22,6 +22,8 @@ T3's selected model is separate from the underlying harness. Choose the actual h
 In CLI setup, explicit `--agents` takes precedence. Without that flag, an explicit `--preset` supplies its own Agent defaults; automatic Preset detection uses the application defaults. The web workbench preserves deliberate/recovered/reviewed Agent choices and offers a separate action to adopt Preset defaults. These are selection defaults, not evidence that a Harness is installed or has loaded the setup.
 
 Definition-writing clients retain legacy explicit upserts. For a new record use CLI `save-preset`/`save-rule --create-only` or writable MCP `createOnly: true`. For a checked edit use CLI `--expect previous.json` or MCP `expected` with the previously read full definition. A stale check fails and leaves the newer record intact. Create-only and expected controls are mutually exclusive; neither grants Apply or automation permission.
+
+An existing project skill folder installed from the same upstream revision is adopted even though Rigshelf normalizes its frontmatter name. A different unmanaged revision is kept for that harness and reported in the plan; explicit replacement retains the original bytes for rollback. When a project link makes two harnesses read one skills folder, that folder receives the most restrictive portable frontmatter. Recommendations list review-flagged entries without selecting them.
 
 Skill resources retain relative paths and executable intent. Unsupported Claude-specific hooks, model, context and tool-approval metadata are omitted with compatibility notes. Manual-only invocation is retained only where its semantics are documented; incompatible targets are refused rather than made automatically callable. Harness-specific prose still needs author review. Native Plugins are retained as saved recipes or typed native references with scoped installation/configuration/cache/catalog evidence. Rigshelf does not install native Plugin packages or convert their Hooks/permissions into portable Skills. Discovery and activation are separate; see [AI discovery](AI-DISCOVERY.md#native-plugin-references-in-library).
 

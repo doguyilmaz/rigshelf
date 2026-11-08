@@ -1,12 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { lstat } from 'node:fs/promises';
+import { lstat, readlink } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { detectProject, readText } from './detect';
 import { guidanceFindings } from './guidance';
 import { readKit } from './kit';
 import { bridgeDefinition, bridgeReason } from './mcp-compat';
 import { checkedMcpDefinition } from './mcp-definition';
-import { type Change, type Mcp, type Plan, type SetupRequest, SetupSchema } from './model';
+import {
+  type Change,
+  type Mcp,
+  type Plan,
+  type Provider,
+  type SetupRequest,
+  SetupSchema,
+} from './model';
 import { ownedProject, rootIdentity } from './ownership';
 import { MAX_PLAN_BYTES, MAX_PLAN_CHANGES, planFile } from './plan-limits';
 import { projectMcpFile } from './project-config';
@@ -15,6 +23,22 @@ import { effectiveRules, presetChain } from './recommend';
 import { assertWritePath, checkedProject, hash, now, slug } from './safety';
 import { skillOutputPath } from './skill-paths';
 import type { Store } from './store';
+
+const SHARED_RENDER_ORDER: Provider[] = [
+  'codex',
+  'opencode',
+  'antigravity',
+  'kiro',
+  'grok',
+  'claude',
+];
+
+async function claudeLinksToAgents(projectPath: string): Promise<boolean> {
+  const link = join(projectPath, 'CLAUDE.md');
+  const stats = await lstat(link).catch(() => null);
+  if (!stats?.isSymbolicLink()) return false;
+  return resolve(projectPath, await readlink(link)) === join(projectPath, 'AGENTS.md');
+}
 
 const START = '<!-- kitfold:begin -->';
 const END = '<!-- kitfold:end -->';
@@ -115,6 +139,33 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
         'This setup exceeds the 128 MiB / 10,000 file plan limit. Select a smaller kit or fewer harnesses.',
       );
   }
+  const installedSkills = new Set<string>();
+  async function sharedRenderer(provider: Provider, name: string): Promise<Provider> {
+    const skillFile = (value: Provider) =>
+      skillOutputPath(projectPath, `${adapter(value).skills}/${name}/SKILL.md`);
+    const target = await skillFile(provider);
+    const sharing: Provider[] = [];
+    for (const other of new Set(input.providers))
+      if ((await skillFile(other)) === target) sharing.push(other);
+    return SHARED_RENDER_ORDER.find((value) => sharing.includes(value)) ?? provider;
+  }
+  async function existingSkillFile(
+    path: string,
+    content: string,
+    upstream: string,
+  ): Promise<'install' | 'adopt' | 'conflict'> {
+    const resolved = await skillOutputPath(projectPath, path);
+    const bytes = await planFile(await assertWritePath(projectPath, resolved));
+    if (!bytes) return 'install';
+    const current = bytes.toString('base64');
+    if (current === content || input.replaceExisting || previousHashes[resolved] === hash(bytes))
+      return 'install';
+    if (previousHashes[resolved])
+      throw new Error(
+        `Existing file differs: ${resolved}. Rigshelf will not overwrite an unmanaged or locally modified skill.`,
+      );
+    return current === upstream ? 'adopt' : 'conflict';
+  }
   async function add(
     path: string,
     content: string,
@@ -213,19 +264,39 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     for (const entry of entries.filter((entry) => entry.kind === 'skill')) {
       const files = store.files(entry.id);
       if (!files.length) throw new Error(`No snapshot available for ${entry.name}`);
-      for (const file of files) {
-        const content =
-          file.path === 'SKILL.md'
-            ? Buffer.from(portableSkill(entry.body, provider)).toString('base64')
-            : file.content;
+      const folder = `${spec.skills}/${slug(entry.name)}`;
+      const renderer = await sharedRenderer(provider, slug(entry.name));
+      const skillText = portableSkill(entry.body, renderer);
+      if (renderer !== provider && skillText !== portableSkill(entry.body, provider))
+        warnings.push(
+          `${folder} is shared with ${adapter(renderer).name}; ${entry.name} uses its portable frontmatter for ${spec.name}.`,
+        );
+      const outputs = files.map((file) => ({
+        file,
+        path: `${folder}/${file.path}`,
+        content:
+          file.path === 'SKILL.md' ? Buffer.from(skillText).toString('base64') : file.content,
+      }));
+      const states = await Promise.all(
+        outputs.map((output) =>
+          existingSkillFile(output.path, output.content, output.file.content),
+        ),
+      );
+      if (states.includes('conflict')) {
+        warnings.push(
+          `Kept existing ${folder}: it differs from the library revision of ${entry.name}. Choose replace existing files to install the library revision.`,
+        );
+        continue;
+      }
+      installedSkills.add(entry.id);
+      for (const [index, output] of outputs.entries())
         await add(
-          `${spec.skills}/${slug(entry.name)}/${file.path}`,
-          content,
+          output.path,
+          states[index] === 'adopt' ? output.file.content : output.content,
           `Install ${entry.name} for ${spec.name}`,
           false,
-          file.executable,
+          output.file.executable,
         );
-      }
       if (
         provider !== 'claude' &&
         /(?:allowed-tools|hooks|context|agent|model):/.test(entry.body.split('---')[1] || '')
@@ -254,8 +325,12 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
       );
     }
     if (input.includeRules && spec.instructions) {
-      const before = await readText(await assertWritePath(projectPath, spec.instructions));
+      const sharesAgents =
+        spec.instructions === 'CLAUDE.md' && (await claudeLinksToAgents(projectPath));
+      const instructions = sharesAgents ? 'AGENTS.md' : spec.instructions;
+      const before = await readText(await assertWritePath(projectPath, instructions));
       const content =
+        !sharesAgents &&
         spec.instructions === 'CLAUDE.md' &&
         input.providers.some((value) =>
           ['codex', 'opencode', 'antigravity', 'grok', 'kiro'].includes(value),
@@ -263,7 +338,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
           ? '@AGENTS.md'
           : rules;
       await add(
-        spec.instructions,
+        instructions,
         Buffer.from(managedBlock(before ?? null, content)).toString('base64'),
         'Update Rigshelf directive block; preserve authored text',
         true,
@@ -312,11 +387,14 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
   for (const change of changes.values())
     if (change.after !== null) hashes[change.path] = hash(Buffer.from(change.after, 'base64'));
   const managedMcp = providerMcp;
+  const plannedEntries = entries.filter(
+    (entry) => entry.kind !== 'skill' || installedSkills.has(entry.id),
+  );
   const manifest = `${JSON.stringify(
     {
       schemaVersion: 1,
       providers: input.providers,
-      entries: entries.map((entry) => ({
+      entries: plannedEntries.map((entry) => ({
         id: entry.id,
         name: entry.name,
         digest: entry.digest,
@@ -340,7 +418,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     id: randomUUID(),
     projectPath,
     providers: input.providers,
-    entries: entries.map((entry) => entry.id),
+    entries: plannedEntries.map((entry) => entry.id),
     createdAt: now(),
     changes: [...changes.values()],
     warnings: [...new Set(warnings)],
