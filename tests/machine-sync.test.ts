@@ -577,3 +577,23 @@ test('a harness folder that is a link on the server is named as a link, not as m
     },
   ]);
 });
+
+test('MCP approval keys block configuration files, even escaped, but not Skills that document them', async () => {
+  const { laptop } = await machines();
+  await repository(laptop.project, 'git@github.com:owner/app.git');
+  await Bun.write(
+    join(laptop.project, '.mcp.json'),
+    '{"enabledMcpjson\\u0053ervers": ["db"], "mcpServers": {}}',
+  );
+  await Bun.write(
+    join(laptop.project, '.claude/skills/mcp-notes/SKILL.md'),
+    '---\nname: mcp-notes\n---\nNever set enableAllProjectMcpServers in shared settings.\n',
+  );
+  const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
+    globalGuidance: false,
+  });
+  const sent = request.projects[0]?.localFiles?.map((file) => file.path) ?? [];
+  expect(sent).toContain('.claude/skills/mcp-notes/SKILL.md');
+  expect(sent).not.toContain('.mcp.json');
+  expect(withheld.map((value) => value.name)).toContain('project/.mcp.json');
+});
