@@ -473,7 +473,10 @@ async function copyResult(
 }
 
 async function existingFolder(path: string, missing: string): Promise<string> {
-  if (!(await lstat(path).catch(() => undefined))?.isDirectory()) throw new Error(missing);
+  const info = await lstat(path).catch(() => undefined);
+  if (info?.isSymbolicLink())
+    throw new Error(`${path} is a link; Rigshelf does not write through links. Copy by hand.`);
+  if (!info?.isDirectory()) throw new Error(missing);
   return path;
 }
 

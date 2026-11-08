@@ -558,3 +558,22 @@ test('a second checkout of the same repository is reported instead of sent twice
     reason: 'another checkout of this repository is already sent',
   });
 });
+
+test('a harness folder that is a link on the server is named as a link, not as missing', async () => {
+  const { laptop, server, serverRoot } = await machines();
+  const serverHome = join(laptop.root, 'server-home');
+  await mkdir(join(laptop.root, 'dotfiles/claude'), { recursive: true });
+  await mkdir(serverHome, { recursive: true });
+  await symlink(join(laptop.root, 'dotfiles/claude'), join(serverHome, '.claude'));
+  await Bun.write(join(laptop.home, '.claude/CLAUDE.md'), 'Global notes\n');
+  const { request } = await buildSyncRequest(laptop.store, [], { home: laptop.home });
+  const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
+    home: serverHome,
+  });
+  expect(prepared.global).toEqual([
+    {
+      root: '.claude',
+      error: expect.stringContaining('is a link; Rigshelf does not write through links'),
+    },
+  ]);
+});
