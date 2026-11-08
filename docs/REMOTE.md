@@ -80,10 +80,10 @@ Separate from sync, and later:
 1. Read-only `machine inventory`, `machine compare <alias>` and `machine doctor <alias>` in the CLI (done); a Machines view in the workbench.
 2. Apply a reviewed bundle on the server, starting with Library and project kits.
 3. `rigshelf ui --on <alias>` (done; the remote badge remains).
-4. Both directions, global items and optional memory re-mapping.
+4. Both directions and per-project memory re-mapping.
 
-## Open questions
+## Decisions (2026-11-08)
 
-- Should global Skills be offered for sync at all, or only project kits and directives?
-- Is memory sync wanted, given that memory can hold private notes?
-- Which harnesses run on the servers, and are they Linux only?
+- **Scope:** making a server match copies each matched project's kit (Skills, MCP, guidance) and the Library with directives. Global Skills are compared and shown but not copied, keeping servers project-scoped like the laptop.
+- **Memory:** off by default. It is enabled per project, then re-mapped to the server's project path; it is never copied byte for byte.
+- **Harnesses:** a server receives the same harness formats the project uses on the laptop (Claude Code, Codex, OpenCode, Kiro, Grok and the rest of the supported set), so the plan on the server mirrors the laptop's selection.
