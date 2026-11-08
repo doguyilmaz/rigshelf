@@ -33,11 +33,23 @@ const SHARED_RENDER_ORDER: Provider[] = [
   'claude',
 ];
 
-async function claudeLinksToAgents(projectPath: string): Promise<boolean> {
-  const link = join(projectPath, 'CLAUDE.md');
-  const stats = await lstat(link).catch(() => null);
-  if (!stats?.isSymbolicLink()) return false;
-  return resolve(projectPath, await readlink(link)) === join(projectPath, 'AGENTS.md');
+type GuidanceFile = 'AGENTS.md' | 'CLAUDE.md';
+const guidanceLinks: [GuidanceFile, GuidanceFile][] = [
+  ['CLAUDE.md', 'AGENTS.md'],
+  ['AGENTS.md', 'CLAUDE.md'],
+];
+
+async function sharedGuidance(projectPath: string): Promise<GuidanceFile | null> {
+  for (const [link, target] of guidanceLinks) {
+    const path = join(projectPath, link);
+    const stats = await lstat(path).catch(() => null);
+    if (
+      stats?.isSymbolicLink() &&
+      resolve(projectPath, await readlink(path)) === join(projectPath, target)
+    )
+      return target;
+  }
+  return null;
 }
 
 /** Maps portable skill folder names to the source recorded by the skills CLI lock (version 1). */
@@ -183,6 +195,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
       );
   }
   const installedSkills = new Set<string>();
+  const shared = await sharedGuidance(projectPath);
   const skillsLock = await readSkillsLock(projectPath);
   async function sharedRenderer(provider: Provider, name: string): Promise<Provider> {
     const skillFile = (value: Provider) =>
@@ -373,18 +386,16 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
       );
     }
     if (input.includeRules && spec.instructions) {
-      const sharesAgents =
-        spec.instructions === 'CLAUDE.md' && (await claudeLinksToAgents(projectPath));
-      const instructions = sharesAgents ? 'AGENTS.md' : spec.instructions;
+      const instructions = shared ?? spec.instructions;
       const before = await readText(await assertWritePath(projectPath, instructions));
-      const importsAgents = !sharesAgents && spec.instructions === 'CLAUDE.md';
-      const content = !importsAgents
-        ? rules
-        : input.providers.some((value) => adapter(value).instructions === 'AGENTS.md')
-          ? '@AGENTS.md'
-          : (await readText(join(projectPath, 'AGENTS.md')))?.trim()
-            ? `@AGENTS.md\n\n${rules}`
-            : rules;
+      const content =
+        shared || spec.instructions !== 'CLAUDE.md'
+          ? rules
+          : input.providers.some((value) => adapter(value).instructions === 'AGENTS.md')
+            ? '@AGENTS.md'
+            : (await readText(join(projectPath, 'AGENTS.md')))?.trim()
+              ? `@AGENTS.md\n\n${rules}`
+              : rules;
       await add(
         instructions,
         Buffer.from(managedBlock(before ?? null, content)).toString('base64'),
@@ -394,7 +405,9 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     }
   }
   if (input.includeRules && input.providers.includes('codex'))
-    warnings.push(...(await codexGuidanceWarnings(projectPath, intended.get('AGENTS.md') || '')));
+    warnings.push(
+      ...(await codexGuidanceWarnings(projectPath, intended.get(shared ?? 'AGENTS.md') || '')),
+    );
   const hashes: Record<string, string> = { ...previousHashes };
   for (const [path, content] of intended) hashes[path] = hash(Buffer.from(content, 'base64'));
   for (const [path, expectedHash] of Object.entries(previousHashes))

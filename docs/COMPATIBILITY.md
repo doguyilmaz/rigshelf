@@ -10,7 +10,7 @@ Mappings were rechecked against primary vendor documentation on 2026-11-06; see 
 
 | Harness | Skills | Guidance | MCP |
 | --- | --- | --- | --- |
-| Claude Code | `.claude/skills/<name>` | managed block in `CLAUDE.md`; references shared `AGENTS.md` when applicable. A `CLAUDE.md` link to the project `AGENTS.md` stays a link and receives guidance through `AGENTS.md`; other links are refused | `.mcp.json` |
+| Claude Code | `.claude/skills/<name>` | managed block in `CLAUDE.md`; references shared `AGENTS.md` when applicable. A `CLAUDE.md` link to the project `AGENTS.md`, or an `AGENTS.md` link to `CLAUDE.md`, stays a link and the guidance goes into the file it points to; other links are refused | `.mcp.json` |
 | Codex | `.agents/skills/<name>` | `AGENTS.md` | `.codex/config.toml` |
 | Kiro | `.kiro/skills/<name>` | shared `AGENTS.md` | `.kiro/settings/mcp.json` |
 | OpenCode | `.agents/skills/<name>` | `AGENTS.md` | `opencode.json` or existing `opencode.jsonc`, preserving unrelated comments/settings |

@@ -368,6 +368,24 @@ describe('brownfield projects', () => {
     expect(plan.warnings.join('\n')).toContain('shared with Codex');
   });
 
+  test('an AGENTS.md link to CLAUDE.md receives guidance through CLAUDE.md without a self-import', async () => {
+    const { store, project } = await setup();
+    await Bun.write(join(project, 'CLAUDE.md'), '# Team\n');
+    await symlink('CLAUDE.md', join(project, 'AGENTS.md'));
+    for (const providers of [['claude', 'codex'], ['codex']] as SetupRequest['providers'][]) {
+      const plan = await createPlan(store, request(project, [], { providers }));
+      expect(plan.changes.map((change) => change.path)).not.toContain('AGENTS.md');
+      const claude = plan.changes.find((change) => change.path === 'CLAUDE.md');
+      const text = Buffer.from(claude?.after || '', 'base64').toString();
+      expect(text).toContain('## Project guidance');
+      expect(text).not.toContain('@AGENTS.md');
+    }
+    const plan = await createPlan(store, request(project, []));
+    await executePlan(store, plan.id, 'apply');
+    expect((await lstat(join(project, 'AGENTS.md'))).isSymbolicLink()).toBe(true);
+    expect(await Bun.file(join(project, 'CLAUDE.md')).text()).toStartWith('# Team\n');
+  });
+
   test('a CLAUDE.md link outside the project is still refused', async () => {
     const { store, project, root } = await setup();
     await Bun.write(join(root, 'elsewhere.md'), 'Outside');
