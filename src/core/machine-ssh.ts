@@ -120,6 +120,20 @@ async function readCapped(
   return { text: Buffer.concat(chunks).toString('utf8'), overflow: false };
 }
 
+/** Keeps only the last `limit` bytes, so a noisy login shell cannot fail a call whose answer is fine. */
+async function readTail(stream: ReadableStream<Uint8Array>, limit: number): Promise<string> {
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = stream.getReader();
+  for (let part = await reader.read(); !part.done; part = await reader.read()) {
+    chunks.push(part.value);
+    size += part.value.byteLength;
+    while (size - (chunks[0]?.byteLength ?? 0) >= limit && chunks.length > 1)
+      size -= chunks.shift()!.byteLength;
+  }
+  return Buffer.concat(chunks).subarray(-limit).toString('utf8');
+}
+
 async function spawnRemote(args: string[], input?: string): Promise<RemoteResult> {
   const child = Bun.spawn(args, {
     stdin: input === undefined ? 'ignore' : Buffer.from(input),
@@ -131,10 +145,10 @@ async function spawnRemote(args: string[], input?: string): Promise<RemoteResult
     const stop = () => child.kill();
     const [stdout, stderr] = await Promise.all([
       readCapped(child.stdout, MAX_OUTPUT_BYTES, stop),
-      readCapped(child.stderr, MAX_ERROR_BYTES, stop),
+      readTail(child.stderr, MAX_ERROR_BYTES),
     ]);
-    if (stdout.overflow || stderr.overflow) throw new Error('The remote response is too large.');
-    return { code: await child.exited, stdout: stdout.text, stderr: stderr.text };
+    if (stdout.overflow) throw new Error('The remote response is too large.');
+    return { code: await child.exited, stdout: stdout.text, stderr };
   } finally {
     clearTimeout(timer);
   }
@@ -291,12 +305,19 @@ export async function applyRemotePlans(
   options: { run?: RemoteRunner } = {},
 ): Promise<AppliedPlan[]> {
   const results: AppliedPlan[] = [];
+  let unreachable: string | undefined;
   for (const planId of planIds) {
+    if (unreachable) {
+      results.push({ planId, status: 'failed', error: `Not attempted: ${unreachable}` });
+      continue;
+    }
     try {
       const { status, fileCount } = await remoteApply(alias, planId, options);
       results.push({ planId, status, ...(fileCount === undefined ? {} : { fileCount }) });
     } catch (error) {
-      results.push({ planId, status: 'failed', error: printable((error as Error).message) });
+      const message = printable((error as Error).message);
+      if (message.startsWith(`Could not connect to ${alias}`)) unreachable = message;
+      results.push({ planId, status: 'failed', error: message });
     }
   }
   return results;

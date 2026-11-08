@@ -392,3 +392,20 @@ test('one failed plan does not stop the others, and each result is reported', as
     { planId: second, status: 'applied', fileCount: 2 },
   ]);
 });
+
+test('an unreachable host stops the remaining plans instead of waiting on each', async () => {
+  const ids = ['0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c', '1c7e2d2f-3a5b-4d9f-8b62-7e3f4a5b6c7d'];
+  let calls = 0;
+  const results = await applyRemotePlans('box', ids, {
+    run: async () => {
+      calls++;
+      return { code: 255, stdout: '', stderr: 'ssh: connect to host box: Operation timed out' };
+    },
+  });
+  expect(calls).toBe(1);
+  expect(results[1]).toEqual({
+    planId: ids[1],
+    status: 'failed',
+    error: 'Not attempted: Could not connect to box: ssh: connect to host box: Operation timed out',
+  });
+});
