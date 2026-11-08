@@ -25,7 +25,8 @@ Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
   rigshelf machine compare <ssh-alias> [--root /dir] [--remote-root /dir] [--json]
   rigshelf machine compare --manifest inventory.json   Compare with a saved inventory
   rigshelf machine doctor [ssh-alias]           Rigshelf version and harness CLIs on each machine
-  rigshelf machine sync <ssh-alias> [--root /dir] [--remote-root /dir] [--replace-directives] [--apply]
+  rigshelf machine sync <ssh-alias> [--root /dir] [--remote-root /dir] [--replace-directives]
+                        [--memory project,project] [--apply]
                                                 Prepare plans on the server for each applied project kit
   rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
   rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
@@ -39,6 +40,7 @@ interface MachineOptions {
   json?: boolean;
   apply?: boolean;
   'replace-directives'?: boolean;
+  memory?: string;
 }
 
 async function localRoots(store: Store, roots?: string[]): Promise<string[]> {
@@ -126,17 +128,28 @@ function formatSync(
     lines.push(
       `  ${kept.join(', ')} differ on ${alias}; --replace-directives uses this machine's version`,
     );
-  for (const project of prepared.projects)
+  for (const project of prepared.projects) {
     lines.push(
       project.planId
         ? `${project.repository} → ${project.path}: ${project.files} file changes, plan ${project.planId}`
         : `${project.repository}: ${project.error}`,
     );
+    if (project.memoryPlanId)
+      lines.push(`  memory: ${project.memoryFiles} files, plan ${project.memoryPlanId}`);
+    else if (project.memoryError) lines.push(`  memory: ${project.memoryError}`);
+    else if (project.memoryFiles === 0) lines.push('  memory: already in sync');
+  }
   for (const value of sync.skipped) lines.push(`Skipped ${value.name}: ${value.reason}`);
-  const ids = prepared.projects.flatMap((project) => (project.planId ? [project.planId] : []));
+  const ids = planIdsOf(prepared);
   if (ids.length)
     lines.push('', `Apply on ${alias}: rigshelf machine apply ${alias} ${ids.join(' ')}`);
   return `${lines.join('\n')}\n`;
+}
+
+function planIdsOf(prepared: PreparedSync): string[] {
+  return prepared.projects.flatMap((project) =>
+    [project.planId, project.memoryPlanId].filter((id): id is string => Boolean(id)),
+  );
 }
 
 async function applyPlans(alias: string, ids: string[]): Promise<string> {
@@ -168,7 +181,12 @@ export async function runMachineCommand(
   }
   if (action === 'sync') {
     if (!alias) throw new Error('machine sync needs an SSH host alias.');
-    const sync = await buildSyncRequest(store, await localRoots(store, values.root));
+    const sync = await buildSyncRequest(store, await localRoots(store, values.root), {
+      memory: values.memory
+        ?.split(',')
+        .map((value) => value.trim())
+        .filter(Boolean),
+    });
     if (!sync.request.projects.length)
       return { text: `No project here has an applied Rigshelf kit with a Git origin.\n` };
     const prepared = await remotePrepare(alias, sync.request, {
@@ -176,7 +194,7 @@ export async function runMachineCommand(
       replaceDirectives: values['replace-directives'],
     });
     const text = formatSync(alias, sync, prepared);
-    const ids = prepared.projects.flatMap((project) => (project.planId ? [project.planId] : []));
+    const ids = planIdsOf(prepared);
     if (values.json)
       return { result: { ...prepared, skipped: sync.skipped, withheld: sync.withheld } };
     return { text: values.apply && ids.length ? text + (await applyPlans(alias, ids)) : text };

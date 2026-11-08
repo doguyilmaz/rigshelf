@@ -1,6 +1,6 @@
 # Remote machines (proposal)
 
-Status: available in the CLI: read-only inventory, compare and doctor; `machine sync`/`machine apply` for project kits, the Library they use and directives; and `rigshelf ui --on` with a remote badge. Per-project memory sync and a Machines view in the workbench remain to do.
+Status: available in the CLI: read-only inventory, compare and doctor; `machine sync`/`machine apply` for project kits, the Library they use and directives; and `rigshelf ui --on` with a remote badge. `machine sync --memory <project>` adds opted-in memory as a separate plan. A Machines view in the workbench remains to do.
 
 ## Problem
 
@@ -81,7 +81,7 @@ Separate from sync, and later:
 1. Read-only `machine inventory`, `machine compare <alias>` and `machine doctor <alias>` in the CLI (done); a Machines view in the workbench.
 2. `rigshelf machine sync <alias>` sends each applied kit and prepares plans on the server; `--apply` or `rigshelf machine apply <alias> <plan-id>` applies them (done for kits, Library and directives).
 3. `rigshelf ui --on <alias>` with the remote badge (done).
-4. Both directions and per-project memory re-mapping.
+4. Per-project memory re-mapping (done: `--memory`, a separate plan rooted at the server's `~/.claude/projects`, credential-like files withheld, server-only files kept); syncing from the server back to this machine.
 
 ## Decisions (2026-11-08)
 

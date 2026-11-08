@@ -81,7 +81,10 @@ async function codexGuidanceWarnings(projectPath: string, planned: string): Prom
   return warnings;
 }
 
-async function missingDirectories(projectPath: string, changes: Change[]): Promise<string[]> {
+export async function missingDirectories(
+  projectPath: string,
+  changes: Change[],
+): Promise<string[]> {
   const missing = new Set<string>();
   for (const change of changes) {
     if (change.before !== null) continue;

@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildSyncRequest, prepareSync } from '../src/core/machine-sync';
+import { claudeMemoryKey } from '../src/core/memory-locations';
 import type { Rule } from '../src/core/model';
 import { createPlan, executePlan } from '../src/core/planner';
 import { seed } from '../src/core/seeds';
@@ -132,4 +133,49 @@ test('a malformed sync request is refused before anything is imported', async ()
     ),
   ).rejects.toThrow();
   expect(server.entries(true)).toEqual([]);
+});
+
+test('opted-in memory is re-keyed and re-mapped to the server clone through its own plan', async () => {
+  const { laptop, server, serverRoot } = await machines();
+  const skill = sampleSkill(laptop.store, 'memory-guide');
+  await repository(laptop.project, 'git@github.com:owner/app.git');
+  const plan = await createPlan(laptop.store, {
+    projectPath: laptop.project,
+    providers: ['claude'],
+    entryIds: [skill.id],
+    requirements: '',
+    includeRules: true,
+    allowReviewed: false,
+  });
+  await executePlan(laptop.store, plan.id, 'apply');
+  const memory = join(laptop.home, '.claude/projects', claudeMemoryKey(laptop.project), 'memory');
+  await Bun.write(
+    join(memory, 'notes.md'),
+    `Build from ${laptop.project}/scripts and ${laptop.home}/bin.\n`,
+  );
+  await Bun.write(join(memory, 'token.md'), 'api_key = "replace-with-your-key"\n');
+  const serverHome = join(laptop.root, 'server-home');
+  await mkdir(join(serverHome, '.claude/projects'), { recursive: true });
+  const clone = join(serverRoot, 'app');
+  await repository(clone, 'https://github.com/owner/app');
+  const without = await buildSyncRequest(laptop.store, [laptop.project], { home: laptop.home });
+  expect(without.request.projects[0]?.memory).toBeUndefined();
+  const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
+    home: laptop.home,
+    memory: ['project'],
+  });
+  expect(withheld.map((value) => value.name)).toContain('memory/token.md');
+  const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
+    home: serverHome,
+  });
+  const [result] = prepared.projects;
+  expect(result?.memoryFiles).toBe(1);
+  const target = join(serverHome, '.claude/projects', claudeMemoryKey(clone), 'memory/notes.md');
+  expect(await Bun.file(target).exists()).toBe(false);
+  await executePlan(server, result!.memoryPlanId!, 'apply');
+  expect(await Bun.file(target).text()).toBe(
+    `Build from ${clone}/scripts and ${serverHome}/bin.\n`,
+  );
+  await executePlan(server, result!.memoryPlanId!, 'rollback');
+  expect(await Bun.file(target).exists()).toBe(false);
 });

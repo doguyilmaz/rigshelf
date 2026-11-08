@@ -98,6 +98,7 @@ async function main(): Promise<void> {
       'public-port': { type: 'string' },
       'remote-port': { type: 'string' },
       'replace-directives': { type: 'boolean' },
+      memory: { type: 'string' },
     },
   });
   if (values.version) {

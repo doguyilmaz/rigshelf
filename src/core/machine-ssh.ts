@@ -181,6 +181,9 @@ const PreparedSchema = z.object({
         files: z.number().int().min(0).optional(),
         warnings: z.array(z.string().max(2000)).max(200).optional(),
         error: z.string().max(2000).optional(),
+        memoryPlanId: z.string().regex(PLAN_ID).optional(),
+        memoryFiles: z.number().int().min(0).optional(),
+        memoryError: z.string().max(2000).optional(),
       }),
     )
     .max(300),
