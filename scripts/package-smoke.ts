@@ -88,14 +88,15 @@ async function browserServer(executable: string, assets: StaticAsset[]): Promise
       const text = await Bun.file(log)
         .text()
         .catch(() => '');
-      access = text.match(/http:\/\/127\.0\.0\.1:\d+\/#access=[a-f0-9]{64}/)?.[0] || '';
+      access = text.match(/http:\/\/rigshelf\.localhost:\d+\/#access=[a-f0-9]{64}/)?.[0] || '';
       if (access) break;
       if (child.exitCode !== null) throw new Error('Packaged UI exited before readiness.');
       await Bun.sleep(READINESS_POLL_MS);
     }
     assert(access, 'Packaged UI did not become ready.');
-    const url = new URL(access);
-    const token = new URLSearchParams(url.hash.slice(1)).get('access')!;
+    const printed = new URL(access);
+    const token = new URLSearchParams(printed.hash.slice(1)).get('access')!;
+    const url = new URL(`http://127.0.0.1:${printed.port}`);
     const shell = await fetch(url.origin);
     assert(
       shell.status === 200 && (await shell.text()).includes('<div id="root">'),
@@ -148,7 +149,7 @@ async function mcp(executable: string): Promise<void> {
     await client.connect(transport);
     const tools = await client.listTools();
     assert(
-      tools.tools.some((tool) => tool.name.startsWith('kitfold_')),
+      tools.tools.some((tool) => tool.name.startsWith('rigshelf_')),
       'Packaged MCP tools missing.',
     );
   } finally {

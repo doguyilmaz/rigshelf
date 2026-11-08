@@ -53,9 +53,10 @@ const directory = resolve('.local/qa/dev-build');
 await mkdir(directory, { recursive: true });
 try {
   await expect.poll(() => output.includes('Rigshelf is ready at '), { timeout: 30000 }).toBe(true);
-  const access = /Rigshelf is ready at (http:\/\/127\.0\.0\.1:\d+\/#access=[a-f0-9]{64})/.exec(
-    output,
-  )?.[1];
+  const access =
+    /Rigshelf is ready at (http:\/\/rigshelf\.localhost:\d+\/#access=[a-f0-9]{64})/.exec(
+      output,
+    )?.[1];
   if (!access) throw new Error('Development server did not provide its private access URL.');
   await expect
     .poll(() => (output.match(/built in/g) || []).length, { timeout: 20000 })

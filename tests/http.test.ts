@@ -275,3 +275,20 @@ test('native folder selection requires the private same-origin POST and does not
   expect(data.store.settings()).toEqual(before);
   expect(data.store.list('approval')).toHaveLength(0);
 });
+
+test('the workbench opens at rigshelf.localhost and still refuses other hosts and origins', async () => {
+  const data = await serverFixture();
+  const access = new URL(data.server.accessUrl);
+  expect(access.hostname).toBe('rigshelf.localhost');
+  const headers = { 'x-kitfold-token': data.token };
+  const request = (host: string, origin?: string) =>
+    fetch(`${data.base}/api/state`, {
+      headers: { ...headers, host: `${host}:${access.port}`, ...(origin ? { origin } : {}) },
+    });
+  expect((await request('rigshelf.localhost', access.origin)).status).toBe(200);
+  expect((await request('127.0.0.1')).status).toBe(200);
+  expect((await request('other.localhost')).status).toBe(403);
+  expect(
+    (await request('rigshelf.localhost', `http://other.localhost:${access.port}`)).status,
+  ).toBe(403);
+});

@@ -47,7 +47,9 @@ export function startServer(
   const root = resolve(
     fileURLToPath(new URL(Bun.isStandaloneExecutable ? './dist' : '../dist', import.meta.url)),
   );
-  const base = `http://127.0.0.1:${port}`;
+  const hosts = [`rigshelf.localhost:${port}`, `127.0.0.1:${port}`, `localhost:${port}`];
+  const origins = hosts.map((host) => `http://${host}`);
+  const base = origins[0];
   const directoryPicker = createDirectoryPicker(options.chooseDirectory);
   const headers = {
     'X-Content-Type-Options': 'nosniff',
@@ -84,10 +86,10 @@ export function startServer(
   async function handleRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const host = request.headers.get('host');
-    if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`)
+    if (!host || !hosts.includes(host))
       return new Response('Invalid host', { status: 403, headers });
     const origin = request.headers.get('origin');
-    if (origin && origin !== base && origin !== `http://localhost:${port}`)
+    if (origin && !origins.includes(origin))
       return new Response('Origin denied', { status: 403, headers });
     if (url.pathname.startsWith('/api/')) {
       if (request.headers.get('x-kitfold-token') !== token)

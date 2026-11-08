@@ -53,7 +53,7 @@ test('the real CLI prints a usable private URL and gracefully drains its isolate
     printed += decoder.decode(part.value, { stream: true });
     if (printed.length > 64 * 1024)
       throw new Error('Fixture CLI startup output exceeded its bound.');
-    access = printed.match(/http:\/\/127\.0\.0\.1:\d+\/#access=[a-f0-9]{64}/)?.[0];
+    access = printed.match(/http:\/\/rigshelf\.localhost:\d+\/#access=[a-f0-9]{64}/)?.[0];
   }
   const remaining = (async () => {
     let part = await reader.read();
@@ -61,7 +61,7 @@ test('the real CLI prints a usable private URL and gracefully drains its isolate
     reader.releaseLock();
   })();
   expect(printed).toContain('Rigshelf is ready at');
-  const base = new URL(access).origin;
+  const base = `http://127.0.0.1:${new URL(access).port}`;
   const token = new URLSearchParams(new URL(access).hash.slice(1)).get('access')!;
   expect((await fetch(`${base}/api/state`)).status).toBe(403);
   const started = await fetch(`${base}/api/scan`, {

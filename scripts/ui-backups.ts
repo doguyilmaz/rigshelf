@@ -151,7 +151,7 @@ try {
     await audit(`backups-${width}`);
   }
   await page.evaluate(() => localStorage.setItem('agent-setup.language', 'tr'));
-  await page.goto(`http://127.0.0.1:${server.port}/#backups`);
+  await page.goto(`${new URL(server.accessUrl).origin}/#backups`);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Yedekler', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'My R2 backup Cloudflare R2', exact: true }).click();

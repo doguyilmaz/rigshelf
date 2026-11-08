@@ -6,7 +6,21 @@ Save Skills, MCP definitions, native Plugin references and reusable directives o
 
 **Claude Code · Codex · Kiro · OpenCode · Antigravity · Grok CLI**
 
-## Run locally
+## Install
+
+```sh
+brew install doguyilmaz/tap/rigshelf   # or run without installing: bunx @doguyilmaz/rigshelf ui
+rigshelf ui
+```
+
+To let Claude Code or Codex use your library in a session, add the plugin. It connects the read/plan MCP server; `rigshelf` must be on `PATH`.
+
+```sh
+claude plugin marketplace add doguyilmaz/rigshelf && claude plugin install rigshelf@rigshelf
+codex plugin marketplace add doguyilmaz/rigshelf && codex plugin add rigshelf@rigshelf
+```
+
+## Run from source
 
 Requires [Bun](https://bun.sh/) 1.4.4 or newer. macOS is the primary tested platform; Linux has CI coverage. Rigshelf runs a local web interface with a Bun server and SQLite. There is no hosted account or database service to configure.
 
@@ -16,7 +30,7 @@ bun run build
 bun run start
 ```
 
-Open the private access URL printed in the terminal. The server binds to `127.0.0.1`, starting at port `47471`. If that default is occupied, it tries the next seven ports. To choose a fixed port:
+Open the private access URL printed in the terminal, such as `http://rigshelf.localhost:47471/#access=…`. The server binds to `127.0.0.1` and also answers at `127.0.0.1` and `localhost`, starting at port `47471`. If that default is occupied, it tries the next seven ports. To choose a fixed port:
 
 ```sh
 bun run rigshelf ui --port 47500
@@ -71,9 +85,9 @@ bun run rigshelf connection --agents claude,codex
 
 `setup` prepares a plan; `--apply` explicitly applies it immediately. `--entries ""` selects guidance only. A reviewed replacement requires `--replace-existing`; rollback protects later edits with preconditions.
 
-To register local executable aliases, run `bun link` in this checkout. It registers `rigshelf` and compatibility alias `kitfold`, without installing global Skills. Generated MCP forwarding bridges require `kitfold` on the target Harness's `PATH`.
+To register local executable aliases, run `bun link` in this checkout. It registers `rigshelf` and compatibility alias `kitfold`, without installing global Skills. Generated MCP forwarding bridges require `rigshelf` on the target Harness's `PATH`.
 
-The [MCP integration guide](docs/MCP.md) covers connection snippets, every shipped tool, pagination, read/plan mode, writable roots and the optional [integration Skill](skills/kitfold/SKILL.md). The Skill ID and `kitfold_*` tool names are retained compatibility contracts. In T3, select the actual Harness; the chosen model alone does not determine discovery paths.
+The [MCP integration guide](docs/MCP.md) covers connection snippets, every shipped tool, pagination, read/plan mode, writable roots and the optional [integration Skill](plugin/skills/rigshelf/SKILL.md). In T3, select the actual Harness; the chosen model alone does not determine discovery paths.
 
 AI assistance can use your installed Claude Code/Codex CLI, local Ollama, a saved local/remote Chat Completions connection, or a pending draft answered in a connected MCP session. Generation is explicit; proposals are reviewed before use. API credentials use server environment references. See [AI assistance](docs/AI-ASSISTANCE.md) for setup and limits.
 
