@@ -276,3 +276,28 @@ export async function remoteApply(
     .passthrough()
     .parse(JSON.parse(output));
 }
+
+export interface AppliedPlan {
+  planId: string;
+  status: string;
+  fileCount?: number;
+  error?: string;
+}
+
+/** Plans write to separate roots, so a failed plan is reported and the rest still apply. */
+export async function applyRemotePlans(
+  alias: string,
+  planIds: string[],
+  options: { run?: RemoteRunner } = {},
+): Promise<AppliedPlan[]> {
+  const results: AppliedPlan[] = [];
+  for (const planId of planIds) {
+    try {
+      const { status, fileCount } = await remoteApply(alias, planId, options);
+      results.push({ planId, status, ...(fileCount === undefined ? {} : { fileCount }) });
+    } catch (error) {
+      results.push({ planId, status: 'failed', error: printable((error as Error).message) });
+    }
+  }
+  return results;
+}

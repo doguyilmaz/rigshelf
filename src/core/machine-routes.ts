@@ -6,9 +6,9 @@ import { compareInventories } from './machine-compare';
 import { machineDoctor } from './machine-doctor';
 import { buildMachineInventory, inventoryRoots } from './machine-inventory';
 import {
+  applyRemotePlans,
   HOST_ALIAS,
   type RemoteRunner,
-  remoteApply,
   remoteDoctor,
   remoteInventory,
   remotePrepare,
@@ -91,9 +91,6 @@ export async function machineRoute(
   }
   if (action === 'apply') {
     const { alias, planIds } = ApplyInput.parse(input);
-    const results = [];
-    for (const planId of planIds)
-      results.push({ planId, ...(await remoteApply(alias, planId, { run })) });
-    return { results };
+    return { results: await applyRemotePlans(alias, planIds, { run }) };
   }
 }

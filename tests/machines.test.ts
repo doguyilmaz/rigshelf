@@ -9,6 +9,7 @@ import {
   repositoryKey,
 } from '../src/core/machine-inventory';
 import {
+  applyRemotePlans,
   printable,
   remoteApply,
   remoteDoctor,
@@ -362,4 +363,23 @@ test('server text cannot drive the local terminal', async () => {
       run: async () => ({ code: 1, stdout: '', stderr: 'boom\x1b[2K\x07spoof' }),
     }),
   ).rejects.toThrow('Rigshelf on box failed: boom[2Kspoof');
+});
+
+test('one failed plan does not stop the others, and each result is reported', async () => {
+  const first = '0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c';
+  const second = '1c7e2d2f-3a5b-4d9f-8b62-7e3f4a5b6c7d';
+  const results = await applyRemotePlans('box', [first, second], {
+    run: async (args) =>
+      args.at(-1)!.includes(first)
+        ? { code: 1, stdout: '', stderr: 'Precondition failed: file changed' }
+        : { code: 0, stdout: JSON.stringify({ status: 'applied', fileCount: 2 }), stderr: '' },
+  });
+  expect(results).toEqual([
+    {
+      planId: first,
+      status: 'failed',
+      error: 'Rigshelf on box failed: Precondition failed: file changed',
+    },
+    { planId: second, status: 'applied', fileCount: 2 },
+  ]);
 });

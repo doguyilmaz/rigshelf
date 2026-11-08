@@ -8,9 +8,10 @@ import {
   parseMachineInventory,
 } from './core/machine-inventory';
 import {
+  type AppliedPlan,
+  applyRemotePlans,
   type PreparedSync,
   printable,
-  remoteApply,
   remoteDoctor,
   remoteInventory,
   remotePrepare,
@@ -169,14 +170,12 @@ function planIdsOf(prepared: PreparedSync): string[] {
   ].filter((id): id is string => Boolean(id));
 }
 
-async function applyPlans(alias: string, ids: string[]): Promise<string> {
-  const lines = [];
-  for (const id of ids) {
-    const applied = await remoteApply(alias, id);
-    lines.push(
-      `${id}: ${applied.status}${applied.fileCount === undefined ? '' : `, ${applied.fileCount} files`}`,
-    );
-  }
+function formatApplied(results: AppliedPlan[]): string {
+  const lines = results.map((value) =>
+    value.error
+      ? `${value.planId}: failed, ${value.error}`
+      : `${value.planId}: ${value.status}${value.fileCount === undefined ? '' : `, ${value.fileCount} files`}`,
+  );
   return `${lines.join('\n')}\n`;
 }
 
@@ -226,14 +225,22 @@ export async function runMachineCommand(
     });
     const text = formatSync(alias, sync, prepared);
     const ids = planIdsOf(prepared);
+    const applied = values.apply && ids.length ? await applyRemotePlans(alias, ids) : undefined;
     if (values.json)
-      return { result: { ...prepared, skipped: sync.skipped, withheld: sync.withheld } };
-    return { text: values.apply && ids.length ? text + (await applyPlans(alias, ids)) : text };
+      return {
+        result: {
+          ...prepared,
+          skipped: sync.skipped,
+          withheld: sync.withheld,
+          ...(applied ? { applied } : {}),
+        },
+      };
+    return { text: applied ? text + formatApplied(applied) : text };
   }
   if (action === 'apply') {
     if (!alias || !planIds.length)
       throw new Error('machine apply needs an SSH host alias and plan IDs.');
-    return { text: await applyPlans(alias, planIds) };
+    return { text: formatApplied(await applyRemotePlans(alias, planIds)) };
   }
   if (action === 'inventory')
     return {

@@ -58,6 +58,7 @@ const remote: MachineInventory = {
   ],
 };
 const requests: { command: string; input?: string }[] = [];
+let failingPlan: string | undefined;
 const machineRunner: RemoteRunner = async (args, input) => {
   const command = args.at(-1)!;
   requests.push({ command, input });
@@ -86,6 +87,8 @@ const machineRunner: RemoteRunner = async (args, input) => {
       ],
       global: [{ root: '.claude', planId: guidancePlanId, files: 1 }],
     });
+  if (failingPlan && command.includes(failingPlan))
+    return { code: 1, stdout: '', stderr: 'Precondition failed: a file changed' };
   return reply({ status: 'applied', fileCount: 4 });
 };
 const server = startServer(data.store, 48026, { machineRunner, machineHome: data.home });
@@ -146,10 +149,20 @@ try {
   expect(prepared.globalFiles).toBeUndefined();
 
   expect(requests.some((value) => value.command.includes('rigshelf apply'))).toBe(false);
+  failingPlan = memoryPlanId;
   await page.getByRole('button', { name: 'Apply on build-box', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Apply 4 plans on build-box?' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(
+    page.getByText(
+      'Plans that failed on build-box: 1. Rigshelf on build-box failed: Precondition failed: a file changed',
+    ),
+  ).toBeVisible();
+  failingPlan = undefined;
+  await page.getByRole('button', { name: 'Apply on build-box', exact: true }).click();
+  const retry = page.getByRole('dialog', { name: 'Apply 1 plans on build-box?' });
+  await retry.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(page.getByText('Applied on build-box')).toBeVisible();
   const applied = requests
     .filter((value) => value.command.includes('rigshelf apply'))
@@ -159,6 +172,7 @@ try {
     `exec "$SHELL" -lc 'rigshelf apply ${localPlanId}'`,
     `exec "$SHELL" -lc 'rigshelf apply ${memoryPlanId}'`,
     `exec "$SHELL" -lc 'rigshelf apply ${guidancePlanId}'`,
+    `exec "$SHELL" -lc 'rigshelf apply ${memoryPlanId}'`,
   ]);
   await page.setViewportSize({ width: 390, height: 900 });
   await page.getByRole('button', { name: 'Check', exact: true }).click();
@@ -169,6 +183,7 @@ try {
     checks: [
       'Machines lists concrete SSH aliases, compares groups per project and collapses projects only on one side.',
       'Prepare sync sends opted-in memory and applies nothing until the user confirms both plans.',
+      'A failed plan is reported while the others apply; retrying applies only the plan that failed.',
       'Version mismatch, kept directives and plan sizes are visible; the page fits 1440 and 390 widths without accessibility violations.',
     ],
     errors,

@@ -7,7 +7,7 @@ import type {
   SyncStatus,
 } from '../../src/core/machine-compare';
 import type { MachineDoctor } from '../../src/core/machine-doctor';
-import type { PreparedSync } from '../../src/core/machine-ssh';
+import type { AppliedPlan, PreparedSync } from '../../src/core/machine-ssh';
 import { api } from '../api';
 import { Badge, Button, Empty, Modal, Notice, PageHeader, Spinner } from '../components';
 import { t } from '../i18n';
@@ -118,6 +118,7 @@ export function Machines({ notify }: PageProps): ReactNode {
     everything: false,
   });
   const [prepared, setPrepared] = useState<Prepared>();
+  const [applied, setApplied] = useState<string[]>([]);
   const [busy, setBusy] = useState<'check' | 'sync' | 'apply'>();
   const [confirm, setConfirm] = useState(false);
 
@@ -153,13 +154,14 @@ export function Machines({ notify }: PageProps): ReactNode {
   }
   const check = () =>
     run('check', async () => {
-      setPrepared(undefined);
+      reset();
       setCompared(await api<Compared>('machines/compare', 'POST', { alias }));
     });
   const prepare = () =>
-    run('sync', async () =>
-      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, memory, ...scope })),
-    );
+    run('sync', async () => {
+      setApplied([]);
+      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, memory, ...scope }));
+    });
   const planIds = prepared
     ? [
         ...prepared.prepared.projects.flatMap((project) => [
@@ -168,15 +170,38 @@ export function Machines({ notify }: PageProps): ReactNode {
           project.memoryPlanId,
         ]),
         ...prepared.prepared.global.map((guidance) => guidance.planId),
-      ].filter((id): id is string => Boolean(id))
+      ].filter((id): id is string => id !== undefined && !applied.includes(id))
     : undefined;
+  const reset = () => {
+    setPrepared(undefined);
+    setApplied([]);
+  };
   const apply = () =>
     run('apply', async () => {
-      await api('machines/apply', 'POST', { alias, planIds });
+      const { results } = await api<{ results: AppliedPlan[] }>('machines/apply', 'POST', {
+        alias,
+        planIds,
+      });
       setConfirm(false);
+      const failed = results.filter((value) => value.error);
+      if (failed.length) {
+        setApplied((current) => [
+          ...current,
+          ...results.filter((value) => !value.error).map((value) => value.planId),
+        ]);
+        notify(
+          t('Plans that failed on {{alias}}: {{count}}. {{error}}', {
+            count: failed.length,
+            alias,
+            error: failed[0]!.error ?? '',
+          }),
+          true,
+        );
+        return;
+      }
       notify(t('Applied on {{alias}}', { alias }));
       setCompared(await api<Compared>('machines/compare', 'POST', { alias }));
-      setPrepared(undefined);
+      reset();
     });
 
   const matched =
@@ -206,7 +231,7 @@ export function Machines({ notify }: PageProps): ReactNode {
               onValueChange={(value) => {
                 setAlias(value);
                 setCompared(undefined);
-                setPrepared(undefined);
+                reset();
                 setMemory([]);
               }}
               options={hosts.map((host) => ({ value: host, label: host }))}
@@ -265,13 +290,14 @@ export function Machines({ notify }: PageProps): ReactNode {
                       <input
                         type="checkbox"
                         checked={memory.includes(project.local!)}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          reset();
                           setMemory((current) =>
                             event.target.checked
                               ? [...current, project.local!]
                               : current.filter((value) => value !== project.local),
-                          )
-                        }
+                          );
+                        }}
                       />
                       {t('Include memory in sync')}
                     </label>
@@ -301,9 +327,10 @@ export function Machines({ notify }: PageProps): ReactNode {
                     <input
                       type="checkbox"
                       checked={scope[key]}
-                      onChange={(event) =>
-                        setScope((current) => ({ ...current, [key]: event.target.checked }))
-                      }
+                      onChange={(event) => {
+                        reset();
+                        setScope((current) => ({ ...current, [key]: event.target.checked }));
+                      }}
                     />
                     {t(label)}
                   </label>
@@ -365,7 +392,7 @@ export function Machines({ notify }: PageProps): ReactNode {
                 </Notice>
               )}
               {[...prepared.withheld, ...prepared.skipped].map((value) => (
-                <p className="machine-muted" key={value.name}>
+                <p className="machine-muted" key={`${value.name}:${value.reason}`}>
                   {value.name}: {value.reason}
                 </p>
               ))}
