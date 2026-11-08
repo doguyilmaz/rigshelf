@@ -42,6 +42,8 @@ test('repository keys ignore transport, credentials, case and the .git suffix', 
     ['git@github.com:Owner/Repo.git', 'github.com/owner/repo'],
     ['https://user:token@github.com/owner/repo.git', 'github.com/owner/repo'],
     ['ssh://git@gitlab.example.com:2222/team/app.git', 'gitlab.example.com/team/app'],
+    ['github.com:owner/repo.git', 'github.com/owner/repo'],
+    ['https://github.com/owner/repo.git/', 'github.com/owner/repo'],
   ];
   for (const [index, [origin, key]] of cases.entries()) {
     const project = join(root, String(index));
@@ -49,6 +51,12 @@ test('repository keys ignore transport, credentials, case and the .git suffix', 
     expect(await repositoryKey(project)).toBe(key);
   }
   expect(await repositoryKey(join(root, 'missing'))).toBeUndefined();
+  const pushFirst = join(root, 'push-first');
+  await Bun.write(
+    join(pushFirst, '.git/config'),
+    '[remote "origin"]\n\tpushurl = git@github.com:owner/fork.git\n\turl = https://github.com/owner/repo\n',
+  );
+  expect(await repositoryKey(pushFirst)).toBe('github.com/owner/repo');
 });
 
 test('an inventory groups Skills by folder and flags private and machine-specific files', async () => {

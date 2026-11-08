@@ -250,14 +250,14 @@ export async function repositoryKey(project: string): Promise<string | undefined
   const text = await readLocalBytes(config, 64 * 1024)
     .then((bytes) => bytes.toString('utf8'))
     .catch(() => '');
-  const url = text.match(/\[remote "origin"\][^[]*?url\s*=\s*(\S+)/)?.[1];
+  const url = text.match(/\[remote "origin"\][^[]*?^\s*url\s*=\s*(\S+)/m)?.[1];
   if (!url) return;
   return url
     .replace(/^[a-z][\w+.-]*:\/\/(?:[^@/]+@)?/i, '')
-    .replace(/^[^@/]+@([^:/]+):/, '$1/')
+    .replace(/^(?:[^@/]+@)?([^:/]+):(?!\d+\/)/, '$1/')
     .replace(/^([^/:]+):\d+\//, '$1/')
-    .replace(/\.git$/, '')
     .replace(/\/+$/, '')
+    .replace(/\.git$/, '')
     .toLowerCase();
 }
 
