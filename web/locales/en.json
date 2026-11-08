@@ -1366,5 +1366,8 @@
   "Removed from every project. Existing projects keep it until their next setup.": "Removed from every project. Existing projects keep it until their next setup.",
   "Added to every project. New setups and the next setup of each project include it.": "Added to every project. New setups and the next setup of each project include it.",
   "Everything, including memory for every project": "Everything, including memory for every project",
-  "Plans that failed on {{alias}}: {{count}}. {{error}}": "Plans that failed on {{alias}}: {{count}}. {{error}}"
+  "Plans that failed on {{alias}}: {{count}}. {{error}}": "Plans that failed on {{alias}}: {{count}}. {{error}}",
+  "Restore the base Preset to use a Snapshot in every project.": "Restore the base Preset to use a Snapshot in every project.",
+  "Another revision is pinned; adding this one replaces it.": "Another revision is pinned; adding this one replaces it.",
+  "This Snapshot has findings, so setups leave it out until it is reviewed.": "This Snapshot has findings, so setups leave it out until it is reviewed."
 }

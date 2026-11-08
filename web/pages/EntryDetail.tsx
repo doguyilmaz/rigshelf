@@ -45,23 +45,33 @@ function EveryProjectAction({
   refresh,
   notify,
   entryId,
-}: Props & { entryId: string }): ReactNode {
+  revisionIds,
+}: Props & { entryId: string; revisionIds: string[] }): ReactNode {
   const [busy, setBusy] = useState(false);
   const base = state.presets.find((preset) => preset.id === 'base');
-  if (!base) return null;
+  const entry = state.entries.find((value) => value.id === entryId);
+  if (!base || !entry)
+    return (
+      <div className="entry-kit-action">
+        <small>{t('Restore the base Preset to use a Snapshot in every project.')}</small>
+      </div>
+    );
   const pinned = base.entryIds.includes(entryId);
+  const otherRevision = !pinned && revisionIds.some((id) => base.entryIds.includes(id));
+  const gated = entry.findings.some(
+    (finding) => finding.level === 'block' || finding.level === 'review',
+  );
   async function toggle(): Promise<void> {
     if (!base) return;
     setBusy(true);
     try {
       const entryIds = pinned
         ? base.entryIds.filter((id) => id !== entryId)
-        : [...base.entryIds, entryId];
+        : [...base.entryIds.filter((id) => !revisionIds.includes(id)), entryId];
       await api(`presets/${apiId(base.id)}`, 'PATCH', {
         value: { ...base, entryIds },
         expected: base,
       });
-      await refresh();
       notify(
         t(
           pinned
@@ -72,6 +82,7 @@ function EveryProjectAction({
     } catch (error) {
       notify((error as Error).message, true);
     } finally {
+      await refresh();
       setBusy(false);
     }
   }
@@ -84,8 +95,21 @@ function EveryProjectAction({
             'Pins this exact Snapshot in the base Preset. Each project still gets its own copy, and machine sync carries it.',
           )}
         </small>
+        {otherRevision && (
+          <small>{t('Another revision is pinned; adding this one replaces it.')}</small>
+        )}
+        {gated && (
+          <small>
+            {t('This Snapshot has findings, so setups leave it out until it is reviewed.')}
+          </small>
+        )}
       </div>
-      <Button variant="secondary" disabled={busy} onClick={() => void toggle()}>
+      <Button
+        variant="secondary"
+        disabled={busy}
+        aria-pressed={pinned}
+        onClick={() => void toggle()}
+      >
         {t(pinned ? 'Remove from every project' : 'Add to every project')}
       </Button>
     </div>
@@ -134,7 +158,11 @@ export function EntryDetail(props: Props): ReactNode {
         </div>
       )}
       {['skill', 'mcp'].includes(metadata.kind) && (
-        <EveryProjectAction {...props} entryId={selected} />
+        <EveryProjectAction
+          {...props}
+          entryId={selected}
+          revisionIds={versions.map((version) => version.id).filter((id) => id !== selected)}
+        />
       )}
       {versions.length > 1 && (
         <label className="version-picker" htmlFor="snapshot-version">

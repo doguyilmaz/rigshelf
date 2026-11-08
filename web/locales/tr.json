@@ -1366,5 +1366,8 @@
   "Removed from every project. Existing projects keep it until their next setup.": "Her projeden kaldırıldı. Mevcut projeler bir sonraki kuruluma kadar onu korur.",
   "Added to every project. New setups and the next setup of each project include it.": "Her projeye eklendi. Yeni kurulumlar ve her projenin bir sonraki kurulumu onu içerir.",
   "Everything, including memory for every project": "Her şey, her projenin memory'si dahil",
-  "Plans that failed on {{alias}}: {{count}}. {{error}}": "{{alias}} üzerinde uygulanamayan planlar: {{count}}. {{error}}"
+  "Plans that failed on {{alias}}: {{count}}. {{error}}": "{{alias}} üzerinde uygulanamayan planlar: {{count}}. {{error}}",
+  "Restore the base Preset to use a Snapshot in every project.": "Bir Snapshot'ı her projede kullanmak için base Preset'i geri yükleyin.",
+  "Another revision is pinned; adding this one replaces it.": "Başka bir revizyon sabitlenmiş; bunu eklemek onun yerini alır.",
+  "This Snapshot has findings, so setups leave it out until it is reviewed.": "Bu Snapshot'ta bulgular var; incelenene kadar kurulumlar onu dışarıda bırakır."
 }

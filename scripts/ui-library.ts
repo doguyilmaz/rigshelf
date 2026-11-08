@@ -92,12 +92,29 @@ try {
   await page.keyboard.press('Escape');
   await detail.getByRole('button', { name: 'Save relationships', exact: true }).click();
   await expect.poll(() => data.store.entry(expo.id)?.tags.includes('platform:backend')).toBe(true);
+  const basePreset = data.store.get<{ id: string; entryIds: string[] }>('preset', 'base')!;
+  data.store.put('preset', { ...basePreset, entryIds: [...basePreset.entryIds, backend.id] });
+  const pinnedInBase = () =>
+    data.store.get<{ entryIds: string[] }>('preset', 'base')?.entryIds.includes(expo.id);
   await detail.getByRole('button', { name: 'Add to every project', exact: true }).click();
+  const fresh = await expect
+    .poll(pinnedInBase, { timeout: 2000 })
+    .toBe(true)
+    .then(() => true)
+    .catch(() => false);
+  if (!fresh) {
+    await expect(page.getByText(/This Preset changed or was removed/)).toBeVisible();
+    await detail.getByRole('button', { name: 'Add to every project', exact: true }).click();
+  }
   await expect
     .poll(() =>
       data.store.get<{ entryIds: string[] }>('preset', 'base')?.entryIds.includes(expo.id),
     )
     .toBe(true);
+  expect(data.store.get<{ entryIds: string[] }>('preset', 'base')?.entryIds).toContain(backend.id);
+  checks.push(
+    'Adding to every project keeps a base Preset change made elsewhere instead of overwriting it.',
+  );
   await detail.getByRole('button', { name: 'Remove from every project', exact: true }).click();
   await expect
     .poll(() =>
