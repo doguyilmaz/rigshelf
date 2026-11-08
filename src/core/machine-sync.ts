@@ -311,7 +311,7 @@ export async function buildSyncRequest(
     const read = await budget.read(join(home, root, path), `~/${root}/${path}`);
     if (read) globalFiles.push({ root, path, ...read });
   };
-  if (options.globalGuidance)
+  if (options.globalGuidance ?? true)
     for (const [root, path] of globalGuidanceFiles) await addGlobal(root, path);
   if (options.globalSettings) {
     for (const [root, path] of globalSettingsFiles) await addGlobal(root, path);

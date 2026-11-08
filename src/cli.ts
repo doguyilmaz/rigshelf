@@ -100,7 +100,7 @@ async function main(): Promise<void> {
       'replace-directives': { type: 'boolean' },
       memory: { type: 'string' },
       'skip-local-files': { type: 'boolean' },
-      'global-guidance': { type: 'boolean' },
+      'skip-global-guidance': { type: 'boolean' },
       'global-settings': { type: 'boolean' },
       'global-skills': { type: 'boolean' },
     },

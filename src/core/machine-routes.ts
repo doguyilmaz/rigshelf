@@ -24,7 +24,7 @@ const SyncInput = z.object({
   memory: z.array(z.string().min(1).max(300)).max(300).default([]),
   replaceDirectives: z.boolean().default(false),
   localFiles: z.boolean().default(true),
-  globalGuidance: z.boolean().default(false),
+  globalGuidance: z.boolean().default(true),
   globalSettings: z.boolean().default(false),
   globalSkills: z.boolean().default(false),
 });

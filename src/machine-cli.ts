@@ -30,7 +30,7 @@ Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
   rigshelf machine doctor [ssh-alias]           Rigshelf version and harness CLIs on each machine
   rigshelf machine sync <ssh-alias> [--root /dir] [--remote-root /dir] [--replace-directives]
                         [--memory project,project] [--skip-local-files] [--apply]
-                        [--global-guidance] [--global-settings] [--global-skills]
+                        [--skip-global-guidance] [--global-settings] [--global-skills]
                                                 Prepare plans on the server for each applied project kit
   rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
   rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
@@ -46,7 +46,7 @@ interface MachineOptions {
   'replace-directives'?: boolean;
   memory?: string;
   'skip-local-files'?: boolean;
-  'global-guidance'?: boolean;
+  'skip-global-guidance'?: boolean;
   'global-settings'?: boolean;
   'global-skills'?: boolean;
 }
@@ -206,7 +206,7 @@ export async function runMachineCommand(
         .map((value) => value.trim())
         .filter(Boolean),
       localFiles: !values['skip-local-files'],
-      globalGuidance: values['global-guidance'],
+      globalGuidance: !values['skip-global-guidance'],
       globalSettings: values['global-settings'],
       globalSkills: values['global-skills'],
     });

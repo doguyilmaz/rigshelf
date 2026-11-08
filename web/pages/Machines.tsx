@@ -112,7 +112,7 @@ export function Machines({ notify }: PageProps): ReactNode {
   const [compared, setCompared] = useState<Compared>();
   const [memory, setMemory] = useState<string[]>([]);
   const [scope, setScope] = useState({
-    globalGuidance: false,
+    globalGuidance: true,
     globalSettings: false,
     globalSkills: false,
   });

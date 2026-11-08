@@ -412,3 +412,21 @@ test('the server refuses bundles that would write Git metadata, dependency folde
       ),
     ).rejects.toThrow();
 });
+
+test('global guidance is sent by default and can be left out', async () => {
+  const { laptop } = await machines();
+  await Bun.write(join(laptop.home, '.codex/AGENTS.md'), '# How I work\n');
+  const included = await buildSyncRequest(laptop.store, [laptop.root], {
+    home: laptop.home,
+    localFiles: false,
+  });
+  expect(included.request.globalFiles?.map((file) => `${file.root}/${file.path}`)).toEqual([
+    '.codex/AGENTS.md',
+  ]);
+  const skipped = await buildSyncRequest(laptop.store, [laptop.root], {
+    home: laptop.home,
+    localFiles: false,
+    globalGuidance: false,
+  });
+  expect(skipped.request.globalFiles).toBeUndefined();
+});
