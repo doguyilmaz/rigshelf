@@ -312,3 +312,103 @@ test('opted-in global settings and Skills copy per harness folder; account and t
   await executePlan(server, byRoot['.claude']!.planId!, 'rollback');
   expect(await Bun.file(join(serverHome, '.claude/settings.json')).exists()).toBe(false);
 });
+
+test('no copied tree sends Git metadata, dependencies, private files or credential-like content', async () => {
+  const { laptop } = await machines();
+  const git = (...args: string[]) =>
+    Bun.spawnSync([
+      'git',
+      '-c',
+      'user.email=t@example.com',
+      '-c',
+      'user.name=t',
+      '-C',
+      laptop.project,
+      ...args,
+    ]);
+  git('init', '-q');
+  git('remote', 'add', 'origin', 'git@github.com:owner/app.git');
+  const skill = join(laptop.project, '.agents/skills/cloned-skill');
+  await Bun.write(join(skill, 'SKILL.md'), '---\nname: cloned-skill\n---\n');
+  await Bun.write(
+    join(skill, '.git/config'),
+    '[remote "origin"]\n\turl = https://user:ghp_examplesecret0000000000@github.com/x/y\n',
+  );
+  await Bun.write(join(skill, 'node_modules/pkg/index.js'), 'module.exports = 1;\n');
+  await Bun.write(
+    join(skill, 'scripts/set-token.sh'),
+    'export API_TOKEN="replace-with-your-token-value"\n',
+  );
+  await Bun.write(join(skill, '.env'), 'SECRET=1\n');
+  const global = join(laptop.home, '.claude/skills/global-skill');
+  await Bun.write(join(global, 'SKILL.md'), '---\nname: global-skill\n---\n');
+  await Bun.write(join(global, '.env.local'), 'SECRET=2\n');
+  await Bun.write(join(global, '.git/HEAD'), 'ref: refs/heads/main\n');
+  const memory = join(laptop.home, '.claude/projects', claudeMemoryKey(laptop.project), 'memory');
+  await Bun.write(join(memory, 'notes.md'), 'Plain note.\n');
+  await Bun.write(join(memory, '.env'), 'SECRET=3\n');
+  const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
+    home: laptop.home,
+    memory: ['project'],
+    globalSkills: true,
+  });
+  const sent = [
+    ...(request.projects[0]?.localFiles ?? []).map((file) => file.path),
+    ...(request.projects[0]?.memory ?? []).map((file) => `memory/${file.path}`),
+    ...(request.globalFiles ?? []).map((file) => `${file.root}/${file.path}`),
+  ].sort();
+  expect(sent).toEqual([
+    '.agents/skills/cloned-skill/SKILL.md',
+    '.claude/skills/global-skill/SKILL.md',
+    'memory/notes.md',
+  ]);
+  expect(JSON.stringify(request)).not.toContain('ghp_examplesecret');
+  expect(withheld.map((value) => value.name)).toEqual(
+    expect.arrayContaining([
+      'project/.agents/skills/cloned-skill/scripts/set-token.sh',
+      'project/.agents/skills/cloned-skill/.env',
+      '~/.claude/skills/global-skill/.env.local',
+      'memory/.env',
+    ]),
+  );
+});
+
+test('the server refuses bundles that would write Git metadata, dependency folders or private files', async () => {
+  const { server, serverRoot } = await machines();
+  await repository(join(serverRoot, 'app'), 'https://github.com/owner/app');
+  const file = (path: string) => ({
+    path,
+    content: Buffer.from('x').toString('base64'),
+    executable: false,
+  });
+  for (const path of [
+    '.git/hooks/post-checkout',
+    '.agents/skills/x/node_modules/a.js',
+    '.claude/rules/.env',
+  ])
+    await expect(
+      prepareSync(
+        server,
+        {
+          library: {
+            format: 'kitfold-library',
+            schemaVersion: 1,
+            exportedAt: '',
+            entries: [],
+            sources: [],
+            presets: [],
+            rules: [],
+          },
+          sourceHome: '/laptop',
+          projects: [
+            {
+              repository: 'github.com/owner/app',
+              sourceProject: '/laptop/app',
+              localFiles: [file(path)],
+            },
+          ],
+        },
+        [serverRoot],
+      ),
+    ).rejects.toThrow();
+});

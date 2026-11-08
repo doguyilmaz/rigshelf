@@ -4,6 +4,7 @@ import { homedir } from 'node:os';
 import { join, relative } from 'node:path';
 import { z } from 'zod';
 import { exportLibrary, importLibrary } from './backup';
+import { ignoredDirectories } from './inventory-paths';
 import { readKit } from './kit';
 import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import { readLocalBytes } from './local-files';
@@ -64,12 +65,12 @@ const globalGuidanceFiles: [GlobalRoot, string][] = [
   ['.gemini', 'GEMINI.md'],
 ];
 const globalSettingsFiles: [GlobalRoot, string][] = [['.claude', 'settings.json']];
-const privateName = /(^|\/)(?:settings\.local\.json|\.env(?:\.[^/]*)?)$/;
 const refusedGlobalSettings = [
   ['~/.claude.json', 'Holds Claude Code account and project trust; sign in on the server instead.'],
   ['~/.codex/config.toml', 'Holds Codex project trust; trust projects on the server yourself.'],
 ];
 
+const privateName = /(^|\/)(?:settings\.local\.json|\.env(?:\.[^/]*)?)$/;
 const SafePath = z
   .string()
   .min(1)
@@ -81,7 +82,12 @@ const SafePath = z
     } catch {
       return false;
     }
-  }, 'Copied paths must stay inside their folder.');
+  }, 'Copied paths must stay inside their folder.')
+  .refine(
+    (value) =>
+      !privateName.test(value) && !value.split('/').some((part) => ignoredDirectories.has(part)),
+    'Copied paths must not include private files, Git metadata or dependency folders.',
+  );
 const CopiedFile = z.object({
   path: SafePath,
   content: z.string().max(Math.ceil((MAX_FILE_BYTES * 4) / 3) + 4),
@@ -138,17 +144,16 @@ class FileBudget {
   private bytes = 0;
   private count = 0;
   constructor(private readonly withheld: Withheld[]) {}
-  async read(absolute: string, name: string, scanSecrets: boolean) {
+  async read(absolute: string, name: string) {
     const info = await lstat(absolute).catch(() => undefined);
     if (!info?.isFile()) return;
+    if (privateName.test(name)) return this.hold(name, 'Private file; set it up by hand.');
     if (info.size > MAX_FILE_BYTES) return this.hold(name, 'Larger than 1 MiB.');
     if (this.count >= MAX_COPY_FILES || this.bytes + info.size > MAX_BUNDLE_FILE_BYTES)
       return this.hold(name, 'The sync bundle is full; sync fewer projects at once.');
     const bytes = await readLocalBytes(absolute, MAX_FILE_BYTES);
-    if (scanSecrets) {
-      const text = bytes.toString('utf8');
-      if (redact(text) !== text) return this.hold(name, 'Possible credential; set it up by hand.');
-    }
+    const text = bytes.toString('utf8');
+    if (redact(text) !== text) return this.hold(name, 'Possible credential; set it up by hand.');
     this.count++;
     this.bytes += bytes.length;
     return { content: bytes.toString('base64'), executable: (info.mode & 0o111) !== 0 };
@@ -159,14 +164,20 @@ class FileBudget {
   }
 }
 
+/** Walks a folder without entering Git metadata, dependencies, caches or private runtime folders. */
 async function folderFiles(base: string, folder: string): Promise<string[]> {
-  const entries = await readdir(join(base, folder), { recursive: true, withFileTypes: true }).catch(
-    () => [],
-  );
-  return entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => relative(base, join(entry.parentPath, entry.name)).split('\\').join('/'))
-    .sort();
+  const files: string[] = [];
+  const walk = async (current: string) => {
+    const entries = await readdir(current, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      const path = join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (!ignoredDirectories.has(entry.name)) await walk(path);
+      } else if (entry.isFile()) files.push(relative(base, path).split('\\').join('/'));
+    }
+  };
+  await walk(join(base, folder));
+  return files.sort();
 }
 
 async function trackedFiles(project: string, paths: string[]): Promise<Set<string> | undefined> {
@@ -204,14 +215,7 @@ async function collectLocalFiles(
   const files: CopiedFiles = [];
   for (const path of candidates) {
     if (tracked.has(path) || managed.has(path)) continue;
-    const name = `${project.name}/${path}`;
-    if (privateName.test(path)) {
-      if (await lstat(join(project.path, path)).catch(() => undefined))
-        budget.hold(name, 'Private local settings; set them up by hand.');
-      continue;
-    }
-    const scanSecrets = !/^\.[a-z]+\/skills\//.test(path);
-    const read = await budget.read(join(project.path, path), name, scanSecrets);
+    const read = await budget.read(join(project.path, path), `${project.name}/${path}`);
     if (read) files.push({ path, ...read });
   }
   return files;
@@ -234,7 +238,7 @@ async function collectMemory(home: string, project: string, budget: FileBudget) 
   const folder = join(home, '.claude/projects', claudeMemoryKey(project), 'memory');
   const files: CopiedFiles = [];
   for (const path of await folderFiles(folder, '.')) {
-    const read = await budget.read(join(folder, path), `memory/${path}`, true);
+    const read = await budget.read(join(folder, path), `memory/${path}`);
     if (read) files.push({ path, ...read });
   }
   return files;
@@ -303,19 +307,19 @@ export async function buildSyncRequest(
     });
   }
   const globalFiles: NonNullable<SyncRequest['globalFiles']> = [];
-  const addGlobal = async (root: GlobalRoot, path: string, scanSecrets: boolean) => {
-    const read = await budget.read(join(home, root, path), `~/${root}/${path}`, scanSecrets);
+  const addGlobal = async (root: GlobalRoot, path: string) => {
+    const read = await budget.read(join(home, root, path), `~/${root}/${path}`);
     if (read) globalFiles.push({ root, path, ...read });
   };
   if (options.globalGuidance)
-    for (const [root, path] of globalGuidanceFiles) await addGlobal(root, path, true);
+    for (const [root, path] of globalGuidanceFiles) await addGlobal(root, path);
   if (options.globalSettings) {
-    for (const [root, path] of globalSettingsFiles) await addGlobal(root, path, true);
+    for (const [root, path] of globalSettingsFiles) await addGlobal(root, path);
     for (const [name, reason] of refusedGlobalSettings) budget.hold(name!, reason!);
   }
   if (options.globalSkills)
     for (const root of globalRoots)
-      for (const path of await skillFiles(join(home, root))) await addGlobal(root, path, false);
+      for (const path of await skillFiles(join(home, root))) await addGlobal(root, path);
   const exported = exportLibrary(store);
   const wanted = new Set(projects.flatMap((project) => project.kit?.entryIds ?? []));
   const entries = exported.entries.filter((value) => wanted.has(value.entry.id));
