@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
 import { chmod, mkdir, stat, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { buildSyncRequest, prepareSync } from '../src/core/machine-sync';
+import { buildSyncRequest, prepareSync, type SyncRequest } from '../src/core/machine-sync';
 import { claudeMemoryKey } from '../src/core/memory-locations';
 import type { Rule } from '../src/core/model';
 import { createPlan, executePlan } from '../src/core/planner';
@@ -484,4 +484,37 @@ test('projects the server has no clone of send nothing, not even local files', a
   ]);
   expect(JSON.stringify(request)).not.toContain('Unmatched notes');
   expect(skipped).toContainEqual({ name: 'other', reason: 'no matching project on the server' });
+});
+
+test('MCP approvals and Codex trust never travel, whatever the laptop sends', async () => {
+  const { laptop, server, serverRoot } = await machines();
+  await repository(laptop.project, 'git@github.com:owner/app.git');
+  const approval = '{"enableAllProjectMcpServers": true, "enabledMcpjsonServers": ["db"]}';
+  await Bun.write(join(laptop.project, '.claude/settings.json'), approval);
+  await Bun.write(join(laptop.home, '.claude/settings.json'), approval);
+  const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
+    home: laptop.home,
+    globalSettings: true,
+  });
+  expect(JSON.stringify(request)).not.toContain(Buffer.from(approval).toString('base64'));
+  expect(withheld.map((value) => value.name)).toEqual(
+    expect.arrayContaining(['project/.claude/settings.json', '~/.claude/settings.json']),
+  );
+  const library = { ...(request.library as object) };
+  const bundle = (globalFiles: SyncRequest['globalFiles']) =>
+    prepareSync(
+      server,
+      { library, sourceHome: '/laptop', projects: [], globalFiles },
+      [serverRoot],
+      { home: join(laptop.root, 'server-home') },
+    );
+  const encoded = (text: string) => Buffer.from(text).toString('base64');
+  await expect(
+    bundle([{ root: '.codex', path: 'config.toml', content: encoded('x'), executable: false }]),
+  ).rejects.toThrow();
+  await expect(
+    bundle([
+      { root: '.claude', path: 'settings.json', content: encoded(approval), executable: false },
+    ]),
+  ).rejects.toThrow();
 });

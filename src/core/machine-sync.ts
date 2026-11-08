@@ -71,6 +71,10 @@ const refusedGlobalSettings = [
 ];
 
 const privateName = /(^|\/)(?:settings\.local\.json|\.env(?:\.[^/]*)?)$/;
+const MCP_APPROVAL = /enableAllProjectMcpServers|enabledMcpjsonServers/;
+const MCP_APPROVAL_REASON = 'Approves MCP servers; approve them on the server yourself.';
+const grantsMcpApproval = (base64: string) =>
+  MCP_APPROVAL.test(Buffer.from(base64, 'base64').toString('utf8'));
 const SafePath = z
   .string()
   .min(1)
@@ -90,7 +94,10 @@ const SafePath = z
   );
 const CopiedFile = z.object({
   path: SafePath,
-  content: z.string().max(Math.ceil((MAX_FILE_BYTES * 4) / 3) + 4),
+  content: z
+    .string()
+    .max(Math.ceil((MAX_FILE_BYTES * 4) / 3) + 4)
+    .refine((value) => !grantsMcpApproval(value), MCP_APPROVAL_REASON),
   executable: z.boolean().default(false),
 });
 const Files = z.array(CopiedFile).max(MAX_COPY_FILES);
@@ -112,7 +119,12 @@ const SyncRequestSchema = z.object({
   sourceHome: z.string().min(1).max(4096),
   projects: z.array(ProjectRequest).max(MAX_SYNC_PROJECTS),
   globalFiles: z
-    .array(CopiedFile.extend({ root: z.enum(globalRoots) }))
+    .array(
+      CopiedFile.extend({ root: z.enum(globalRoots) }).refine(
+        (file) => !(file.root === '.codex' && file.path === 'config.toml'),
+        'Codex configuration holds project trust and is never copied.',
+      ),
+    )
     .max(MAX_COPY_FILES)
     .optional(),
 });
@@ -154,6 +166,7 @@ class FileBudget {
     const bytes = await readLocalBytes(absolute, MAX_FILE_BYTES);
     const text = bytes.toString('utf8');
     if (redact(text) !== text) return this.hold(name, 'Possible credential; set it up by hand.');
+    if (MCP_APPROVAL.test(text)) return this.hold(name, MCP_APPROVAL_REASON);
     this.count++;
     this.bytes += bytes.length;
     return { content: bytes.toString('base64'), executable: (info.mode & 0o111) !== 0 };
