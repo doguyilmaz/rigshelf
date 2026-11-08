@@ -312,6 +312,33 @@ describe('brownfield projects', () => {
     }
   });
 
+  test('a kept skill installed by the skills CLI names its lock source', async () => {
+    const { store, project } = await setup();
+    const skill = sampleSkill(store, 'Project Guide');
+    await Bun.write(join(project, '.agents/skills/project-guide/SKILL.md'), 'Installed upstream');
+    await Bun.write(
+      join(project, 'skills-lock.json'),
+      JSON.stringify({
+        version: 1,
+        skills: {
+          'Project Guide': { source: 'acme/skills', sourceType: 'github', computedHash: 'abc' },
+        },
+      }),
+    );
+    const plan = await createPlan(store, request(project, [skill.id], { providers: ['codex'] }));
+    const warning = plan.warnings.find((value) => value.startsWith('Kept existing'));
+    expect(warning).toContain('skills-lock.json');
+    expect(warning).toContain('acme/skills');
+    await Bun.write(join(project, 'skills-lock.json'), '{ not json');
+    const unreadable = await createPlan(
+      store,
+      request(project, [skill.id], { providers: ['codex'] }),
+    );
+    expect(unreadable.warnings.find((value) => value.startsWith('Kept existing'))).not.toContain(
+      'skills-lock.json',
+    );
+  });
+
   test('a locally edited managed skill blocks the next plan instead of being silently kept', async () => {
     const { store, project } = await setup();
     const skill = sampleSkill(store);

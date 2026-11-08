@@ -40,6 +40,18 @@ async function claudeLinksToAgents(projectPath: string): Promise<boolean> {
   return resolve(projectPath, await readlink(link)) === join(projectPath, 'AGENTS.md');
 }
 
+/** Maps portable skill folder names to the source recorded by the skills CLI lock (version 1). */
+async function readSkillsLock(projectPath: string): Promise<Map<string, string>> {
+  const sources = new Map<string, string>();
+  try {
+    const lock = JSON.parse((await readText(join(projectPath, 'skills-lock.json'))) || '{}');
+    if (lock.version !== 1 || typeof lock.skills !== 'object' || !lock.skills) return sources;
+    for (const [name, value] of Object.entries(lock.skills as Record<string, { source?: unknown }>))
+      if (typeof value?.source === 'string') sources.set(slug(name), value.source.slice(0, 200));
+  } catch {}
+  return sources;
+}
+
 const CODEX_GUIDANCE_BYTES = 32 * 1024;
 
 async function codexGuidanceWarnings(projectPath: string, planned: string): Promise<string[]> {
@@ -171,6 +183,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
       );
   }
   const installedSkills = new Set<string>();
+  const skillsLock = await readSkillsLock(projectPath);
   async function sharedRenderer(provider: Provider, name: string): Promise<Provider> {
     const skillFile = (value: Provider) =>
       skillOutputPath(projectPath, `${adapter(value).skills}/${name}/SKILL.md`);
@@ -315,8 +328,11 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
         ),
       );
       if (states.includes('conflict')) {
+        const locked = skillsLock.get(slug(entry.name));
         warnings.push(
-          `Kept existing ${folder}: it differs from the library revision of ${entry.name}. Choose replace existing files to install the library revision.`,
+          locked
+            ? `Kept existing ${folder}: the skills CLI installed it from ${locked} (skills-lock.json). Update it with skills update, or choose replace existing files to install the library revision.`
+            : `Kept existing ${folder}: it differs from the library revision of ${entry.name}. Choose replace existing files to install the library revision.`,
         );
         continue;
       }
