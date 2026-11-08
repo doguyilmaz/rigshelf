@@ -25,7 +25,7 @@ const MAX_MANIFEST_BYTES = 32 * 1024 * 1024;
 const MAX_SYNC_INPUT_BYTES = 256 * 1024 * 1024;
 
 export const machineHelp = `
-Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
+Machines (your ~/.ssh/config and ssh-agent, no stored keys; nothing changes there until you apply):
   rigshelf machine inventory [--root /dir]      This machine's agent setup as JSON, without file contents
   rigshelf machine compare <ssh-alias> [--root /dir] [--remote-root /dir] [--json]
   rigshelf machine compare --manifest inventory.json   Compare with a saved inventory
@@ -34,7 +34,8 @@ Machines (read-only; uses your ~/.ssh/config and ssh-agent, stores no keys):
                         [--memory project,project] [--skip-local-files] [--apply]
                         [--skip-global-guidance] [--global-settings] [--global-skills]
                         [--all]  everything above, including memory for every project
-                                                Prepare plans on the server for each applied project kit
+                                                Send kits, untracked agent files and global guidance
+                                                for projects the server has; prepare plans there
   rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
   rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
                                                 Open that machine's workbench here through an SSH tunnel
