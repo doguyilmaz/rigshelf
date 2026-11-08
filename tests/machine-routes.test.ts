@@ -62,7 +62,7 @@ test('machine routes compare, prepare and apply through the injected runner', as
     'POST',
     'machines/compare',
     { alias: 'build-box' },
-    { machineRunner },
+    { machineRunner, machineHome: data.home },
   )) as {
     doctor: { there: { platform: string }; sameVersion: boolean };
     report: { global: unknown };
@@ -74,7 +74,7 @@ test('machine routes compare, prepare and apply through the injected runner', as
     'POST',
     'machines/sync',
     { alias: 'build-box', memory: [] },
-    { machineRunner },
+    { machineRunner, machineHome: data.home },
   )) as {
     prepared: { projects: unknown[] };
   };
@@ -84,13 +84,19 @@ test('machine routes compare, prepare and apply through the injected runner', as
     'POST',
     'machines/apply',
     { alias: 'build-box', planIds: ['0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c'] },
-    { machineRunner },
+    { machineRunner, machineHome: data.home },
   );
   expect(applied).toEqual({
     results: [{ planId: '0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c', status: 'applied', fileCount: 2 }],
   });
   expect(calls.some((command) => command.includes('rigshelf apply 0b6d1c1e'))).toBe(true);
   await expect(
-    route(data.store, 'POST', 'machines/compare', { alias: 'bad alias' }, { machineRunner }),
+    route(
+      data.store,
+      'POST',
+      'machines/compare',
+      { alias: 'bad alias' },
+      { machineRunner, machineHome: data.home },
+    ),
   ).rejects.toThrow();
 });
