@@ -14,7 +14,7 @@ import { type Change, type Plan, ProvidersSchema, type Rule, RuleSchema } from '
 import { rootIdentity } from './ownership';
 import { planFile } from './plan-limits';
 import { createPlan, missingDirectories } from './planner';
-import { assertWritePath, hash, now, redact, safeRelative } from './safety';
+import { assertWritePath, hash, inside, now, redact, safeRelative } from './safety';
 import type { Store } from './store';
 
 const MAX_SYNC_PROJECTS = 300;
@@ -234,14 +234,17 @@ async function collectLocalFiles(
   return files;
 }
 
-/** Lists `skills/<name>/…` files, following a Skill folder that is a link inside the same home. */
-async function skillFiles(root: string): Promise<string[]> {
+/** Lists `skills/<name>/…` files; a linked Skill folder is followed only to a Skill inside the same home. */
+async function skillFiles(home: string, root: string): Promise<string[]> {
   const files: string[] = [];
+  const realHome = await realpath(home).catch(() => home);
   const entries = await readdir(join(root, 'skills'), { withFileTypes: true }).catch(() => []);
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
     const folder = await realpath(join(root, 'skills', entry.name)).catch(() => undefined);
-    if (!folder || !(await lstat(folder)).isDirectory()) continue;
+    if (!folder || folder === realHome || !inside(realHome, folder)) continue;
+    if (!(await lstat(folder)).isDirectory()) continue;
+    if (!(await lstat(join(folder, 'SKILL.md')).catch(() => undefined))?.isFile()) continue;
     for (const path of await folderFiles(folder, '.')) files.push(`skills/${entry.name}/${path}`);
   }
   return files;
@@ -345,7 +348,7 @@ export async function buildSyncRequest(
   }
   if (all || options.globalSkills)
     for (const root of globalRoots)
-      for (const path of await skillFiles(join(home, root))) await addGlobal(root, path);
+      for (const path of await skillFiles(home, join(home, root))) await addGlobal(root, path);
   const exported = exportLibrary(store);
   const wanted = new Set(projects.flatMap((project) => project.kit?.entryIds ?? []));
   const entries = exported.entries.filter((value) => wanted.has(value.entry.id));

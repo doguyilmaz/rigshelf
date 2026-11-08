@@ -518,3 +518,25 @@ test('MCP approvals and Codex trust never travel, whatever the laptop sends', as
     ]),
   ).rejects.toThrow();
 });
+
+test('a global Skill link is followed only to a Skill folder inside the same home', async () => {
+  const { laptop } = await machines();
+  const outside = join(laptop.root, 'outside');
+  await Bun.write(join(outside, 'SKILL.md'), '---\nname: outside\n---\n');
+  await Bun.write(join(outside, 'notes.md'), 'Outside the home folder\n');
+  await Bun.write(join(laptop.home, 'notes/plain.md'), 'Not a Skill\n');
+  await Bun.write(join(laptop.home, 'dev/skills/own/SKILL.md'), '---\nname: own\n---\n');
+  await mkdir(join(laptop.home, '.claude/skills'), { recursive: true });
+  await symlink(outside, join(laptop.home, '.claude/skills/outside'));
+  await symlink(laptop.home, join(laptop.home, '.claude/skills/home'));
+  await symlink(join(laptop.home, 'notes'), join(laptop.home, '.claude/skills/notes'));
+  await symlink(join(laptop.home, 'dev/skills/own'), join(laptop.home, '.claude/skills/own'));
+  const { request } = await buildSyncRequest(laptop.store, [], {
+    home: laptop.home,
+    globalGuidance: false,
+    globalSkills: true,
+  });
+  expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`)).toEqual([
+    '.claude/skills/own/SKILL.md',
+  ]);
+});
