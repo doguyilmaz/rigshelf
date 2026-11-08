@@ -301,6 +301,13 @@ export async function buildSyncRequest(
       skipped.push({ name: project.name, reason: 'no matching project on the server' });
       continue;
     }
+    if (projects.some((sent) => sent.repository === project.repository)) {
+      skipped.push({
+        name: project.name,
+        reason: 'another checkout of this repository is already sent',
+      });
+      continue;
+    }
     const kit = await readKit(project.path).catch(() => undefined);
     const local =
       options.localFiles === false
@@ -333,7 +340,7 @@ export async function buildSyncRequest(
           }
         : {}),
       ...(local?.length ? { localFiles: local } : {}),
-      ...(memory ? { memory } : {}),
+      ...(memory?.length ? { memory } : {}),
     });
   }
   const globalFiles: NonNullable<SyncRequest['globalFiles']> = [];

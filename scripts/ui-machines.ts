@@ -145,7 +145,7 @@ try {
   const prepared = JSON.parse(
     requests.find((value) => value.command.includes('machine prepare'))!.input!,
   );
-  expect(prepared.projects[0].memory).toEqual([]);
+  expect(prepared.projects[0].memory).toBeUndefined();
   expect(prepared.globalFiles).toBeUndefined();
 
   expect(requests.some((value) => value.command.includes('rigshelf apply'))).toBe(false);

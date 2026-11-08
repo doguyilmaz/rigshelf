@@ -540,3 +540,21 @@ test('a global Skill link is followed only to a Skill folder inside the same hom
     '.claude/skills/own/SKILL.md',
   ]);
 });
+
+test('a second checkout of the same repository is reported instead of sent twice', async () => {
+  const { laptop } = await machines();
+  for (const name of ['app', 'app-worktree']) {
+    await repository(join(laptop.root, name), 'git@github.com:owner/app.git');
+    await Bun.write(join(laptop.root, name, 'CLAUDE.local.md'), `${name} notes\n`);
+  }
+  const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.root], {
+    globalGuidance: false,
+  });
+  expect(request.projects.map((project) => project.sourceProject)).toEqual([
+    join(laptop.root, 'app'),
+  ]);
+  expect(skipped).toContainEqual({
+    name: 'app-worktree',
+    reason: 'another checkout of this repository is already sent',
+  });
+});
