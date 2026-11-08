@@ -9,6 +9,7 @@ import { readKit } from './kit';
 import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import { readLocalBytes } from './local-files';
 import { type MachineInventory, machineProjects } from './machine-inventory';
+import { replacePaths } from './machine-paths';
 import { claudeMemoryKey } from './memory-locations';
 import { type Change, type Plan, ProvidersSchema, type Rule, RuleSchema } from './model';
 import { rootIdentity } from './ownership';
@@ -405,7 +406,7 @@ function remapped(content: string, remap: [string, string][]): Buffer {
   const bytes = Buffer.from(content, 'base64');
   const text = bytes.toString('utf8');
   if (!Buffer.from(text, 'utf8').equals(bytes)) return bytes;
-  return Buffer.from(remap.reduce((value, [from, to]) => value.split(from).join(to), text));
+  return Buffer.from(replacePaths(text, remap));
 }
 
 async function copyPlan(

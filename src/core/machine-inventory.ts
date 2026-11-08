@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { VERSION } from '../version';
 import { ignoredDirectories, instructionNames, skillPaths } from './inventory-paths';
 import { readLocalBytes } from './local-files';
+import { mentionsPath, replacePaths } from './machine-paths';
 import { claudeMemoryKey } from './memory-locations';
 import { redact } from './safety';
 import type { Store } from './store';
@@ -105,7 +106,7 @@ function privacyOf(key: string, bytes: Buffer, roots: string[], scanSecrets: boo
   if (privateName.test(key)) return 'private';
   const text = bytes.toString('utf8');
   if (scanSecrets && redact(text) !== text) return 'private';
-  return roots.some((root) => text.includes(root)) ? 'machine-specific' : 'portable';
+  return roots.some((root) => mentionsPath(text, root)) ? 'machine-specific' : 'portable';
 }
 
 async function hashFile(
@@ -129,13 +130,13 @@ async function hashFile(
   };
 }
 
-/** `roots[0]` is the home folder; project and scan roots usually sit inside it, so they are replaced first. */
+/** `roots[0]` is the home folder; a scan root that is the home folder itself counts as home. */
 function withoutMachinePaths(text: string, roots: string[]): string {
   const [home, ...others] = roots;
-  const replaced = [...others]
-    .sort((left, right) => right.length - left.length)
-    .reduce((value, root) => value.split(root).join('\0root\0'), text);
-  return home ? replaced.split(home).join('\0home\0') : replaced;
+  return replacePaths(text, [
+    ...others.filter((root) => root !== home).map((root): [string, string] => [root, '\0root\0']),
+    ...(home ? [[home, '\0home\0'] as [string, string]] : []),
+  ]);
 }
 
 async function folderFiles(folder: string, base = folder, out: string[] = []): Promise<string[]> {
