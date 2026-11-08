@@ -85,7 +85,7 @@ async function stillMissing(plan: Plan): Promise<string[]> {
   return missing;
 }
 
-async function removeCreatedDirectories(plan: Plan): Promise<void> {
+export async function removeCreatedDirectories(plan: Plan): Promise<void> {
   for (const path of plan.createdDirectories || []) {
     const target = join(plan.projectPath, safeRelative(path));
     const stats = await lstat(target).catch(() => null);

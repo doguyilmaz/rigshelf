@@ -1,9 +1,9 @@
-import { open, unlink } from 'node:fs/promises';
-import { join } from 'node:path';
+import { lstat, open, readdir, unlink } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
 import { readText } from './detect';
 import type { Plan } from './model';
 import { rootIdentity, syncOwnership } from './ownership';
-import { syncInstallations, writeChange } from './plan-io';
+import { removeCreatedDirectories, syncInstallations, writeChange } from './plan-io';
 import { planFile } from './plan-limits';
 import { assertWritePath, checkedProject, hash, now } from './safety';
 import type { Store } from './store';
@@ -28,6 +28,24 @@ async function clearStaleLock(projectPath: string, planId: string): Promise<void
   if (active)
     throw new Error('The lock belongs to a running process. Recovery will not interrupt it.');
   await unlink(path);
+}
+
+const TEMPORARY_SUFFIX = /^\.kitfold-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+async function removeTemporaryFiles(plan: Plan): Promise<void> {
+  for (const change of plan.changes) {
+    const name = basename(change.path);
+    const folder = dirname(change.path);
+    const entries = await readdir(join(plan.projectPath, folder)).catch(() => [] as string[]);
+    for (const entry of entries) {
+      if (!entry.startsWith(name) || !TEMPORARY_SUFFIX.test(entry.slice(name.length))) continue;
+      const path = await assertWritePath(
+        plan.projectPath,
+        folder === '.' ? entry : `${folder}/${entry}`,
+      );
+      if ((await lstat(path)).isFile()) await unlink(path);
+    }
+  }
 }
 
 async function changedFiles(plan: Plan, direction: 'apply' | 'rollback') {
@@ -72,6 +90,8 @@ export async function recoverPlan(store: Store, id: string): Promise<Plan> {
     const changed = await changedFiles(plan, journal.direction);
     for (const change of changed.reverse())
       await writeChange(plan, change, journal.direction === 'apply' ? 'rollback' : 'apply');
+    await removeTemporaryFiles(plan);
+    if (journal.direction === 'apply') await removeCreatedDirectories(plan);
     await syncOwnership(store, plan, journal.direction === 'apply' ? 'rollback' : 'apply');
     plan.status = journal.direction === 'apply' ? 'planned' : 'applied';
     await syncInstallations(store, plan);

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { chmod, mkdir, unlink } from 'node:fs/promises';
+import { chmod, mkdir, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createPlan, executePlan } from '../src/core/planner';
 import { recoverPlan } from '../src/core/recovery';
@@ -46,6 +46,12 @@ test('recovery restores the baseline after an interrupted apply and clears only 
   const { store, project, plan } = await setup();
   const change = plan.changes[0];
   await Bun.write(join(project, change.path), Buffer.from(change.after!, 'base64'));
+  const interrupted = plan.changes[1];
+  await Bun.write(
+    join(project, `${interrupted.path}.kitfold-0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c`),
+    'partial',
+  );
+  await Bun.write(join(project, `${interrupted.path}.kitfold-notes`), 'not a temporary file');
   store.put('journal', { id: plan.id, direction: 'apply', state: 'writing' });
   await Bun.write(
     join(project, '.kitfold-write.lock'),
@@ -55,6 +61,9 @@ test('recovery restores the baseline after an interrupted apply and clears only 
   expect(recovered.status).toBe('planned');
   expect(await Bun.file(join(project, change.path)).exists()).toBe(false);
   expect(await Bun.file(join(project, '.kitfold-write.lock')).exists()).toBe(false);
+  const remaining = await readdir(project, { recursive: true });
+  expect(remaining.filter((path) => path.includes('.kitfold-0b6d'))).toEqual([]);
+  expect(remaining.some((path) => path.endsWith('.kitfold-notes'))).toBe(true);
   await executePlan(store, plan.id, 'apply');
   expect(store.get<{ state: string }>('journal', plan.id)?.state).toBe('complete');
 });
