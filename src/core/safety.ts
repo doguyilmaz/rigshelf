@@ -75,47 +75,62 @@ export async function privateDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true, mode: 0o700 });
 }
 
-const SECRET_NAME =
-  '(?<![A-Za-z0-9])[A-Za-z0-9_-]*?(?:api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|role[_-]?key|access[_-]?token|auth[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret|token|authorization|cookie)';
-const SECRET_FLAG = '--(?:api[_-]?key|access[_-]?token|auth[_-]?token|token|password|secret)';
+const PLACEHOLDER = '${KITFOLD_SECRET}';
+/** Names whose value is a secret, matched on the last `_`/`-` separated parts so `STRIPE_SECRET_KEY` and `aws_secret_access_key` count. */
+const SECRET_NAME_END =
+  /(?:^|[_-])(?:api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|role[_-]?key|access[_-]?token|auth[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret|token)$/i;
+const QUOTED_ONLY_NAMES = /^(?:authorization|cookie|private[_-]?key)$/i;
+const isVariable = (value: string) => /^(?:Bearer\s+)?\$/.test(value);
 
+/** Every pattern starts at a token boundary or a literal, so the scan stays linear on long lines. */
 export function redact(text: string): string {
-  const placeholder = '${KITFOLD_SECRET}';
-  const dynamic = (value: string) => /^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(value);
-  const keep = (match: string, prefix: string, value: string) =>
-    value.startsWith('${') ? match : prefix + placeholder;
   return text
     .replace(
       /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/g,
-      placeholder,
+      PLACEHOLDER,
     )
     .replace(
-      /(?<![A-Za-z0-9_-])(?:sk-|sk_live_|sk_test_|rk_live_|rk_test_|ghp_|gho_|ghs_|github_pat_|glpat-|npm_|xox[baprs]-|AKIA|AIza)[A-Za-z0-9_-]{12,}/g,
-      placeholder,
+      /(?<![A-Za-z0-9_-])(?:(?:sk-|sk_live_|sk_test_|rk_live_|rk_test_|ghp_|gho_|ghs_|github_pat_|glpat-|xox[baprs]-|AKIA|AIza)[A-Za-z0-9_-]{12,}|npm_[A-Za-z0-9]{36})(?![A-Za-z0-9_-])/g,
+      PLACEHOLDER,
     )
     .replace(
       /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
-      placeholder,
+      PLACEHOLDER,
     )
     .replace(
-      new RegExp(
-        `((?:["']?)${SECRET_NAME}(?:["']?)\\s*[:=]\\s*)(["'])((?:\\\\.|(?!\\2)[^\\r\\n])*)\\2`,
-        'gi',
-      ),
-      (_match, prefix: string, quote: string, value: string) =>
-        `${prefix}${quote}${dynamic(value) ? value : placeholder}${quote}`,
+      /(?<![A-Za-z0-9_-])(["']?)([A-Za-z][A-Za-z0-9_-]{0,80})\1(\s*[:=]\s*)(?:(["'])((?:\\.|(?!\4)[^\r\n])*)\4|([^\s,"'{}[\]#][^\s,"'}#]*))/g,
+      (
+        match,
+        nameQuote: string,
+        name: string,
+        separator: string,
+        quote?: string,
+        quoted?: string,
+        bare?: string,
+      ) => {
+        const secretName = SECRET_NAME_END.test(name) || QUOTED_ONLY_NAMES.test(name);
+        if (!secretName) return match;
+        const head = `${nameQuote}${name}${nameQuote}${separator}`;
+        if (quote !== undefined)
+          return isVariable(quoted ?? '') ? match : `${head}${quote}${PLACEHOLDER}${quote}`;
+        if (nameQuote || QUOTED_ONLY_NAMES.test(name) || isVariable(bare ?? '')) return match;
+        return head + PLACEHOLDER;
+      },
     )
-    .replace(new RegExp(`(${SECRET_NAME}\\s*[:=]\\s*)([^\\s,"'}#]+)`, 'gi'), keep)
     .replace(
-      new RegExp(
-        `(${SECRET_FLAG}\\\\?["']?(?:\\s*,\\s*|\\s+|=)\\\\?["']?)([^\\s"'\\\\,\\]]+)`,
-        'gi',
-      ),
-      keep,
+      /(--(?:api[_-]?key|access[_-]?token|auth[_-]?token|token|password|secret)(?:=|\s+|\\?["']?\s*,\s*)\\?["']?)(?![-$])([A-Za-z0-9._~+/=-]{12,})/gi,
+      `$1${PLACEHOLDER}`,
     )
-    .replace(/(Bearer\s+)(?!\$\{)[A-Za-z0-9._-]{12,}/gi, '$1${KITFOLD_SECRET}')
-    .replace(/([?&](?:token|key|api_key|access_token|secret)=)([^&#\s]+)/gi, keep)
-    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^\s/@]+@/gi, '$1${KITFOLD_SECRET}@');
+    .replace(/(Bearer\s+)(?![$])[A-Za-z0-9._-]{12,}/gi, `$1${PLACEHOLDER}`)
+    .replace(
+      /([?&](?:token|key|api_key|access_token|secret)=)([^&#\s]+)/gi,
+      (match, prefix: string, value: string) =>
+        value.startsWith('$') ? match : prefix + PLACEHOLDER,
+    )
+    .replace(
+      /(?<![A-Za-z0-9+.-])([a-z][a-z0-9+.-]{0,30}:\/\/)[^\s/@:]+:[^\s/@]+@/gi,
+      `$1${PLACEHOLDER}@`,
+    );
 }
 
 export function scanText(text: string, file = 'SKILL.md'): Finding[] {

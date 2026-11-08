@@ -33,3 +33,29 @@ test('redact leaves variable references and ordinary text alone', () => {
   ])
     expect(redact(text)).toBe(text);
 });
+
+test('redact leaves package variables, shell variables and prose about flags alone', () => {
+  for (const text of [
+    'echo $npm_package_version and npm_config_cache=/tmp/cache',
+    'gh api --token "$GH_TOKEN" and --token $GH_TOKEN',
+    'Set --token flag to choose the account.',
+    'Options: --token, --verbose',
+    'export GITHUB_TOKEN=$(gh auth token)',
+    'authorization: "Bearer ${API_KEY}"',
+  ])
+    expect(redact(text)).toBe(text);
+});
+
+test('redact stays linear on long single-line input', () => {
+  const inputs = [
+    'a_'.repeat(64 * 1024),
+    'ab-cd-'.repeat(32 * 1024),
+    `${'x'.repeat(200 * 1024)}://`,
+    Buffer.alloc(192 * 1024, 7).toString('base64url'),
+  ];
+  for (const input of inputs) {
+    const started = performance.now();
+    redact(input);
+    expect(performance.now() - started).toBeLessThan(500);
+  }
+});
