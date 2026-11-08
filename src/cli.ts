@@ -14,6 +14,7 @@ import { seed } from './core/seeds';
 import { route } from './core/service';
 import { Store } from './core/store';
 import { checkProject, watchProject } from './core/watch';
+import { machineHelp, runMachineCommand } from './machine-cli';
 import { serveMcp } from './mcp';
 import { serveProxy } from './mcp-proxy';
 import { openWorkbenchServer } from './platform/workbench-start';
@@ -59,7 +60,7 @@ const help = `Rigshelf · Project setup for coding agents
 RIGSHELF_DATA_DIR overrides private storage; KITFOLD_DATA_DIR remains compatible.
 The default port advances when occupied. Explicit --port never moves.
 Access survives restarts. --reset-access invalidates old URLs for the next server start.
-${backupHelp}`;
+${machineHelp}${backupHelp}`;
 
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
@@ -88,6 +89,9 @@ async function main(): Promise<void> {
       mode: { type: 'string' },
       cursor: { type: 'string' },
       'acknowledge-frozen': { type: 'boolean' },
+      'remote-root': { type: 'string', multiple: true },
+      manifest: { type: 'string' },
+      json: { type: 'boolean' },
     },
   });
   if (values.version) {
@@ -117,6 +121,12 @@ async function main(): Promise<void> {
       case 'backup':
         result = await runBackupCommand(store, subject, extra, positionals[3], values);
         break;
+      case 'machine': {
+        const machine = await runMachineCommand(store, subject, extra, values);
+        if (machine.text) process.stdout.write(machine.text);
+        result = machine.result;
+        break;
+      }
       case 'connection':
         result = await Promise.all(
           (values.agents?.split(',') || store.settings().defaultProviders).map((provider) =>

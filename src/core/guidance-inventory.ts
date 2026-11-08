@@ -10,7 +10,7 @@ import {
   instructionNames,
   privateRuntimeDirectories,
 } from './inventory-paths';
-import { configuredMemoryDirectory, memoryProjectPaths } from './memory-locations';
+import { claudeMemoryKey, configuredMemoryDirectory, memoryProjectPaths } from './memory-locations';
 import { type DocumentLocation, MAX_TEXT_BYTES } from './model';
 import { readPluginFile } from './plugin-files';
 import { portablePlugin } from './plugin-manifests';
@@ -455,7 +455,7 @@ export async function userProjectMemory(project: string, roots: AiConfigRoot[]) 
   const candidates: { path: string; context: Context }[] = [];
   for (const root of roots.filter((item) => item.provider === 'claude'))
     for (const path of paths) {
-      const key = root.memoryProjectName || path.replace(/[^a-zA-Z0-9]/g, '-');
+      const key = root.memoryProjectName || claudeMemoryKey(path);
       const memory = join(root.path, 'projects', key, 'memory');
       const context: Context = {
         base: memory,

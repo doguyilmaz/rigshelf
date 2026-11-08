@@ -26,6 +26,8 @@ async function worktreeRepository(project: string, marker: string): Promise<stri
   }
 }
 
+export const claudeMemoryKey = (path: string) => path.replace(/[^a-zA-Z0-9]/g, '-');
+
 /** A matching Git metadata back-reference is required before associating a worktree's main root. */
 export async function memoryProjectPaths(project: string): Promise<string[]> {
   const canonical = await realpath(project).catch(() => resolve(project));

@@ -1,6 +1,6 @@
 # Remote machines (proposal)
 
-Status: design proposal, not implemented. It records the decisions to align on before building.
+Status: phase 1 (read-only inventory, compare and doctor) is available in the CLI as `rigshelf machine`. Later phases remain a proposal.
 
 ## Problem
 
@@ -36,7 +36,7 @@ Each request is one remote command that prints JSON:
 
 | Command on the machine | Purpose |
 | --- | --- |
-| `rigshelf machine inventory --json` | Read-only manifest: Library digests, global and project items with path-independent keys and digests. No file bodies. |
+| `rigshelf machine inventory --json [--root /dir]` | Read-only manifest: global and project items with path-independent keys and digests. No file bodies. Without a configured root that exists, it searches the home folder. |
 | `rigshelf machine apply --bundle -` | Apply a reviewed bundle read from stdin through the plan engine; returns the plan and journal IDs. |
 | `rigshelf machine doctor --json` | Environment checks listed below. |
 
@@ -77,7 +77,7 @@ Separate from sync, and later:
 
 ## Phases
 
-1. Read-only `machine inventory`, compare and doctor in CLI and a Machines view.
+1. Read-only `machine inventory`, `machine compare <alias>` and `machine doctor <alias>` in the CLI (done); a Machines view in the workbench.
 2. Apply a reviewed bundle on the server, starting with Library and project kits.
 3. `rigshelf ui --on <alias>`.
 4. Both directions, global items and optional memory re-mapping.

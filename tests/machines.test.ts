@@ -1,0 +1,193 @@
+import { afterEach, expect, test } from 'bun:test';
+import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { compareInventories } from '../src/core/machine-compare';
+import {
+  buildMachineInventory,
+  type MachineInventory,
+  parseMachineInventory,
+  repositoryKey,
+} from '../src/core/machine-inventory';
+import { remoteDoctor, remoteInventory, sshArguments } from '../src/core/machine-ssh';
+import { claudeMemoryKey } from '../src/core/memory-locations';
+
+const cleanups: string[] = [];
+afterEach(async () => {
+  for (const path of cleanups.splice(0)) await rm(path, { recursive: true, force: true });
+});
+async function temporary(): Promise<string> {
+  await mkdir(resolve('.local/tests'), { recursive: true });
+  const path = await realpath(await mkdtemp(join(resolve('.local/tests'), 'machine-')));
+  cleanups.push(path);
+  return path;
+}
+async function repository(path: string, origin: string): Promise<void> {
+  await Bun.write(join(path, '.git/config'), `[remote "origin"]\n\turl = ${origin}\n`);
+}
+
+test('repository keys ignore transport, credentials, case and the .git suffix', async () => {
+  const root = await temporary();
+  const cases: [string, string][] = [
+    ['git@github.com:Owner/Repo.git', 'github.com/owner/repo'],
+    ['https://user:token@github.com/owner/repo.git', 'github.com/owner/repo'],
+    ['ssh://git@gitlab.example.com:2222/team/app.git', 'gitlab.example.com/team/app'],
+  ];
+  for (const [index, [origin, key]] of cases.entries()) {
+    const project = join(root, String(index));
+    await repository(project, origin);
+    expect(await repositoryKey(project)).toBe(key);
+  }
+  expect(await repositoryKey(join(root, 'missing'))).toBeUndefined();
+});
+
+test('an inventory groups Skills by folder and flags private and machine-specific files', async () => {
+  const root = await temporary();
+  const home = join(root, 'home');
+  const project = join(root, 'work/app');
+  await Bun.write(join(home, '.claude/skills/review/SKILL.md'), '---\nname: review\n---\n');
+  await Bun.write(join(home, '.claude/skills/review/scripts/run.sh'), 'exit 0\n');
+  await Bun.write(join(home, '.claude.json'), '{"oauthAccount":{}}');
+  await Bun.write(
+    join(home, '.codex/config.toml'),
+    `[projects."${project}"]\ntrust_level = "trusted"\n`,
+  );
+  await repository(project, 'git@github.com:owner/app.git');
+  await Bun.write(
+    join(project, '.claude/skills/local-guide/SKILL.md'),
+    '---\nname: local-guide\n---\n',
+  );
+  await Bun.write(join(project, 'CLAUDE.local.md'), '# Personal notes\n');
+  await Bun.write(join(project, '.claude/settings.local.json'), '{}');
+  await Bun.write(join(home, '.claude/projects', claudeMemoryKey(project), 'memory/notes.md'), 'n');
+  const inventory = await buildMachineInventory({ home, roots: [join(root, 'work')] });
+  const review = inventory.global.find((item) => item.key === '.claude/skills/review');
+  expect(review).toMatchObject({ group: 'skill', harness: 'claude', files: 2 });
+  expect(inventory.global.find((item) => item.key === '.claude.json')?.privacy).toBe('private');
+  expect(inventory.global.find((item) => item.key === '.codex/config.toml')?.privacy).toBe(
+    'machine-specific',
+  );
+  const [app] = inventory.projects;
+  expect(app?.repository).toBe('github.com/owner/app');
+  const keys = Object.fromEntries(app!.items.map((item) => [item.key, item]));
+  expect(keys['.claude/skills/local-guide']?.group).toBe('skill');
+  expect(keys['CLAUDE.local.md']?.group).toBe('guidance');
+  expect(keys['.claude/settings.local.json']?.privacy).toBe('private');
+  expect(keys['memory/notes.md']).toMatchObject({ group: 'memory', privacy: 'machine-specific' });
+  expect(JSON.stringify(inventory)).not.toContain('Personal notes');
+});
+
+test('comparison matches renamed folders by repository and reports grouped and single statuses', async () => {
+  const root = await temporary();
+  const laptop = join(root, 'laptop');
+  const server = join(root, 'server');
+  await repository(join(laptop, 'code/hangman'), 'git@github.com:owner/mola.git');
+  await repository(join(server, 'srv/mola'), 'https://github.com/owner/mola');
+  await Bun.write(join(laptop, 'code/hangman/AGENTS.md'), '# Same\n');
+  await Bun.write(join(server, 'srv/mola/AGENTS.md'), '# Same\n');
+  await Bun.write(join(laptop, 'code/hangman/.claude/skills/guide/SKILL.md'), 'v2\n');
+  await Bun.write(join(server, 'srv/mola/.claude/skills/guide/SKILL.md'), 'v1\n');
+  await Bun.write(join(laptop, 'code/hangman/.claude/skills/new/SKILL.md'), 'new\n');
+  await Bun.write(join(laptop, 'code/hangman/.claude/settings.local.json'), '{}');
+  await Bun.write(join(server, 'srv/mola/.claude/skills/server-only/SKILL.md'), 's\n');
+  await repository(join(laptop, 'code/solo'), 'git@github.com:owner/solo.git');
+  const local = await buildMachineInventory({
+    home: join(laptop, 'home'),
+    roots: [join(laptop, 'code')],
+  });
+  const remote = await buildMachineInventory({
+    home: join(server, 'home'),
+    roots: [join(server, 'srv')],
+  });
+  const report = compareInventories(local, remote);
+  const project = report.projects.find((value) => value.repository === 'github.com/owner/mola')!;
+  expect(project.local).toBe('hangman');
+  expect(project.remote).toBe('mola');
+  const status = Object.fromEntries(project.rows.map((row) => [row.key, [row.status, row.action]]));
+  expect(status['AGENTS.md']).toEqual(['same', 'none']);
+  expect(status['.claude/skills/guide']).toEqual(['different', 'review']);
+  expect(status['.claude/skills/new']).toEqual(['missing-remote', 'copy']);
+  expect(status['.claude/skills/server-only']).toEqual(['missing-local', 'copy']);
+  expect(status['.claude/settings.local.json']).toEqual(['missing-remote', 'set-up-manually']);
+  expect(project.groups.skill).toEqual({
+    same: 0,
+    different: 1,
+    'missing-remote': 1,
+    'missing-local': 1,
+  });
+  expect(
+    report.projects.find((value) => value.repository === 'github.com/owner/solo')?.remote,
+  ).toBeNull();
+});
+
+test('ssh arguments use batch mode and refuse aliases that could become options or shell syntax', () => {
+  const args = sshArguments('build-box', 'rigshelf machine inventory --json');
+  expect(args).toContain('BatchMode=yes');
+  expect(args.slice(-3, -1)).toEqual(['--', 'build-box']);
+  expect(args.at(-1)).toContain('rigshelf machine inventory --json');
+  for (const alias of ['-oProxyCommand=touch x', 'box;rm -rf ~', 'box name', ''])
+    expect(() => sshArguments(alias, 'rigshelf --version')).toThrow('host alias');
+});
+
+test('remote inventories are validated and missing Rigshelf is reported plainly', async () => {
+  const valid: MachineInventory = { version: 1, rigshelf: '0.1.0', global: [], projects: [] };
+  const ok = await remoteInventory('box', {
+    run: async () => ({ code: 0, stdout: JSON.stringify(valid), stderr: '' }),
+  });
+  expect(ok).toEqual(valid);
+  await expect(
+    remoteInventory('box', {
+      run: async () => ({ code: 127, stdout: '', stderr: 'rigshelf: command not found' }),
+    }),
+  ).rejects.toThrow('Rigshelf is not installed on box');
+  let sent: string[] = [];
+  await remoteInventory('box', {
+    roots: ['/srv/apps'],
+    run: async (args) => {
+      sent = args;
+      return { code: 0, stdout: JSON.stringify(valid), stderr: '' };
+    },
+  });
+  expect(sent.at(-1)).toContain('--root /srv/apps');
+  for (const root of ["/srv/x'; rm -rf ~", 'relative/path', '/srv/../etc', '/srv/a b'])
+    await expect(
+      remoteInventory('box', {
+        roots: [root],
+        run: async () => ({ code: 0, stdout: '', stderr: '' }),
+      }),
+    ).rejects.toThrow('Remote roots');
+  expect(() => parseMachineInventory('{"version":2}')).toThrow();
+  expect(() =>
+    parseMachineInventory(JSON.stringify({ ...valid, global: [{ key: '../../etc/passwd' }] })),
+  ).toThrow();
+});
+
+test('example tokens and other people’s paths in Skill docs do not make a Skill private or machine-specific', async () => {
+  const root = await temporary();
+  const home = join(root, 'home');
+  await Bun.write(
+    join(home, '.agents/skills/payments/SKILL.md'),
+    '---\nname: payments\n---\nExample: api_key = "replace-with-your-key"\nSee /Users/alice/demo for a sample.\n',
+  );
+  await Bun.write(join(home, '.agents/skills/mine/SKILL.md'), `Run ${home}/bin/tool\n`);
+  const inventory = await buildMachineInventory({ home, roots: [] });
+  const privacy = Object.fromEntries(inventory.global.map((item) => [item.key, item.privacy]));
+  expect(privacy['.agents/skills/payments']).toBe('portable');
+  expect(privacy['.agents/skills/mine']).toBe('machine-specific');
+});
+
+test('a remote doctor answer is validated and returned flat', async () => {
+  const there = {
+    rigshelf: '0.1.0',
+    platform: 'linux-x64',
+    harnesses: { claude: true, codex: false },
+  };
+  const answer = await remoteDoctor('box', {
+    run: async () => ({ code: 0, stdout: JSON.stringify({ here: there }), stderr: '' }),
+  });
+  expect(answer).toEqual(there);
+  await expect(
+    remoteDoctor('box', {
+      run: async () => ({ code: 0, stdout: '{"here":{"rigshelf":1}}', stderr: '' }),
+    }),
+  ).rejects.toThrow('cannot read');
+});
