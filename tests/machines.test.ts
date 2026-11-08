@@ -44,6 +44,7 @@ test('repository keys ignore transport, credentials, case and the .git suffix', 
     ['ssh://git@gitlab.example.com:2222/team/app.git', 'gitlab.example.com/team/app'],
     ['github.com:owner/repo.git', 'github.com/owner/repo'],
     ['https://github.com/owner/repo.git/', 'github.com/owner/repo'],
+    ['git@github.com:42/x.git', 'github.com/42/x'],
   ];
   for (const [index, [origin, key]] of cases.entries()) {
     const project = join(root, String(index));

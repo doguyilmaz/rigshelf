@@ -22,6 +22,8 @@ test('a path is replaced only where it stands as a whole path', () => {
   );
   expect(mentionsPath('import "./root.tsx"', '/root')).toBe(false);
   expect(mentionsPath('cd /root/work', '/root')).toBe(true);
+  expect(replacePaths('The repo lives at /root.', pairs)).toBe('The repo lives at /home/me.');
+  expect(mentionsPath('Home is /root.', '/root')).toBe(true);
 });
 
 test('replacement happens in one pass, so replaced text is never replaced again', () => {

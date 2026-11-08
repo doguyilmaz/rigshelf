@@ -252,10 +252,10 @@ export async function repositoryKey(project: string): Promise<string | undefined
     .catch(() => '');
   const url = text.match(/\[remote "origin"\][^[]*?^\s*url\s*=\s*(\S+)/m)?.[1];
   if (!url) return;
-  return url
-    .replace(/^[a-z][\w+.-]*:\/\/(?:[^@/]+@)?/i, '')
-    .replace(/^(?:[^@/]+@)?([^:/]+):(?!\d+\/)/, '$1/')
-    .replace(/^([^/:]+):\d+\//, '$1/')
+  const hostAndPath = /^[a-z][\w+.-]*:\/\//i.test(url)
+    ? url.replace(/^[a-z][\w+.-]*:\/\/(?:[^@/]+@)?/i, '').replace(/^([^/:]+):\d+\//, '$1/')
+    : url.replace(/^(?:[^@/]+@)?([^:/]+):/, '$1/');
+  return hostAndPath
     .replace(/\/+$/, '')
     .replace(/\.git$/, '')
     .toLowerCase();
