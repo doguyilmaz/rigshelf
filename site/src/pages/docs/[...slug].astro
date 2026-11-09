@@ -1,0 +1,98 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import DocsNav from '../../components/DocsNav.astro';
+import { guides } from '../../docs';
+import '../../styles/docs.css';
+export async function getStaticPaths() {
+  const entries = await getCollection('docs');
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+interface Props {
+  entry: CollectionEntry<'docs'>;
+}
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const outline = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const index = guides.findIndex((guide) => guide.slug === entry.id);
+const previous = guides[index - 1];
+const next = guides[index + 1];
+---
+
+<Base title={`${entry.data.title} — Rigshelf docs`} description={entry.data.description}>
+  <div class="docs-shell wrap">
+    <aside class="docs-sidebar">
+      <a class="docs-home" href="/docs/">
+        ← Field guide
+      </a>
+      <DocsNav current={entry.id} />
+    </aside>
+    <main id="main" class="docs-main">
+      <div class="docs-mobile-tools">
+        <details>
+          <summary>Browse guides</summary>
+          <DocsNav current={entry.id} />
+        </details>
+        {outline.length > 0 && (
+          <details>
+            <summary>On this page</summary>
+            <nav aria-label="Mobile table of contents">
+              {outline.map((heading) => (
+                <a href={`#${heading.slug}`}>{heading.text}</a>
+              ))}
+            </nav>
+          </details>
+        )}
+      </div>
+      <div class="doc-heading">
+        <p class="eyebrow">FIELD GUIDE / {entry.data.group.toUpperCase()}</p>
+        <h1>{entry.data.title}</h1>
+        <p>{entry.data.description}</p>
+        <div class="doc-meta">
+          <span>Rigshelf 0.1</span>
+          <span>Canonical application documentation</span>
+        </div>
+      </div>
+      <article class="prose">
+        <Content />
+      </article>
+      <nav class="doc-pagination" aria-label="Adjacent guides">
+        {previous ? (
+          <a href={`/docs/${previous.slug}/`}>
+            <span>← Previous</span>
+            <strong>{previous.title}</strong>
+          </a>
+        ) : (
+          <span />
+        )}
+        {next && (
+          <a href={`/docs/${next.slug}/`}>
+            <span>Next →</span>
+            <strong>{next.title}</strong>
+          </a>
+        )}
+      </nav>
+      <div class="doc-end">
+        <p>Found something unclear?</p>
+        <a href="/docs/contributing/">
+          See how to contribute <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </main>
+    <aside class="docs-outline">
+      <span>ON THIS PAGE</span>
+      <nav aria-label="Table of contents">
+        {outline.map((heading) => (
+          <a href={`#${heading.slug}`} class:list={[{ 'outline-sub': heading.depth === 3 }]}>
+            {heading.text}
+          </a>
+        ))}
+      </nav>
+      <a class="outline-bottom" href="/docs/privacy/">
+        Local by design.
+        <br />
+        Understand the boundaries ↗
+      </a>
+    </aside>
+  </div>
+</Base>

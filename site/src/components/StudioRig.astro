@@ -1,0 +1,164 @@
+---
+import Icon from './Icon.astro';
+import { projects } from '../scripts/studio-data';
+const modules = [
+  { x: 350, y: 210, symbol: 'S', top: 'url(#studio-metal)', side: '#777d7e', ink: '#202421' },
+  { x: 215, y: 288, symbol: 'R', top: '#e97845', side: '#a34023', ink: '#202421' },
+  { x: 485, y: 288, symbol: 'M', top: 'url(#studio-metal)', side: '#777d7e', ink: '#202421' },
+  { x: 350, y: 366, symbol: 'A', top: '#383c3d', side: '#26292b', ink: '#f6ecdc' },
+];
+---
+
+<div class="rig-installation" data-rig-shell>
+  <div class="rig-coordinate">
+    <span>R / 001</span>
+    <span>PROJECT EQUIPMENT</span>
+    <span class="coordinate-cross" aria-hidden="true">
+      +
+    </span>
+  </div>
+  <div
+    class="rig-stage"
+    data-rig-stage
+    data-renderer="static"
+    data-moving="false"
+    data-exploded="false"
+  >
+    <div class="stage-reticle reticle-one" aria-hidden="true"></div>
+    <div class="stage-reticle reticle-two" aria-hidden="true"></div>
+    <svg class="stage-fallback" viewBox="0 0 700 540" aria-hidden="true" fill="none">
+      <defs>
+        <linearGradient id="studio-metal" x1="0" y1="0" x2="1" y2="1">
+          <stop stop-color="#eef0ec" />
+          <stop offset=".55" stop-color="#c6cbc8" />
+          <stop offset="1" stop-color="#989f9d" />
+        </linearGradient>
+        <linearGradient id="studio-rim" x1="0" y1="0" x2="1" y2="1">
+          <stop stop-color="#c1c7c3" />
+          <stop offset=".55" stop-color="#797f7e" />
+          <stop offset="1" stop-color="#afb4b0" />
+        </linearGradient>
+        <filter id="studio-shadow" x="-30%" y="-100%" width="160%" height="300%">
+          <feGaussianBlur stdDeviation="12" />
+        </filter>
+      </defs>
+      <ellipse
+        cx="350"
+        cy="439"
+        rx="230"
+        ry="38"
+        fill="#000"
+        opacity=".4"
+        filter="url(#studio-shadow)"
+      />
+      <path
+        d="m70 286 280 162 280-162v26L350 474 70 312z"
+        fill="url(#studio-rim)"
+        stroke="#9aa19c"
+        stroke-width="2"
+      />
+      <path
+        d="m70 286 280-162 280 162-280 162z"
+        fill="url(#studio-metal)"
+        stroke="#c5cbc4"
+        stroke-width="2"
+      />
+      <path d="m93 286 257-148 257 148-257 148z" fill="#292e2c" stroke="#767e76" stroke-width="2" />
+      <path d="m118 286 232-134 232 134-232 134z" stroke="#434c42" stroke-width="2" />
+      <path d="m102 286 248 143 248-143M350 143v279" stroke="#88917e" stroke-opacity=".5" />
+      {modules.map((module) => (
+        <g data-static-part>
+          <path
+            d={`m${module.x - 77} ${module.y} 77 44 77-44v32l-77 44-77-44z`}
+            fill={module.side}
+            stroke="#6f746d"
+            stroke-width="1.5"
+          />
+          <path
+            d={`m${module.x - 77} ${module.y} 77-44 77 44-77 44z`}
+            fill={module.top}
+            stroke="#dce0d4"
+            stroke-opacity=".65"
+            stroke-width="1.5"
+          />
+          <path
+            d={`m${module.x - 62} ${module.y} 62-35 62 35-62 35z`}
+            stroke={module.ink}
+            stroke-opacity=".25"
+          />
+          <g transform={`translate(${module.x} ${module.y}) rotate(30) skewX(-30) scale(1 .85)`}>
+            <text
+              text-anchor="middle"
+              dominant-baseline="central"
+              font-family="Instrument, sans-serif"
+              font-weight="500"
+              font-size="62"
+              fill={module.ink}
+            >
+              {module.symbol}
+            </text>
+          </g>
+        </g>
+      ))}
+      <path d="m80 288 270 155 270-155M350 449v18" stroke="#d5d9d0" stroke-width="4" />
+      {[
+        [350, 133],
+        [80, 286],
+        [620, 286],
+        [350, 443],
+      ].map(([x, y]) => (
+        <g transform={`translate(${x} ${y})`}>
+          <ellipse rx="6" ry="3.5" fill="#333a34" />
+          <path d="m-3-1 6 2" stroke="#969e8e" />
+        </g>
+      ))}
+    </svg>
+    <canvas data-rig-canvas aria-hidden="true"></canvas>
+  </div>
+  <ul class="rig-legend" aria-label="Rig components">
+    <li>
+      <span aria-hidden="true">S</span>Skills
+    </li>
+    <li>
+      <span aria-hidden="true">M</span>MCP
+    </li>
+    <li>
+      <span aria-hidden="true">R</span>Rules
+    </li>
+    <li>
+      <span aria-hidden="true">A</span>Harness
+    </li>
+  </ul>
+  <p class="rig-model-note" role="status">
+    <span class="model-dot" aria-hidden="true"></span>
+    <span data-rig-motion-label>Assembled for Fieldnotes</span>
+  </p>
+  <div class="rig-desk-controls">
+    <div class="rig-project-buttons" role="group" aria-label="Rig project">
+      {Object.entries(projects).map(([key, project]) => (
+        <button type="button" data-rig-project={key} aria-pressed={key === 'expo'}>
+          <span aria-hidden="true">{project.number}</span>
+          {project.stack.split(' / ')[0]}
+        </button>
+      ))}
+    </div>
+    <div class="rig-view-controls">
+      <button
+        type="button"
+        data-rig-split
+        aria-pressed="false"
+        aria-label="Explode rig"
+        title="Separate the rig layers"
+      >
+        <Icon name="layers" />
+      </button>
+      <button type="button" data-rig-rotate aria-label="Rotate rig" title="Rotate the rig">
+        <Icon name="rotate" />
+      </button>
+    </div>
+  </div>
+  <p class="rig-footnote">
+    <span>Illustrative rig. No tools are installed.</span>
+    <span data-rig-instruction>Choose a project or explore the layers.</span>
+  </p>
+</div>

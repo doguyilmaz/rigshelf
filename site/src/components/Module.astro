@@ -1,0 +1,62 @@
+---
+interface Props {
+  kind: 'skill' | 'mcp' | 'plugin' | 'rule';
+}
+const { kind } = Astro.props;
+---
+
+<svg class:list={['module-glyph', kind]} viewBox="0 0 160 120" fill="none" aria-hidden="true">
+  <path d="m20 74 60 34 60-34M20 85l60 34 60-34" stroke="currentColor" opacity=".15" />
+  {kind === 'skill' && (
+    <>
+      <path
+        d="m43 48 37-21 37 21v31l-37 21-37-21z"
+        fill="var(--module-fill)"
+        stroke="currentColor"
+      />
+      <path d="m43 48 37 21 37-21M80 69v31M58 57V39l22-13 22 13v19" stroke="currentColor" />
+      <path d="m68 47 12-7 12 7-12 7z" fill="currentColor" />
+    </>
+  )}
+  {kind === 'mcp' && (
+    <>
+      <path
+        d="m27 59 33-19 23 13v20L50 92 27 79zM77 45l33-19 23 13v20l-33 19-23-13z"
+        fill="var(--module-fill)"
+        stroke="currentColor"
+      />
+      <path d="m60 59 40-23m-40 39 40-23" stroke="currentColor" stroke-width="4" />
+      <path d="m27 59 23 14v19m27-47 23 14 33-20M100 59v19" stroke="currentColor" />
+    </>
+  )}
+  {kind === 'plugin' && (
+    <>
+      <path
+        d="m40 54 40-23 40 23v28l-40 23-40-23z"
+        fill="var(--module-fill)"
+        stroke="currentColor"
+      />
+      <path d="m40 54 40 23 40-23M80 77v28" stroke="currentColor" />
+      <path
+        d="m59 41 21-12 21 12v13L80 66 59 54z"
+        fill="var(--module-fill)"
+        stroke="currentColor"
+      />
+      <path d="m59 41 21 12 21-12M80 53v13" stroke="currentColor" />
+    </>
+  )}
+  {kind === 'rule' && (
+    <>
+      <path
+        d="m39 45 46-26 36 21v51l-46 26-36-21z"
+        fill="var(--module-fill)"
+        stroke="currentColor"
+      />
+      <path
+        d="m39 45 36 21 46-26M75 66v51M51 69l14 8m-14 2 14 8m-14 2 14 8"
+        stroke="currentColor"
+      />
+      <path d="m59 43 25-14 17 10-25 14z" stroke="currentColor" />
+    </>
+  )}
+</svg>

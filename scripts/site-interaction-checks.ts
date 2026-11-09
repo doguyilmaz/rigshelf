@@ -1,0 +1,311 @@
+import { expect, type Page } from '@playwright/test';
+
+export async function checkLandingFrame(page: Page): Promise<void> {
+  const frame = await page.evaluate(() => {
+    const opening = document.querySelector('.studio-opening')!,
+      bounds = opening.getBoundingClientRect(),
+      header = document.querySelector('.site-header')!.getBoundingClientRect(),
+      hero = document.querySelector('.studio-hero')!.getBoundingClientRect(),
+      separator = document.querySelector('.hero-bottom-line')!.getBoundingClientRect(),
+      rig = document.querySelector('.rig-installation')!.getBoundingClientRect();
+    return {
+      height: innerHeight,
+      topGap: Math.abs(bounds.top - header.bottom),
+      lightSectionTop: document.querySelector('#how-it-works')!.getBoundingClientRect().top,
+      bottomInside: !!document.elementFromPoint(4, innerHeight - 2)?.closest('.studio-opening'),
+      contentFits: opening.scrollHeight <= opening.clientHeight + 1,
+      rigFits: rig.left >= hero.left && rig.right <= hero.right && rig.bottom <= separator.top,
+      overflow: document.documentElement.scrollWidth > innerWidth + 1,
+    };
+  });
+  expect(frame.topGap, 'Opening starts immediately below the header').toBeLessThan(1);
+  expect(
+    frame.lightSectionTop,
+    'The light section starts beyond the opening viewport',
+  ).toBeGreaterThanOrEqual(frame.height - 1);
+  expect(frame.bottomInside, 'The initial viewport stays within the dark opening').toBe(true);
+  expect(frame.contentFits, 'Short screens retain the full opening content').toBe(true);
+  expect(frame.rigFits, 'Rig controls remain inside the hero and above its footer').toBe(true);
+  expect(frame.overflow).toBe(false);
+}
+
+export async function checkLandingScreens(page: Page, origin: string): Promise<void> {
+  for (const [width, height] of [
+    [1280, 720],
+    [1440, 900],
+    [1920, 1080],
+    [1920, 1440],
+    [2560, 1440],
+    [1440, 1600],
+    [1024, 768],
+    [768, 1024],
+    [390, 844],
+    [390, 1600],
+    [320, 568],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto(origin);
+    await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+    await checkLandingFrame(page);
+    await page.evaluate(() => document.fonts.ready);
+    await checkLandingFrame(page);
+    if (width >= 1920 || height >= 1600)
+      await page.screenshot({ path: `.local/qa/site/opening-${width}x${height}.png` });
+  }
+  // Reflow an already open page as the browser window or display changes.
+  for (const [width, height] of [
+    [2560, 1800],
+    [1280, 720],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+    await checkLandingFrame(page);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+}
+
+export async function checkLandingReadability(page: Page, width: number): Promise<void> {
+  const smallText = await page.evaluate(() => {
+    const failures: { text: string; size: number }[] = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode,
+        parent = node.parentElement;
+      if (
+        !parent ||
+        !node.textContent?.trim() ||
+        parent.closest('script,style,noscript,[aria-hidden="true"],.sr-only')
+      )
+        continue;
+      const range = document.createRange();
+      range.selectNode(node);
+      const bounds = range.getBoundingClientRect(),
+        style = getComputedStyle(parent);
+      if (!bounds.width || !bounds.height || style.visibility !== 'visible') continue;
+      const size = Number.parseFloat(style.fontSize);
+      if (size < 12) failures.push({ text: node.textContent.trim().slice(0, 70), size });
+    }
+    return failures;
+  });
+  expect(smallText, `Readable labels at ${width}px`).toEqual([]);
+  const bodySizes = await page
+    .locator(
+      '.studio-intro,.context-heading>p,.principles-copy>p:not(.section-index),.review-sequence p,.local-columns p,.studio-faq p',
+    )
+    .evaluateAll((nodes) =>
+      nodes.map((node) => Number.parseFloat(getComputedStyle(node).fontSize)),
+    );
+  expect(
+    bodySizes.every((size) => size >= 16),
+    `Reading text at ${width}px`,
+  ).toBe(true);
+  const controls = await page
+    .locator(
+      '.rig-project-buttons button,.rig-view-controls button,.context-project-selector button,.native-agent-rail button',
+    )
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        size: Number.parseFloat(getComputedStyle(node).fontSize),
+        height: node.getBoundingClientRect().height,
+      })),
+    );
+  expect(controls.every((control) => control.size >= 14 && control.height >= 40)).toBe(true);
+  const sheets = await page.locator('.principle-sheet').evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const bounds = node.getBoundingClientRect();
+      return { top: bounds.top, bottom: bounds.bottom };
+    }),
+  );
+  expect(
+    sheets.every((sheet, index) => index === 0 || sheet.top >= sheets[index - 1]!.bottom),
+    `Directive cards are fully readable at ${width}px`,
+  ).toBe(true);
+}
+
+export async function checkSelectionStability(page: Page): Promise<void> {
+  for (const [container, selector, attribute] of [
+    ['.context-machine', '[data-context-project]', 'data-context-project'],
+    ['.native-bench', '[data-native-harness]', 'data-native-harness'],
+  ] as const) {
+    const height = await page
+      .locator(container)
+      .evaluate((node) => node.getBoundingClientRect().height);
+    for (const button of await page.locator(selector).all()) {
+      await button.click();
+      expect(await button.getAttribute('aria-pressed')).toBe('true');
+      const nextHeight = await page
+        .locator(container)
+        .evaluate((node) => node.getBoundingClientRect().height);
+      expect(
+        Math.abs(nextHeight - height),
+        `${container}: ${await button.getAttribute(attribute)}`,
+      ).toBeLessThan(1);
+    }
+  }
+}
+
+async function expectSectionPosition(page: Page, selector: string): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.locator(selector).evaluate((node) => {
+          const margin = Number.parseFloat(getComputedStyle(node).scrollMarginTop);
+          return Math.abs(node.getBoundingClientRect().top - margin);
+        }),
+      { timeout: 4000 },
+    )
+    .toBeLessThan(2);
+}
+
+export async function checkHarnessFrame(page: Page): Promise<void> {
+  await page.evaluate(() => document.fonts.ready);
+  await expectSectionPosition(page, '#harnesses');
+  const frame = await page.evaluate(() => {
+    const section = document.querySelector('#harnesses')!,
+      header = document.querySelector('.site-header')!.getBoundingClientRect(),
+      bounds = section.getBoundingClientRect();
+    return {
+      gap: Math.abs(bounds.top - header.bottom),
+      bottom: bounds.bottom,
+      height: innerHeight,
+      topSection: document.elementFromPoint(4, header.bottom + 2)?.closest('section')?.id,
+      bottomSection: document.elementFromPoint(4, innerHeight - 2)?.closest('section')?.id,
+      background: getComputedStyle(document.documentElement).backgroundColor,
+      bodyBackground: getComputedStyle(document.body).backgroundColor,
+    };
+  });
+  expect(frame.gap, 'No previous-section strip below the sticky header').toBeLessThan(2);
+  expect(frame.bottom, 'Harness background fills the available viewport').toBeGreaterThanOrEqual(
+    frame.height - 1,
+  );
+  expect(frame.topSection).toBe('harnesses');
+  expect(frame.bottomSection).toBe('harnesses');
+  expect(frame.background, 'Overscroll uses the homepage background').toBe(frame.bodyBackground);
+}
+
+export async function checkHarnessEntry(page: Page, origin: string): Promise<void> {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const [width, height] of [
+    [1280, 800],
+    [1920, 1440],
+    [1440, 1600],
+    [390, 844],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto(`${origin}/docs/installation/`);
+    if (width < 740) await page.getByLabel('Navigation menu', { exact: true }).click();
+    await page
+      .getByRole('navigation', {
+        name: width < 740 ? 'Mobile navigation' : 'Main navigation',
+        exact: true,
+      })
+      .getByRole('link', { name: 'Harnesses', exact: true })
+      .click();
+    await expect(page).toHaveURL(`${origin}/#harnesses`);
+    await checkHarnessFrame(page);
+    await page.screenshot({ path: `.local/qa/site/harness-entry-${width}x${height}.png` });
+    await page.reload();
+    await checkHarnessFrame(page);
+    await page.goBack();
+    await expect(page).toHaveURL(`${origin}/docs/installation/`);
+    await page.goForward();
+    await checkHarnessFrame(page);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+}
+
+export async function checkSectionNavigation(page: Page, origin: string): Promise<void> {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto(origin);
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => {
+    const scope = window as typeof window & { sectionScrolls: number[] };
+    scope.sectionScrolls = [];
+    addEventListener('scroll', () => scope.sectionScrolls.push(scrollY));
+  });
+  await page.locator('.studio-watch').click();
+  await expectSectionPosition(page, '#how-it-works');
+  const positions = await page.evaluate(
+    () => (window as typeof window & { sectionScrolls: number[] }).sectionScrolls,
+  );
+  expect(positions.length, 'Pointer navigation interpolates rather than jumping').toBeGreaterThan(
+    3,
+  );
+  expect(
+    Math.max(...positions.map((value, index) => (index ? value - positions[index - 1]! : 0))),
+  ).toBeLessThan(positions.at(-1)! * 0.5);
+  await expect(page.locator('#context-title')).toBeFocused();
+  await expect(page).toHaveURL(`${origin}/#how-it-works`);
+  await page
+    .getByRole('navigation', { name: 'Main navigation', exact: true })
+    .getByRole('link', { name: 'Harnesses' })
+    .click();
+  await expectSectionPosition(page, '#harnesses');
+  await page.goBack();
+  await expect(page).toHaveURL(`${origin}/#how-it-works`);
+  await expectSectionPosition(page, '#how-it-works');
+
+  const search = page.getByRole('button', { name: 'Search documentation', exact: true });
+  const beforeDialog = await page.evaluate(() => ({
+    x: document.querySelector('h1')!.getBoundingClientRect().x,
+    y: scrollY,
+  }));
+  await search.click();
+  await page.keyboard.press('Escape');
+  await expect(search).toBeFocused();
+  expect(
+    await page.evaluate(() => ({
+      x: document.querySelector('h1')!.getBoundingClientRect().x,
+      y: scrollY,
+    })),
+  ).toEqual(beforeDialog);
+
+  const link = page
+    .getByRole('navigation', { name: 'Main navigation', exact: true })
+    .getByRole('link', { name: 'Harnesses' });
+  await link.focus();
+  await page.keyboard.press('Enter');
+  await expectSectionPosition(page, '#harnesses');
+  await expect(page.locator('#native-title')).toBeFocused();
+  const keyboardY = await page.evaluate(() => scrollY);
+  await page.waitForTimeout(120);
+  expect(await page.evaluate(() => scrollY)).toBe(keyboardY);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page
+    .getByRole('navigation', { name: 'Main navigation', exact: true })
+    .getByRole('link', { name: 'How it works' })
+    .click();
+  await expectSectionPosition(page, '#how-it-works');
+  const reducedY = await page.evaluate(() => scrollY);
+  await page.waitForTimeout(120);
+  expect(await page.evaluate(() => scrollY)).toBe(reducedY);
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto(origin);
+  await page.locator('.studio-watch').click();
+  await page.waitForTimeout(80);
+  await page.mouse.wheel(0, -800);
+  await page.waitForTimeout(250);
+  const interruptedY = await page.evaluate(() => scrollY);
+  await page.waitForTimeout(500);
+  expect(
+    await page.evaluate(() => scrollY),
+    'Wheel input keeps control after interrupting section navigation',
+  ).toBeLessThanOrEqual(interruptedY + 1);
+  expect(
+    await page.locator('#how-it-works').evaluate((node) => node.getBoundingClientRect().top),
+  ).toBeGreaterThan(250);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(origin);
+  await page.getByLabel('Navigation menu', { exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Mobile navigation' })
+    .getByRole('link', { name: 'How it works' })
+    .click();
+  await expectSectionPosition(page, '#how-it-works');
+  await expect(page.locator('#context-title')).toBeFocused();
+  expect(await page.locator('.nav-disclosure').getAttribute('open')).toBeNull();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+}

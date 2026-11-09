@@ -1,0 +1,14 @@
+---
+import MarkIcon from './MarkIcon.astro';
+interface Props {
+  small?: boolean;
+}
+const { small = false } = Astro.props;
+---
+
+<a href="/" class:list={['wordmark', { compact: small }]} aria-label="Rigshelf home">
+  <MarkIcon />
+  <span>
+    rigshelf<span class="wordmark-period">.</span>
+  </span>
+</a>

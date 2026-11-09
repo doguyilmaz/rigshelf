@@ -1,0 +1,48 @@
+# Build log
+
+This is a working engineering record, not a release-completion claim. The confirmed product identity is Rigshelf; older implementation entries are historical. Current storage and retained identifiers are documented in [the brand audit](BRANDING.md).
+
+## Established
+
+- The product is an independent implementation; no third-party catalog seeds it. Discovery reads actual files.
+- The initial working name changed from Strata to Kitfold; the later independent experience uses Rigshelf. Old format/ownership identifiers remain under an explicit compatibility policy.
+- English product and documentation; Turkish conversation.
+- Automation: only explicitly permitted projects and approved immutable snapshots.
+- Grok: official CLI adapter, with a separate explanation for model selection inside T3.
+- Public source and private inventory are separated by `.gitignore` and private storage permissions.
+
+## Implemented and exercised
+
+- Bun/TypeScript domain engine, SQLite catalog, local static web UI, CLI and stdio MCP.
+- Six researched harness adapters; MCP native conversion and conditional bridge.
+- Direct local scanning, immutable multi-file skill snapshots, source grouping, custom content, scoped rules, inherited presets, and recommendations.
+- Plan/apply/rollback with conflict detection, safe output-path checks, preserved authored guidance, managed removals, executable resources, and project locks.
+- Optional manifest watcher and source-check scheduling. No continuous LLM loop.
+- Real-protocol bridge tests prove tool restrictions and declared-environment forwarding.
+- Isolated test fixtures; no setup was applied to the user's development repositories.
+- First browser run covered project detection → plan → apply and every primary screen, desktop/mobile layouts, and automated accessibility checks. It exposed contrast issues, which were corrected and rechecked.
+
+## Bugs caught during development
+
+- Export imports initially trusted caller-provided digests; snapshot bytes and body now must match the digest.
+- New snapshot approval initially did not invalidate dependency-check idempotence; approval state is now included.
+- Nested package folders initially appeared as separate projects; root grouping now avoids that.
+- Invalid YAML initially disappeared from import; it is now retained with a review finding.
+- SDK browser context setup and navigation accessible-name mismatches were corrected in UI tests.
+- Secret values in MCP metadata/body are sanitized consistently; separate token arguments are recognized.
+- Provider-specific environment interpolation and tool filters are preserved rather than silently flattened.
+- HTTP access keys were removed from public HTML and moved to an owner-visible fragment launch URL.
+
+## Completed acceptance checks
+
+Crash/recovery and filesystem failure tests, custom revision/resource editing, source research/editing, CLI management, real-library archive round trips, workspace automation and permission revocation are implemented and exercised. The browser management and stress suites, automated accessibility checks, type checking, lint and production build pass. Installation, architecture, compatibility, data, privacy and acceptance documentation are present.
+
+The independent security review retains its own source revision, coverage and validation limits. It is distinct from development tests and does not certify every native harness version or hosted release environment. No public release or existing-project migration was performed.
+
+The final import review additionally caught global directory aliases escaping inventoried roots, ignored MCP JSON fields bypassing canonical credential inspection, and a missing upstream instruction byte limit. Shared containment/validation now enforces those boundaries, with three regression cases. The final suite including the bridge regression passes 83 tests; the browser suites, lint, build and dependency audit were rerun successfully.
+
+The interface review caught a truthiness check that treated an empty project-local MCP bridge definition as missing. Discovery now stops on any existing definition and rejects invalid JSON before considering a parent. A nested-project protocol test verifies that the parent server starts only when the child definition is absent.
+
+The follow-up interface pass replaced native menus with shared styled select/combobox controls and a free-form directory autocomplete. Dialogs now retain exit presence, keep their frame stable while loading/changing tabs and share one backdrop. Interactive visual alternatives are served as independent local preview pages; final visual direction and naming remain user decisions. English/Turkish localization is integrated with lazy loading, browser preference and a documented six-language release gate. Core verification now contains 86 tests, and five browser suites cover management, stress, controls/motion and localization.
+
+The library clarity review separated item types from source/origin/status, added platform/technology/task facets, source/project/agent refinements and repeatable browser views. Families are indexed before filtering and installation conditions apply to one matching location. Manual classification is metadata only. New empty states distinguish filtering from a genuinely empty catalog. Neutral chrome and literal page titles replace the earlier forest treatment and slogans. The Library route is loaded separately, keeping the primary bundle smaller despite the added controls. Seven new domain regressions and the sixth browser suite pass.

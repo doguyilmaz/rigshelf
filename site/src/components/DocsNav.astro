@@ -1,0 +1,26 @@
+---
+import { guides, groups } from '../docs';
+interface Props {
+  current?: string;
+}
+const { current } = Astro.props;
+---
+
+<nav class="docs-nav" aria-label="Documentation guides">
+  {groups.map((group) => (
+    <div class="docs-nav-group">
+      <span>{group}</span>
+      {guides
+        .filter((guide) => guide.group === group)
+        .map((guide) => (
+          <a
+            href={`/docs/${guide.slug}/`}
+            aria-current={guide.slug === current ? 'page' : undefined}
+          >
+            {guide.title}
+            <span aria-hidden="true">↗</span>
+          </a>
+        ))}
+    </div>
+  ))}
+</nav>

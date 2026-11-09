@@ -1,0 +1,58 @@
+---
+import Icon from './Icon.astro';
+import { guides } from '../docs';
+const featured = ['start', 'library', 'harnesses', 'ai', 'backup'].map((slug) =>
+  guides.find((guide) => guide.slug === slug)!,
+);
+---
+
+<dialog id="doc-search" class="search-dialog" aria-labelledby="search-heading" data-state="closed">
+  <div class="search-scrim" aria-hidden="true"></div>
+  <div class="search-panel">
+    <div class="search-dialog-head">
+      <h2 id="search-heading">Search documentation</h2>
+      <button type="button" data-search-close aria-label="Close search">
+        <Icon name="close" />
+      </button>
+    </div>
+    <div class="search-field">
+      <Icon name="search" />
+      <label class="sr-only" for="doc-query">
+        Search documentation
+      </label>
+      <input
+        id="doc-query"
+        type="search"
+        placeholder="Search guides, MCP, setup or backup…"
+        autocomplete="off"
+        spellcheck="false"
+        maxlength="200"
+        autofocus
+        aria-describedby="search-status"
+        aria-controls="search-results"
+      />
+      <button type="button" class="search-clear" data-search-clear aria-label="Clear search" hidden>
+        <Icon name="close" />
+      </button>
+    </div>
+    <p id="search-status" class="search-status" role="status">
+      Start with a guide, or search a topic.
+    </p>
+    <div id="search-results" class="search-results">
+      {featured.map((guide) => (
+        <a href={`/docs/${guide.slug}/`}>
+          <strong>{guide.title}</strong>
+          <small>{guide.description}</small>
+          <Icon name="arrow-right" />
+        </a>
+      ))}
+    </div>
+    <div class="search-foot">
+      <span>Rigshelf field guide</span>
+      <span>
+        <kbd>↑</kbd>
+        <kbd>↓</kbd> navigate <kbd>esc</kbd> close
+      </span>
+    </div>
+  </div>
+</dialog>

@@ -1,0 +1,60 @@
+{
+  "name": "rigshelf-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "rigshelf": "./src/cli.ts",
+    "kitfold": "./src/cli.ts"
+  },
+  "scripts": {
+    "dev": "bun scripts/dev.ts",
+    "build": "vite build && bun scripts/build-prototypes.ts",
+    "package": "bun run build && bun scripts/package.ts",
+    "package:native": "bun run build && bun scripts/package.ts --native",
+    "test:package": "bun scripts/package-smoke.ts",
+    "start": "bun src/cli.ts ui",
+    "kitfold": "bun src/cli.ts",
+    "rigshelf": "bun src/cli.ts",
+    "check": "tsc --noEmit",
+    "test": "bun test ./tests",
+    "verify": "bun run check && bun run check:locales && bun run test && bun run build",
+    "lint": "biome check src web tests scripts design site",
+    "format": "biome check --write src web tests scripts design site",
+    "test:ui": "bun scripts/ui-smoke.ts && bun scripts/ui-flows.ts && bun scripts/ui-stress.ts && bun scripts/ui-controls.ts && bun scripts/ui-localization.ts && bun scripts/ui-library.ts && bun scripts/ui-directory-picker.ts && bun scripts/ui-onboarding.ts && bun scripts/ui-setup-usability.ts && bun scripts/ui-ai-assistance.ts && bun scripts/ui-source-groups.ts && bun scripts/ui-layout.ts && bun scripts/ui-plugins.ts && bun scripts/ui-experience.ts && bun scripts/ui-maintenance.ts && bun scripts/ui-models.ts && bun scripts/ui-project-context.ts && bun scripts/ui-presets.ts && bun scripts/ui-connections-backup.ts && bun scripts/ui-branding.ts && bun scripts/ui-file-reader.ts && bun scripts/ui-backups.ts && bun scripts/ui-machines.ts && bun scripts/ui-daily-workflows.ts && bun scripts/ui-dev-build.ts",
+    "check:locales": "bun scripts/check-locales.ts",
+    "site:dev": "bun run --cwd site dev",
+    "site:build": "bun run --cwd site build",
+    "site:check": "bun run --cwd site check",
+    "site:preview": "bun run --cwd site preview",
+    "test:site": "bun scripts/ui-site.ts"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.9.0",
+    "@iarna/toml": "^2.2.5",
+    "@modelcontextprotocol/sdk": "^1.25.0",
+    "jsonc-parser": "^3.3.1",
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tar-stream": "^3.2.2",
+    "yaml": "^2.8.1",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@biomejs/biome": "^2.6.6",
+    "@playwright/test": "^1.65.0",
+    "@types/bun": "1.4.4",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/tar-stream": "^3.1.5",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4.4"
+  }
+}

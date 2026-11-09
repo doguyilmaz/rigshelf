@@ -1,0 +1,47 @@
+---
+import Mark from './Mark.astro';
+import Icon from './Icon.astro';
+const isDocs = Astro.url.pathname.startsWith('/docs');
+---
+
+<header class="site-header">
+  <div class="header-inner">
+    <Mark />
+    <nav class="desktop-nav" aria-label="Main navigation">
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#harnesses">Harnesses</a>
+      <a href="/docs/" aria-current={isDocs ? 'page' : undefined}>
+        Documentation
+      </a>
+    </nav>
+    <div class="header-actions">
+      <button
+        class="search-trigger"
+        type="button"
+        data-search-open
+        aria-label="Search documentation"
+        aria-controls="doc-search"
+        aria-expanded="false"
+        aria-haspopup="dialog"
+      >
+        <Icon name="search" />
+        <span>Search</span>
+        <kbd>⌘ K</kbd>
+      </button>
+      <a class="button button-small" href="/docs/start/">
+        Get started <Icon name="arrow-up-right" />
+      </a>
+      <details class="nav-disclosure">
+        <summary aria-label="Navigation menu">
+          <span></span>
+          <span></span>
+        </summary>
+        <nav aria-label="Mobile navigation">
+          <a href="/#how-it-works">How it works</a>
+          <a href="/#harnesses">Harnesses</a>
+          <a href="/docs/">Documentation</a>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>

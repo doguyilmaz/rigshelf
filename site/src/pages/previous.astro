@@ -1,0 +1,359 @@
+---
+import Base from '../layouts/Base.astro';
+import Rig from '../components/Rig.astro';
+import Module from '../components/Module.astro';
+import Workbench from '../components/Workbench.astro';
+import '../styles/home.css';
+const harnesses = [
+  ['Claude Code', '.claude/skills/'],
+  ['Codex', '.agents/skills/'],
+  ['Kiro', '.kiro/skills/'],
+  ['OpenCode', '.agents/skills/'],
+  ['Antigravity', '.agents/skills/'],
+  ['Grok CLI', '.grok/skills/'],
+];
+const parts = [
+  {
+    kind: 'skill' as const,
+    number: '01',
+    title: 'Skills',
+    description:
+      'The know-how. Reusable instructions, with their references, assets and scripts kept together.',
+    detail: 'SNAPSHOTS, NOT LOOSE SNIPPETS',
+  },
+  {
+    kind: 'mcp' as const,
+    number: '02',
+    title: 'MCP',
+    description:
+      'The connections. One definition, translated to the native formats your Harnesses understand.',
+    detail: 'ENVIRONMENT REFERENCES',
+  },
+  {
+    kind: 'plugin' as const,
+    number: '03',
+    title: 'Plugins',
+    description:
+      'The native packages. Track where they came from and how they’re installed, with their own semantics intact.',
+    detail: 'NATIVE REFERENCES, CLEAR LIMITS',
+  },
+  {
+    kind: 'rule' as const,
+    number: '04',
+    title: 'Directives',
+    description:
+      'Your way of building. Shared principles, stack conventions and project-specific guidance.',
+    detail: 'THE RIGHT RULES, IN THE RIGHT PLACE',
+  },
+];
+---
+
+<Base
+  title="Rigshelf — Every project. Its own rig."
+  description="Your private library of Skills, MCP, Plugins and directives. Build focused coding-agent kits per project, review the files, then Apply."
+  home
+  noindex
+>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">
+          <span class="tiny-cross" aria-hidden="true">
+            ✳
+          </span>{' '}
+          A WORKBENCH FOR CODING AGENTS
+        </p>
+        <h1 id="hero-title">
+          Every project.
+          <br />
+          <em>Its own rig.</em>
+        </h1>
+        <p class="hero-description">
+          Your Skills, MCP, Plugins and principles.
+          <br />
+          Collected once. Set up for the project in front of you.
+        </p>
+        <div class="hero-actions">
+          <a class="button" href="/docs/start/">
+            Build your first kit <span aria-hidden="true">↗</span>
+          </a>
+          <a class="text-link" href="#workbench">
+            Take it for a spin <span aria-hidden="true">↓</span>
+          </a>
+        </div>
+        <p class="hero-note">Open source · Runs locally · Your choice of Agent</p>
+      </div>
+      <Rig />
+    </section>
+    <section class="harness-ribbon wrap" aria-label="Supported project adapters">
+      <span>
+        FOR THE TOOLS
+        <br />
+        YOU ALREADY USE
+      </span>
+      <div>
+        {harnesses.map(([name]) => (
+          <a href="/docs/harnesses/">{name}</a>
+        ))}
+      </div>
+      <a class="ribbon-arrow" href="#harnesses" aria-label="Explore Harness compatibility">
+        ↗
+      </a>
+    </section>
+    <section class="intro-section wrap" id="how-it-works" aria-labelledby="intro-title">
+      <p class="eyebrow">01 / A LITTLE ORDER</p>
+      <div class="intro-grid">
+        <h2 id="intro-title">
+          Keep the collection.
+          <br />
+          <em>Leave the clutter.</em>
+        </h2>
+        <div>
+          <p>
+            You switch projects. You switch Agents. Your setup shouldn’t start from scratch every
+            time.
+          </p>
+          <p>
+            Rigshelf keeps a private library of the things you build with. Pull together a focused
+            project kit, choose your Harnesses, review the exact changes, then Apply.
+          </p>
+          <a class="text-link" href="/docs/library/">
+            Library is storage. A kit is a choice. <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+      <div class="parts-grid">
+        {parts.map((part) => (
+          <article class="part">
+            <div class="part-top">
+              <span>{part.number}</span>
+              <Module kind={part.kind} />
+            </div>
+            <h3>{part.title}</h3>
+            <p>{part.description}</p>
+            <span class="part-detail">{part.detail}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+    <Workbench />
+    <section class="workflow-section wrap" aria-labelledby="flow-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">03 / FROM SHELF TO SETUP</p>
+          <h2 id="flow-title">
+            Know what’s going in.
+            <br />
+            <em>And where it’s going.</em>
+          </h2>
+        </div>
+        <a class="text-link" href="/docs/start/">
+          Walk through a setup <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+      <ol class="workflow">
+        <li>
+          <span class="step-index">01</span>
+          <div class="flow-figure folders" aria-hidden="true">
+            <i></i>
+            <i></i>
+            <i></i>
+            <b>your-project/</b>
+          </div>
+          <h3>Choose a project.</h3>
+          <p>
+            Start with an existing folder or an empty one. Inspect the stack and the AI files
+            already there.
+          </p>
+        </li>
+        <li>
+          <span class="step-index">02</span>
+          <div class="flow-figure selections" aria-hidden="true">
+            <span>✓ &nbsp; Skills</span>
+            <span>✓ &nbsp; MCP</span>
+            <span>✓ &nbsp; Your conventions</span>
+          </div>
+          <h3>Shape the kit.</h3>
+          <p>
+            Start from a Preset, keep a favorite Snapshot, or ask your AI to help turn rough notes
+            into a draft.
+          </p>
+        </li>
+        <li>
+          <span class="step-index">03</span>
+          <div class="flow-figure diff-figure" aria-hidden="true">
+            <span>AGENTS.md</span>
+            <i>+ Your shared principles</i>
+            <i>+ Project kit</i>
+            <b>Reviewed → Apply</b>
+          </div>
+          <h3>Review. Then Apply.</h3>
+          <p>
+            See the actual file changes and compatibility notes. Authored guidance stays protected.
+          </p>
+        </li>
+      </ol>
+    </section>
+    <section class="harness-section" id="harnesses">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">04 / SAME INTENT. NATIVE FORMAT.</p>
+            <h2>
+              Pick your Agent.
+              <br />
+              <em>Keep your way of working.</em>
+            </h2>
+          </div>
+          <p>
+            A Harness decides where files belong.
+            <br />
+            Your model choice is a separate decision.
+          </p>
+        </div>
+        <div class="harness-grid">
+          {harnesses.map(([name, path], index) => (
+            <a href="/docs/harnesses/" class="harness-item">
+              <span class="harness-no">0{index + 1}</span>
+              <h3>{name}</h3>
+              <code>{path}</code>
+              <span aria-hidden="true">↗</span>
+            </a>
+          ))}
+        </div>
+        <div class="harness-note">
+          <span class="small-symbol" aria-hidden="true">
+            ⇄
+          </span>
+          <p>
+            Native configuration where supported. A local MCP bridge for documented gaps.
+            <br />
+            Plugins keep native installation and approval semantics.
+          </p>
+          <a class="text-link" href="/docs/harnesses/">
+            Read the compatibility notes <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+    <section class="ownership-section wrap">
+      <div class="ownership-copy">
+        <p class="eyebrow">05 / YOURS, THROUGHOUT</p>
+        <h2>
+          Your library.
+          <br />
+          <em>Your machine.</em>
+        </h2>
+        <p>
+          The workbench runs locally. Connect your installed CLI, Ollama or a local/remote API
+          Provider when you want AI assistance. Drafts don’t approve themselves.
+        </p>
+        <p>
+          Back up a reviewed library batch to GitHub or S3-compatible storage. One deliberate Sync,
+          with a preview. No per-file commit stream.
+        </p>
+        <a class="text-link" href="/docs/privacy/">
+          Understand the boundaries <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+      <div class="ownership-diagram">
+        <div class="ownership-file">
+          <span>rigshelf-library</span>
+          <Module kind="skill" />
+          <b>One reviewed Snapshot</b>
+          <small>Content · sources · Presets · directives</small>
+        </div>
+        <div class="backup-branches" aria-hidden="true">
+          <i></i>
+          <i></i>
+        </div>
+        <div class="backup-destinations">
+          <div>
+            <span class="destination-icon" aria-hidden="true">
+              ⑂
+            </span>
+            <strong>GitHub</strong>
+            <small>One batch commit + PR</small>
+          </div>
+          <div>
+            <span class="destination-icon" aria-hidden="true">
+              ▤
+            </span>
+            <strong>S3 / R2 / MinIO</strong>
+            <small>Immutable archive + pointer</small>
+          </div>
+        </div>
+        <p>Credential references travel. Project approvals stay local.</p>
+      </div>
+    </section>
+    <section class="questions-section wrap" aria-labelledby="questions-title">
+      <div>
+        <p class="eyebrow">A FEW GOOD QUESTIONS</p>
+        <h2 id="questions-title">
+          Before you
+          <br />
+          <em>make yourself at home.</em>
+        </h2>
+      </div>
+      <div class="questions">
+        <details>
+          <summary>Does everything in Library load into my Agent?</summary>
+          <p>
+            No. Library is storage. Only the focused kit you review and Apply is written to a
+            project. The Harness decides when it discovers or loads those files.
+          </p>
+        </details>
+        <details>
+          <summary>Will it rewrite my existing setup?</summary>
+          <p>
+            Discovery is read-only. Setup shows a plan first, preserves unrelated configuration and
+            authored guidance, and refuses stale changes. Rollback protects later edits too.
+          </p>
+        </details>
+        <details>
+          <summary>Can I bring my own AI?</summary>
+          <p>
+            Yes. Use your installed Claude Code/Codex CLI, local Ollama, a saved local/HTTPS Chat
+            Completions connection, or a connected MCP session answering an explicit draft request.
+            Review proposals before saving.
+          </p>
+        </details>
+        <details>
+          <summary>Does it install native Plugins?</summary>
+          <p>
+            Rigshelf inventories native Plugin references and keeps source/version evidence. Package
+            installation, Hooks and native approval stay with the Harness. It does not turn Plugins
+            into portable Skills.
+          </p>
+        </details>
+        <details>
+          <summary>What can I run today?</summary>
+          <p>
+            The local web UI, CLI and stdio MCP engine run from source, portable or standalone
+            builds. macOS and Linux arm64 delivery checks have passed. Windows, live backup accounts
+            and additional release languages have separate acceptance work.
+          </p>
+          <a href="/docs/validation/">See the current validation record ↗</a>
+        </details>
+      </div>
+    </section>
+    <section class="closing-section wrap">
+      <span class="closing-mark" aria-hidden="true">
+        R
+      </span>
+      <p class="eyebrow">NEXT PROJECT, BETTER START.</p>
+      <h2>
+        Make room
+        <br />
+        for <em>building.</em>
+      </h2>
+      <a class="button" href="/docs/start/">
+        Set up your first project <span aria-hidden="true">↗</span>
+      </a>
+      <p>No hosted account. No required cloud service.</p>
+    </section>
+  </main>
+  <script>
+    import '../scripts/home';
+  </script>
+</Base>

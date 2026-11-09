@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "rigshelf": { "command": "rigshelf", "args": ["mcp"] }
+  }
+}

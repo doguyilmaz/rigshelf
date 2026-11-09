@@ -1,0 +1,47 @@
+---
+type Name =
+  | 'search'
+  | 'close'
+  | 'arrow-up-right'
+  | 'arrow-down'
+  | 'arrow-right'
+  | 'layers'
+  | 'rotate'
+  | 'plus';
+interface Props {
+  name: Name;
+  class?: string;
+}
+const { name, class: className } = Astro.props;
+const paths: Record<Name, string> = {
+  search: 'M10.5 3a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15ZM16 16l5 5',
+  close: 'm6 6 12 12M18 6 6 18',
+  'arrow-up-right': 'M6 18 18 6M6 6h12v12',
+  'arrow-down': 'M12 4v16m-7-7 7 7 7-7',
+  'arrow-right': 'M4 12h16m-7-7 7 7-7 7',
+  layers: 'm3 7 9-5 9 5-9 5-9-5Zm0 5 9 5 9-5M3 17l9 5 9-5',
+  rotate: 'M19 8a8 8 0 1 0 1 7M19 3v5h-5',
+  plus: 'M5 12h14M12 5v14',
+};
+---
+
+<svg
+  class:list={['icon', className]}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.75"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+>
+  {name === 'plus' ? (
+    <>
+      <path d="M5 12h14" />
+      <path class="icon-plus-stem" d="M12 5v14" />
+    </>
+  ) : (
+    <path d={paths[name]} />
+  )}
+</svg>
