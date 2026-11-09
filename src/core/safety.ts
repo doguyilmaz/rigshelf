@@ -81,6 +81,12 @@ const SECRET_NAME_END =
   /(?:^|[_-])(?:api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|role[_-]?key|access[_-]?token|auth[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret|token)$/i;
 const QUOTED_ONLY_NAMES = /^(?:authorization|cookie|private[_-]?key)$/i;
 const isVariable = (value: string) => /^(?:Bearer\s+)?\$/.test(value);
+/** Bare values that are code, not literals: calls, indexing, member access, camelCase names, shell defaults. */
+const isCode = (value: string) =>
+  /[([]/.test(value) ||
+  /^\?/.test(value) ||
+  /^[A-Za-z_$][\w$]*(?:\??\.[\w$]+)+!?;?$/.test(value) ||
+  /^[a-z]+(?:[A-Z][a-z]*)+;?$/.test(value);
 
 /** Every pattern starts at a token boundary or a literal, so the scan stays linear on long lines. */
 /** Credential formats that are recognizable on their own, without a telling name next to them. */
@@ -104,7 +110,7 @@ export function redact(text: string): string {
     text,
   )
     .replace(
-      /(?<![A-Za-z0-9_-])(["']?)([A-Za-z][A-Za-z0-9_-]{0,80})\1(\s*[:=]\s*)(?:(["'])((?:\\.|(?!\4)[^\r\n])*)\4|([^\s,"'{}[\]#][^\s,"'}#]*))/g,
+      /(?<![A-Za-z0-9_$-])(?<!\$\{)(["']?)([A-Za-z][A-Za-z0-9_-]{0,80})\1(\s*[:=]\s*)(?:(["'])((?:\\.|(?!\4)[^\r\n])*)\4|([^\s,"'{}[\]#][^\s,"'}#]*))/g,
       (
         match,
         nameQuote: string,
@@ -118,8 +124,14 @@ export function redact(text: string): string {
         if (!secretName) return match;
         const head = `${nameQuote}${name}${nameQuote}${separator}`;
         if (quote !== undefined)
-          return isVariable(quoted ?? '') ? match : `${head}${quote}${PLACEHOLDER}${quote}`;
-        if (nameQuote || QUOTED_ONLY_NAMES.test(name) || isVariable(bare ?? '')) return match;
+          return !quoted || isVariable(quoted) ? match : `${head}${quote}${PLACEHOLDER}${quote}`;
+        if (
+          nameQuote ||
+          QUOTED_ONLY_NAMES.test(name) ||
+          isVariable(bare ?? '') ||
+          isCode(bare ?? '')
+        )
+          return match;
         return head + PLACEHOLDER;
       },
     )

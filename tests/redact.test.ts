@@ -42,6 +42,13 @@ test('redact leaves package variables, shell variables and prose about flags alo
     'Options: --token, --verbose',
     'export GITHUB_TOKEN=$(gh auth token)',
     'authorization: "Bearer ${API_KEY}"',
+    ': "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN must be set}"',
+    'WIDGET_SECRET=""',
+    'secret = result.get("secret") if isinstance(result, dict) else None',
+    'token: outgoingToken,',
+    'token: process.env.QSTASH_TOKEN!,',
+    'secret: env.TURNSTILE_SECRET,',
+    'const token = window.turnstile.getResponse(widgetId);',
   ])
     expect(redact(text)).toBe(text);
 });
@@ -58,4 +65,14 @@ test('redact stays linear on long single-line input', () => {
     redact(input);
     expect(performance.now() - started).toBeLessThan(500);
   }
+});
+
+test('redact still hides literal values next to secret names', () => {
+  for (const [text, expected] of [
+    ['password: hunter2secret', 'password: ${KITFOLD_SECRET}'],
+    ['API_TOKEN=abc123def456', 'API_TOKEN=${KITFOLD_SECRET}'],
+    ['WIDGET_SECRET="0x4AAAAA"', 'WIDGET_SECRET="${KITFOLD_SECRET}"'],
+    ['token: Abc123xyz', 'token: ${KITFOLD_SECRET}'],
+  ])
+    expect(redact(text)).toBe(expected);
 });
