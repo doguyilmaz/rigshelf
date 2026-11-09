@@ -139,7 +139,9 @@ function formatSync(
     lines.push(
       project.planId
         ? `${project.repository} → ${project.path}: ${project.files} file changes, plan ${project.planId}`
-        : `${project.repository}: ${project.error}`,
+        : project.error
+          ? `${project.repository}: ${project.error}`
+          : `${project.repository} → ${project.path}`,
     );
     if (project.localPlanId)
       lines.push(`  local files: ${project.localFiles} files, plan ${project.localPlanId}`);

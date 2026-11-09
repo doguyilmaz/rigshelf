@@ -26,7 +26,15 @@ import { type Change, type Plan, ProvidersSchema, type Rule, RuleSchema } from '
 import { rootIdentity } from './ownership';
 import { planFile } from './plan-limits';
 import { createPlan, missingDirectories } from './planner';
-import { assertWritePath, hash, inside, now, redact, safeRelative } from './safety';
+import {
+  assertWritePath,
+  hash,
+  hasKnownSecretFormat,
+  inside,
+  now,
+  redact,
+  safeRelative,
+} from './safety';
 import type { Store } from './store';
 
 const MAX_SYNC_PROJECTS = 300;
@@ -64,6 +72,9 @@ const localFiles = [
 const CLAUDE_SETTINGS = 'settings.json';
 
 const privateName = /(^|\/)(?:settings\.local\.json|\.env(?:\.[^/]*)?)$/;
+/** Skill docs are reference text: their examples (`token: process.env.X`) are not credentials. Scripts are scanned fully. */
+const skillDoc = (path: string) =>
+  /(?:^|\/)skills\//.test(path) && /\.(?:md|mdx|txt|rst)$/i.test(path);
 const MCP_APPROVAL = /enableAllProjectMcpServers|enabledMcpjsonServers/;
 const MCP_APPROVAL_REASON = 'Approves MCP servers; approve them on the server yourself.';
 const CONFIG_FILE = /\.(?:json|jsonc|toml)$/;
@@ -161,7 +172,8 @@ class FileBudget {
   private bytes = 0;
   private count = 0;
   constructor(private readonly withheld: Withheld[]) {}
-  async read(absolute: string, name: string) {
+  /** Skill files are reference text, so only recognizable credential formats hold them back. */
+  async read(absolute: string, name: string, reference = false) {
     const info = await lstat(absolute).catch(() => undefined);
     if (!info?.isFile()) return;
     if (privateName.test(name)) return this.hold(name, 'Private file; set it up by hand.');
@@ -170,7 +182,8 @@ class FileBudget {
       return this.hold(name, 'The sync bundle is full; sync fewer projects at once.');
     const bytes = await readLocalBytes(absolute, MAX_FILE_BYTES);
     const text = bytes.toString('utf8');
-    if (redact(text) !== text) return this.hold(name, 'Possible credential; set it up by hand.');
+    if (reference ? hasKnownSecretFormat(text) : redact(text) !== text)
+      return this.hold(name, 'Possible credential; set it up by hand.');
     if (grantsMcpApproval(name, text)) return this.hold(name, MCP_APPROVAL_REASON);
     this.count++;
     this.bytes += bytes.length;
@@ -234,7 +247,11 @@ async function collectLocalFiles(
   const files: CopiedFiles = [];
   for (const path of candidates) {
     if (tracked.has(path) || managed.has(path)) continue;
-    const read = await budget.read(join(project.path, path), `${project.name}/${path}`);
+    const read = await budget.read(
+      join(project.path, path),
+      `${project.name}/${path}`,
+      skillDoc(path),
+    );
     if (read) files.push({ path, ...read });
   }
   return files;
@@ -247,6 +264,7 @@ async function skillFiles(home: string, root: string, budget: FileBudget): Promi
   const entries = await readdir(join(root, 'skills'), { withFileTypes: true }).catch(() => []);
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+    if (entry.name.startsWith('.')) continue;
     if (`${relative(home, root)}/skills/${entry.name}` === CLAUDE_MANAGED_SKILLS) continue;
     const name = `~/${relative(home, root)}/skills/${entry.name}`;
     const folder = await realpath(join(root, 'skills', entry.name)).catch(() => undefined);
@@ -383,7 +401,7 @@ export async function buildSyncRequest(
   }
   const globalFiles: NonNullable<SyncRequest['globalFiles']> = [];
   const addGlobal = async (root: GlobalRoot, path: string) => {
-    const read = await budget.read(join(home, root, path), `~/${root}/${path}`);
+    const read = await budget.read(join(home, root, path), `~/${root}/${path}`, skillDoc(path));
     if (read) globalFiles.push({ root, path, ...read });
   };
   if (options.global ?? true) {

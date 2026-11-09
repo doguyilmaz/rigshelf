@@ -239,7 +239,7 @@ async function skillItems(root: string, roots: [string, string][], identity: str
     for (const entry of await readdir(join(root, folder), { withFileTypes: true }).catch(
       () => [],
     )) {
-      if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+      if ((!entry.isDirectory() && !entry.isSymbolicLink()) || entry.name.startsWith('.')) continue;
       const key = `${folder}/${entry.name}`;
       if (key === CLAUDE_MANAGED_SKILLS && root === identity[0]) continue;
       const hashed = await hashFolder(join(root, key), key, identity);

@@ -694,3 +694,22 @@ test('guidance imports, Claude rules, agents and commands travel; other agents a
   ]);
   expect(await sent(true)).toContain('.claude/hooks/notify.sh');
 });
+
+test('Skill docs with code examples travel; recognizable keys and hidden Skill folders do not', async () => {
+  const { laptop } = await machines();
+  const skills = join(laptop.home, '.agents/skills');
+  await Bun.write(
+    join(skills, 'upstash/SKILL.md'),
+    'Use `token: process.env.UPSTASH_REDIS_REST_TOKEN!` and `Authorization: Bearer YOUR_API_TOKEN`.\n',
+  );
+  await Bun.write(join(skills, 'leaky/SKILL.md'), `key: ghp_${'a'.repeat(30)}\n`);
+  await Bun.write(join(skills, '.system/builtin/SKILL.md'), 'managed by the agent\n');
+  const { request, withheld } = await buildSyncRequest(laptop.store, [], {
+    home: laptop.home,
+    remoteAgents: [],
+  });
+  expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`)).toEqual([
+    '.agents/skills/upstash/SKILL.md',
+  ]);
+  expect(withheld.map((value) => value.name)).toEqual(['~/.agents/skills/leaky/SKILL.md']);
+});

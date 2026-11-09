@@ -83,20 +83,26 @@ const QUOTED_ONLY_NAMES = /^(?:authorization|cookie|private[_-]?key)$/i;
 const isVariable = (value: string) => /^(?:Bearer\s+)?\$/.test(value);
 
 /** Every pattern starts at a token boundary or a literal, so the scan stays linear on long lines. */
+/** Credential formats that are recognizable on their own, without a telling name next to them. */
+const KNOWN_SECRET_FORMATS = [
+  /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/g,
+  /(?<![A-Za-z0-9_-])(?:(?:sk-|sk_live_|sk_test_|rk_live_|rk_test_|ghp_|gho_|ghs_|github_pat_|glpat-|xox[baprs]-|AKIA|AIza)[A-Za-z0-9_-]{12,}|npm_[A-Za-z0-9]{36})(?![A-Za-z0-9_-])/g,
+  /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
+];
+
+/** For reference text such as Skill docs, whose `token: process.env.X` examples are not credentials. */
+export function hasKnownSecretFormat(text: string): boolean {
+  return KNOWN_SECRET_FORMATS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  });
+}
+
 export function redact(text: string): string {
-  return text
-    .replace(
-      /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/g,
-      PLACEHOLDER,
-    )
-    .replace(
-      /(?<![A-Za-z0-9_-])(?:(?:sk-|sk_live_|sk_test_|rk_live_|rk_test_|ghp_|gho_|ghs_|github_pat_|glpat-|xox[baprs]-|AKIA|AIza)[A-Za-z0-9_-]{12,}|npm_[A-Za-z0-9]{36})(?![A-Za-z0-9_-])/g,
-      PLACEHOLDER,
-    )
-    .replace(
-      /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
-      PLACEHOLDER,
-    )
+  return KNOWN_SECRET_FORMATS.reduce(
+    (current, pattern) => current.replace(pattern, PLACEHOLDER),
+    text,
+  )
     .replace(
       /(?<![A-Za-z0-9_-])(["']?)([A-Za-z][A-Za-z0-9_-]{0,80})\1(\s*[:=]\s*)(?:(["'])((?:\\.|(?!\4)[^\r\n])*)\4|([^\s,"'{}[\]#][^\s,"'}#]*))/g,
       (
