@@ -448,15 +448,15 @@ test('global files of absent agents are left out, and files sync does not copy a
   const root = await temporary();
   const laptop = join(root, 'laptop');
   const server = join(root, 'server');
-  await Bun.write(join(laptop, '.claude/CLAUDE.md'), '@RTK.md\n');
-  await Bun.write(join(laptop, '.claude/RTK.md'), 'rtk\n');
+  await Bun.write(join(laptop, '.claude/CLAUDE.md'), '@STYLE.md\n');
+  await Bun.write(join(laptop, '.claude/STYLE.md'), 'style\n');
   await Bun.write(join(laptop, '.gemini/GEMINI.md'), 'gemini\n');
   await Bun.write(join(laptop, '.codex/config.toml'), 'model = "x"\n');
   await Bun.write(
     join(laptop, '.claude/settings.json'),
     '{"model":"opus","hooks":{"Stop":"notify"}}',
   );
-  await Bun.write(join(server, '.claude/CLAUDE.md'), '@RTK.md\n');
+  await Bun.write(join(server, '.claude/CLAUDE.md'), '@STYLE.md\n');
   await Bun.write(join(server, '.claude/settings.json'), '{"model":"opus"}');
   const [local, remote] = await Promise.all(
     [laptop, server].map((home) => buildMachineInventory({ home, roots: [] })),
@@ -467,7 +467,7 @@ test('global files of absent agents are left out, and files sync does not copy a
   );
   expect(rows).toEqual({
     '.claude/CLAUDE.md': ['same', 'none'],
-    '.claude/RTK.md': ['missing-remote', 'copy'],
+    '.claude/STYLE.md': ['missing-remote', 'copy'],
     '.claude/settings.json': ['same', 'none'],
     '.codex/config.toml': ['missing-remote', 'set-up-manually'],
   });

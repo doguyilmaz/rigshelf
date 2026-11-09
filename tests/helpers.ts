@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createCustomSkill } from '../src/core/ingest';
+import type { Rule } from '../src/core/model';
 import { seed } from '../src/core/seeds';
 import { Store } from '../src/core/store';
 
@@ -40,4 +41,18 @@ export function sampleSkill(store: Store, name = 'project-guide') {
     body: 'Use clear inputs and return a useful result.',
     tags: ['typescript'],
   });
+}
+
+export function sampleRule(store: Store, id = 'shared-guidance'): Rule {
+  const rule: Rule = {
+    id,
+    name: 'Shared guidance',
+    scope: 'global',
+    content: 'Keep changes small and explain material limitations.',
+    enabled: true,
+    priority: 10,
+    provenance: 'Custom',
+  };
+  store.put('rule', rule);
+  return rule;
 }

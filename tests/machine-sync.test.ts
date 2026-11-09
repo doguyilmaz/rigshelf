@@ -119,12 +119,15 @@ test('directives are added when missing, kept when different unless replacement 
     priority: 10,
     provenance: 'Custom',
   };
-  laptop.store.put('rule', mine);
-  const edited = {
-    ...laptop.store.get<Rule>('rule', 'communication')!,
-    content: 'Laptop wording.',
+  const shared: Rule = {
+    ...mine,
+    id: 'communication',
+    name: 'Communication',
+    content: 'Server wording.',
   };
-  laptop.store.put('rule', edited);
+  laptop.store.put('rule', mine);
+  laptop.store.put('rule', { ...shared, content: 'Laptop wording.' });
+  server.put('rule', shared);
   const { request } = await buildSyncRequest(laptop.store, [laptop.root], { home: laptop.home });
   const kept = await prepareSync(server, request, [serverRoot]);
   expect(server.get<Rule>('rule', 'house-style')?.content).toBe('Keep replies short.');
@@ -664,12 +667,12 @@ test('MCP approval keys block configuration files, even escaped, but not Skills 
 
 test('guidance imports, Claude rules, agents and commands travel; other agents and junk files do not', async () => {
   const { laptop } = await machines();
-  await Bun.write(join(laptop.home, '.claude/CLAUDE.md'), '# Me\n\n@RTK.md\n');
-  await Bun.write(join(laptop.home, '.claude/RTK.md'), 'Use rtk.\n');
-  await Bun.write(join(laptop.home, '.codex/AGENTS.md'), `@${laptop.home}/.codex/RTK.md\n`);
-  await Bun.write(join(laptop.home, '.codex/RTK.md'), 'Use rtk.\n');
+  await Bun.write(join(laptop.home, '.claude/CLAUDE.md'), '# Me\n\n@STYLE.md\n');
+  await Bun.write(join(laptop.home, '.claude/STYLE.md'), 'Use the house style.\n');
+  await Bun.write(join(laptop.home, '.codex/AGENTS.md'), `@${laptop.home}/.codex/STYLE.md\n`);
+  await Bun.write(join(laptop.home, '.codex/STYLE.md'), 'Use the house style.\n');
   await Bun.write(join(laptop.home, '.gemini/GEMINI.md'), '# Gemini\n');
-  await Bun.write(join(laptop.home, '.claude/rules/argent.md'), 'Rule\n');
+  await Bun.write(join(laptop.home, '.claude/rules/review.md'), 'Rule\n');
   await Bun.write(join(laptop.home, '.claude/agents/inspector.md'), 'Agent\n');
   await Bun.write(join(laptop.home, '.claude/agents/.DS_Store'), 'junk');
   await Bun.write(join(laptop.home, '.claude/hooks/notify.sh'), '#!/bin/sh\n');
@@ -685,11 +688,11 @@ test('guidance imports, Claude rules, agents and commands travel; other agents a
       .sort();
   expect(await sent(false)).toEqual([
     '.claude/CLAUDE.md',
-    '.claude/RTK.md',
+    '.claude/STYLE.md',
     '.claude/agents/inspector.md',
-    '.claude/rules/argent.md',
+    '.claude/rules/review.md',
     '.codex/AGENTS.md',
-    '.codex/RTK.md',
+    '.codex/STYLE.md',
   ]);
   expect(await sent(true)).toContain('.claude/hooks/notify.sh');
 });

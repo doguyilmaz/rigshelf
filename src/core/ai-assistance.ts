@@ -9,7 +9,7 @@ import {
   parseAiProposal,
 } from './ai-drafts';
 import { redact } from './safety';
-import { classifyResource } from './seeds';
+import { classifyResource } from './source-library';
 import type { Store } from './store';
 
 const MAX_REQUESTS = 24;

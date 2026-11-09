@@ -5,7 +5,7 @@ export async function devBuild(root: string, enabled = process.env.RIGSHELF_DEV 
   try {
     const html = await Bun.file(`${root}/index.html`).text();
     if (!html.includes('</html>')) return { enabled: true as const, building: true as const };
-    const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)]
+    const assets = [...html.matchAll(/<script[^>]*\ssrc="(\/assets\/[^"]+)"/g)]
       .map((value) => value[1]!)
       .sort();
     return { enabled: true as const, fingerprint: hash(html), assets };

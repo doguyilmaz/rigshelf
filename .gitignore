@@ -21,3 +21,10 @@ credentials.json
 tokens.json
 *.pem
 *.key
+out/
+npm/
+*.tgz
+.claude/
+CLAUDE.local.md
+.vscode/
+.idea/

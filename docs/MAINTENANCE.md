@@ -41,12 +41,12 @@ Work on a separate catalog when researching large source sets. Adopt only verifi
 
 ## Keep Rigshelf's own integrations current
 
-The maintained artifacts are the catalog MCP server, forwarding bridge, integration Skill and six project-file adapters. There is no distributable Rigshelf native Plugin package today.
+The maintained artifacts are the catalog MCP server, forwarding bridge, the Claude Code and Codex plugin with its integration Skill, and six project-file adapters.
 
-1. Compare actual CLI/MCP schemas and adapters with [primary vendor contracts](RESEARCH.md). Distinguish local CLI, IDE and hosted surfaces.
+1. Compare actual CLI/MCP schemas and adapters with [agent contracts](AGENT-CONTRACTS.md). Distinguish local CLI, IDE and hosted surfaces.
 2. Preserve documented environment, invocation and tool-filter semantics. Refuse unsupported execution/authentication behavior instead of silently converting it to a local or anonymous server.
 3. Update the [MCP guide](MCP.md), [compatibility matrix](COMPATIBILITY.md) and integration Skill together when behavior changes.
 4. Run formatting, TypeScript, protocol/integrity fixtures, `verify` and `lint`; run UI flows when visible behavior changes. Validate Skill metadata against the [Agent Skills specification](https://agentskills.io/specification).
-5. Record tested versions and practical limits. Dependency freshness and vulnerability-advisory checks are distinct from a qualified security review.
+5. Update [agent contracts](AGENT-CONTRACTS.md) with what changed.
 
 For example, Codex supports local and remote `env_vars` sources. Rigshelf imports local references; remote executor selection, remote references and dynamic header helpers stay native and produce inventory diagnostics. OAuth tokens and account credential stores are never imported. See [the official MCP contract](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).

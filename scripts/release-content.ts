@@ -1,37 +1,13 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { VERSION } from '../src/version';
 import type { Delivery } from './release-archive';
 import { releaseFile, releaseTree, stageFile } from './release-files';
 
 const documents = [
-  'ACCEPTANCE',
-  'AI-ASSISTANCE',
-  'AI-DISCOVERY',
-  'BACKUP-SYNC',
-  'BRANDING',
-  'BUILD-LOG',
-  'COMPATIBILITY',
-  'DATA',
-  'DECISIONS',
-  'DESIGN-REVIEW',
-  'DIRECTORY-SELECTION',
-  'DISTRIBUTION',
-  'EXPERIENCE',
-  'LIBRARY',
-  'LOCALIZATION',
-  'MAINTENANCE',
-  'MCP',
-  'NAMING',
-  'PRODUCT',
-  'PRODUCT-REVIEW',
-  'QUICKSTART',
-  'RESEARCH',
-  'SECURITY-REVIEW',
-  'VALIDATION',
-  'WEBSITE',
-  'WORKFLOW-AUDIT',
-];
+  ...new Bun.Glob('docs/*.md').scanSync(fileURLToPath(new URL('..', import.meta.url))),
+].sort();
 const publicFiles = [
   'LICENSE',
   'README.md',
@@ -41,7 +17,7 @@ const publicFiles = [
   'web/public/fonts/instrumentsans-OFL.txt',
   'web/public/fonts/newsreader-OFL.txt',
   'plugin/skills/rigshelf/SKILL.md',
-  ...documents.map((name) => `docs/${name}.md`),
+  ...documents,
 ];
 
 export function runtimeAsset(path: string): boolean {

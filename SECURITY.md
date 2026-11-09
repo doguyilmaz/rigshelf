@@ -26,4 +26,8 @@ AI authoring runs only on explicit generation. Choose an installed CLI, the fixe
 
 Remote backups require a saved destination, a connection test, a content/destination/revision-bound review and an explicit Sync. GitHub uses one commit/PR per reviewed snapshot; S3-compatible storage publishes immutable objects before a conditional pointer update. Credentials resolve only from the destination's selected environment references. Archives exclude machine-local authority, inventories and operational records, but reusable content and provenance remain private data. Backups are not encrypted by Rigshelf, and bucket privacy is an owner assertion. No automatic remote pruning or upload watcher runs. See [backup and restore](docs/BACKUP-SYNC.md).
 
-Please use the repository's private vulnerability reporting feature when enabled. Until a reporting contact is established, avoid posting credentials, private catalogs or exploit data in public issues. Security reports should identify a concrete trust boundary, source trace, minimal dummy-data reproduction and affected version.
+## Reporting a vulnerability
+
+Report vulnerabilities privately through GitHub: **Security → Report a vulnerability** on this repository. Include the affected version, the trust boundary involved and a minimal reproduction with dummy data. Please don't post credentials, private catalogs or exploit details in public issues.
+
+See the [security model](docs/SECURITY-MODEL.md) for what Rigshelf protects and its limits.

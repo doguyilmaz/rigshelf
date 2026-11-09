@@ -1,6 +1,6 @@
 # Connect Rigshelf to an Agent
 
-Rigshelf ships a stdio catalog MCP server, an optional project-local MCP forwarding bridge and one integration Skill. It does not ship a native Plugin package or marketplace. Native third-party Plugins remain references in Library; their Harness owns installation and activation.
+Rigshelf ships a stdio catalog MCP server, an optional project-local MCP forwarding bridge, and a Claude Code and Codex plugin that connects the server and adds the integration Skill. Third-party Plugins remain references in the Library; their Harness owns installation and activation.
 
 ## Connect the catalog
 

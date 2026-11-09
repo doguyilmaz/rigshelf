@@ -2,7 +2,7 @@
 
 Rigshelf sets up coding agents per project. The private library is separate from activation. Backup is secondary. Keep the primary flow simple: choose a project, review a focused kit, choose harnesses, inspect the plan, apply.
 
-The user approved the Rigshelf name and existing visual identity on 2026-11-07. Preserve this branding unless the user requests a change; see `docs/BRANDING.md`.
+Keep the Rigshelf name, mark and visual identity (Instrument Sans, Newsreader, neutral surfaces) unless a change is requested.
 
 ## Boundaries
 
@@ -29,8 +29,8 @@ Localized interfaces preserve technical vocabulary such as Skills, MCP, Plugins,
 - Run `bun run verify` and `bun run lint` for implementation changes after formatting.
 - Run `bun run test:ui` for visible web changes. Chromium must already be installed, or install it explicitly as documented.
 - Add tests for meaningful authority, lifecycle, data-integrity or user-flow changes. Avoid tests that merely repeat implementation details.
-- Use isolated fixtures under ignored `.local/tests`. Existing development repositories and global agent configuration are read-only inventory sources.
-- Keep QA evidence in ignored `.local/qa`. Distinguish normal development tests from separately qualified security reproductions.
-- Update compatibility, data and acceptance documentation when their contracts change. Do not promise support for an undocumented harness feature.
+- Use isolated fixtures under ignored `.local/tests`. Never use real projects or global agent configuration as test state.
+- Keep screenshots and reports in ignored `.local/qa`.
+- Update compatibility, data and agent-contract documentation when their contracts change. Do not promise support for an undocumented harness feature.
 
 Do not commit, publish, register services or delete global installations without authorization.

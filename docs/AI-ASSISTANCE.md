@@ -20,17 +20,17 @@ Project assistance receives the supplied requirements/stack and up to 80 matchin
 
 Generation runners and project Harness adapters are separate capabilities. Kiro, OpenCode, Antigravity and Grok can answer through an explicitly connected Rigshelf MCP session where their MCP integration is available. This release does not invent unattended CLI flags for them. Provider/model preferences are remembered in the browser; credentials stay with the owning CLI or local service. CLI quotas or billing can apply to an explicit generation request. A failed or unavailable Provider leaves editor fields unchanged.
 
-**Current Agent · MCP** includes an in-panel connection helper for Claude Code, Codex/T3 Code, Kiro CLI, OpenCode, agy and Grok. Choose a Harness to preview/copy its native MCP configuration. It uses the default read/plan connection; answering a pending draft requires no project write permission. Merge without replacing unrelated servers and reconnect MCP in the Agent. Choose the session's model in that Agent. Rigshelf neither changes an arbitrary session's model nor silently dispatches a message to it.
+**Current Agent · MCP** includes an in-panel connection helper for Claude Code, Codex ([T3 Code](https://t3.codes) included), Kiro CLI, OpenCode, agy and Grok. Choose a Harness to preview/copy its native MCP configuration. It uses the default read/plan connection; answering a pending draft requires no project write permission. Merge without replacing unrelated servers and reconnect MCP in the Agent. Choose the session's model in that Agent. Rigshelf neither changes an arbitrary session's model nor silently dispatches a message to it.
 
-The installed Kiro, OpenCode and agy CLIs were inspected with isolated `--help` calls on 2026-11-08. Their noninteractive modes do exist; this release does not provide direct runners because the complete configuration/Plugin/Hook isolation contract has not been accepted. MCP proposal support is distinct from unattended generation. Native login, quota and live generation acceptance remain separate from fixture-driver UI tests.
+Kiro, OpenCode and agy have noninteractive modes, but Rigshelf does not run them directly yet: their configuration, Plugin and Hook isolation is not settled. Use them through **Current Agent · MCP** instead.
 
 ## Lightweight model choices
 
 New Claude/Codex panel selections start with **Haiku** / **GPT-6 Luna**. The picker also offers **Sonnet** / **GPT-6.1 Terra**, an exact custom model ID and an explicit Provider default. Model choices remain separate when switching Providers. Returning to a Provider does not replace its chosen model; generating remembers those choices in this browser. A saved explicit panel default remains deliberate. Codex draft invocations request low reasoning effort. There is no automatic retry with a larger model.
 
-These are convenience choices, not a discovered list of models authorized for the CLI account. Claude's `haiku`/`sonnet` aliases follow its own model mapping. Exact Codex IDs are `gpt-6-luna` and `gpt-6.1-terra`; CLI/account availability still applies. Luna/Haiku are the starting choices for structured field preparation; the larger alternatives are deliberate options for more involved authoring. Sources checked on 2026-11-08: [Claude model configuration](https://code.claude.com/docs/en/model-config), [Codex models](https://learn.chatgpt.com/docs/models), [OpenAI model selection](https://developers.openai.com/api/docs/guides/model-selection).
+These are convenience choices, not a discovered list of models authorized for the CLI account. Claude's `haiku`/`sonnet` aliases follow its own model mapping. Exact Codex IDs are `gpt-6-luna` and `gpt-6.1-terra`; CLI/account availability still applies. Luna/Haiku are the starting choices for structured field preparation; the larger alternatives are deliberate options for more involved authoring. See [Claude model configuration](https://code.claude.com/docs/en/model-config), [Codex models](https://learn.chatgpt.com/docs/models), [OpenAI model selection](https://developers.openai.com/api/docs/guides/model-selection).
 
-Native invocation references: [Claude Code CLI](https://code.claude.com/docs/en/cli-reference), [Codex non-interactive mode](https://developers.openai.com/codex/noninteractive) and [Codex configuration](https://developers.openai.com/codex/config-reference). Installed CLI help is checked during development; supported arguments can change across versions. Windows native CLI/process acceptance remains a release check.
+Native invocation references: [Claude Code CLI](https://code.claude.com/docs/en/cli-reference), [Codex non-interactive mode](https://developers.openai.com/codex/noninteractive) and [Codex configuration](https://developers.openai.com/codex/config-reference). Supported arguments can change across CLI versions.
 
 ## Connect your own AI service
 
@@ -50,7 +50,7 @@ The list is bounded to 1 MiB, 1,000 models and a 2.5-second request deadline. Re
 
 Generation and the older document-review endpoint also refuse HTTP redirects. They send an explicit prompt to the fixed loopback service only; they do not follow a redirected URL with that prompt. This does not constrain the chosen model service's own remote routing.
 
-The shared TypeScript operation is `getOllamaModels({ signal? }): Promise<OllamaModel[]>`. For example, a read-only caller can await the list; a panel owns an `AbortController` and aborts on closure. An unavailable service rejects with a fixed recovery message rather than converting failure into an empty successful list. `GET /api/ai/ollama-models` uses the same operation behind the existing private HTTP boundary; POST is refused.
+When Ollama is not running, the picker shows a recovery message instead of an empty list.
 
 ## Data and authority
 

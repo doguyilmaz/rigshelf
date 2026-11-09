@@ -6,7 +6,7 @@ AI authoring is a separate runtime capability: Claude Code and Codex have bounde
 
 Read-only inventory recognizes native Agent definitions, Commands, Hooks, known config files, Plugin manifests/cache components and Claude Agent memory scopes. Files remain data for explicit inspection; discovery never runs them or promises portable conversion of Plugin execution/approval semantics. OpenCode's explicit `OPENCODE_CONFIG_DIR` is supported. See [AI discovery](AI-DISCOVERY.md) for exclusions and bounds.
 
-Mappings were rechecked against primary vendor documentation on 2026-11-06; see [research](RESEARCH.md). They produce project files; the host agent controls when it discovers or approves those files.
+Mappings follow each vendor's documentation; see [agent contracts](AGENT-CONTRACTS.md). They produce project files; the host agent controls when it discovers or approves those files.
 
 | Harness | Skills | Guidance | MCP |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ Mappings were rechecked against primary vendor documentation on 2026-11-06; see 
 | Antigravity | `.agents/skills/<name>` | `AGENTS.md` | `.agents/mcp_config.json` |
 | Official Grok CLI | `.grok/skills/<name>` | `AGENTS.md` | `.grok/config.toml` |
 
-T3's selected model is separate from the underlying harness. Choose the actual harness that runs the session. Ollama is a local model endpoint for explicit proposals, not a skill-discovery format.
+In an agent manager such as [T3 Code](https://t3.codes), the selected model is separate from the underlying harness. Choose the actual harness that runs the session. Ollama is a local model endpoint for explicit proposals, not a skill-discovery format.
 
 In CLI setup, explicit `--agents` takes precedence. Without that flag, an explicit `--preset` supplies its own Agent defaults; automatic Preset detection uses the application defaults. The web workbench preserves deliberate/recovered/reviewed Agent choices and offers a separate action to adopt Preset defaults. These are selection defaults, not evidence that a Harness is installed or has loaded the setup.
 
@@ -47,7 +47,7 @@ Directory fields offer typed paths and a local native chooser. See [directory se
 
 Read-only inventory extends beyond generated setup paths: nested and gitignored AI locations, user-scoped Claude project memory, known global harness directories, explicit Claude/Codex config roots and known Aims profile locations are supported. Shared aliases retain their origin and are deduplicated. Account/session stores and dependency directories are excluded. [AI discovery](AI-DISCOVERY.md) records exact scope and bounds; it does not imply automatic context loading or support for arbitrary undocumented storage formats.
 
-Settings also supports twenty explicit custom configuration roots with a selected native format. Wrapper tools can reuse those known file layouts, including project memory stored under a custom Claude profile. This does not add an undocumented T3/Omni database reader or collect conversations; the selected root must actually contain supported native configuration.
+Settings also supports twenty explicit custom configuration roots with a selected native format. Wrapper tools can reuse those known file layouts, including project memory stored under a custom Claude profile. This does not read undocumented manager databases or collect conversations; the selected root must actually contain supported native configuration.
 
 ## Library backup transports
 

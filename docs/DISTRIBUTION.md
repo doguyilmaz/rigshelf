@@ -1,97 +1,56 @@
-# Running and packaging Rigshelf
+# Installation
 
-Rigshelf is a local application: one engine provides a browser interface, CLI and stdio MCP server. The browser connects to the server on your own machine. There is no hosted Rigshelf account, public library service or required cloud deployment. Local and remote AI connections are configured independently in Settings.
+Rigshelf is a local application: one engine provides the browser workbench, the CLI and a stdio MCP server. There is no hosted account or required cloud service.
 
-## Choose a delivery
-
-| Delivery | Requires | Use |
-| --- | --- | --- |
-| Source checkout | Bun 1.4.4+, installed development dependencies | Development and contributing. |
-| Portable archive | Bun 1.4.4+ | Run the bundled application without a source checkout or `node_modules`. |
-| Standalone archive | Matching operating system and CPU | Run the compiled executable; Bun and the web assets are included. |
-| Container | Docker and explicit project/data mounts | CLI and stdio MCP. Use a host executable for the browser workbench. |
-
-These are local build recipes. No public package name, signed release, registry image or download URL is claimed. A successful cross-build does not establish that a platform was tested. See [validation](VALIDATION.md) for observed results and remaining acceptance work.
-
-## Source checkout
+## Install
 
 ```sh
-bun install --frozen-lockfile
-bun run build
-bun run start
+brew install doguyilmaz/tap/rigshelf
+rigshelf ui
 ```
 
-Open the private URL printed by the command. The default loopback port is `47471`; an occupied default advances to the next available port within the documented range. An explicit `--port` stays fixed. Ctrl-C drains owned operations and stops the server. There is no public bind option.
+Without installing: `bunx @doguyilmaz/rigshelf ui` (requires [Bun](https://bun.sh) 1.4.4 or newer).
 
-## Build local artifacts
+Prebuilt executables for macOS, Linux and Windows are attached to each [GitHub release](https://github.com/doguyilmaz/rigshelf/releases) with `checksums.txt`. The macOS binaries are signed and notarized.
+
+To use your Library from Claude Code or Codex, add the plugin; it connects the catalog MCP server and adds the integration Skill:
 
 ```sh
-# Choose one; the native command also prepares the portable archive.
-bun run package
-bun run package:native
+claude plugin marketplace add doguyilmaz/rigshelf && claude plugin install rigshelf@rigshelf
+codex plugin marketplace add doguyilmaz/rigshelf && codex plugin add rigshelf@rigshelf
 ```
 
-The first command creates a portable archive. The second also creates a standalone archive for the build machine. Outputs are under ignored `.local/releases`, each with a `.sha256` sidecar. Existing artifacts are preserved unless `--replace` is explicitly supplied:
+## Run
+
+`rigshelf ui` opens the workbench on loopback at port 47471, or the next free port; `--port` fixes it. Ctrl-C stops the server after finishing running operations. There is no option to listen beyond loopback. Use the same executable with `mcp` for an agent connection ([MCP](MCP.md)).
+
+Data goes to `~/.local/share/rigshelf`; `RIGSHELF_DATA_DIR` selects another folder. Replacing the application does not move your data. Before changing machines, keep a [Library backup](BACKUP-SYNC.md) or use [machine sync](REMOTE.md).
+
+## Build your own archive
+
+From a source checkout ([contributing](../CONTRIBUTING.md)):
 
 ```sh
-bun run package:native --replace
+bun run package          # portable archive; needs Bun to run
+bun run package:native   # also a standalone executable for this machine
 ```
 
-After building the interface, an explicit target can be selected directly:
+Archives go to the ignored `.local/releases` folder, each with a `.sha256` file; existing archives are kept unless you add `--replace`. Pick another target with `bun scripts/package.ts --native --target bun-linux-x64`. For a release checkout, install with `bun install --frozen-lockfile --backend=copyfile` first, because the packager refuses linked dependency files.
+
+An archive contains the public documents, the integration Skill, the production interface and launchers. `manifest.json` records each file's size, mode and SHA-256. Source, dependencies, catalogs and credentials are never included.
 
 ```sh
-bun scripts/package.ts --native --target bun-linux-x64
-```
-
-Bun may download its compiler runtime for another target. An already available matching executable can instead be supplied through `--executable-path /path/to/bun`. Build prerequisites do not belong in the resulting archive. No Rigshelf publisher signing or notarization is performed; public release remains a separate owner action. Experimental AOT compilation is not enabled.
-
-The packager copies only named public documents, the integration Skill, production assets and generated launchers. It excludes design prototypes, source trees, dependencies, `.local`, catalogs, credentials and imported user content. It refuses linked/nonregular inputs and bounds input size. `manifest.json` records each payload file's size, mode and SHA-256. Checksums detect byte changes; they do not establish publisher identity or content safety.
-
-Dependency metadata and license notices must also be regular files with one hard link, reached through real directories. For a dedicated release checkout, install with `bun install --frozen-lockfile --backend=copyfile` before packaging. This avoids a package-cache hard link being mistaken for an independently owned input. Do not rebuild dependencies in an active project just to prepare a release.
-
-## Run an extracted archive
-
-On macOS, verify and extract the portable archive like this (use `sha256sum -c` on Linux):
-
-```sh
-shasum -a 256 -c rigshelf-0.1.0-portable.tar.gz.sha256
-mkdir rigshelf
-tar -xzf rigshelf-0.1.0-portable.tar.gz -C rigshelf
+shasum -a 256 -c rigshelf-<version>-portable.tar.gz.sha256   # sha256sum -c on Linux
+mkdir rigshelf && tar -xzf rigshelf-<version>-portable.tar.gz -C rigshelf
 ./rigshelf/bin/rigshelf ui
 ```
 
-Extract into an empty application directory and keep the entire portable directory together. From any working directory:
+Keep the extracted folder together and add its `bin` folder (portable) or the executable's folder (standalone) to your `PATH`. Standalone executables don't load `.env`, `bunfig.toml`, `tsconfig.json` or `package.json` from the working directory; pass credential references through the process environment.
 
-```sh
-/path/to/rigshelf/bin/rigshelf --version
-/path/to/rigshelf/bin/rigshelf ui
-```
+## Container
 
-For a standalone archive:
+The Dockerfile runs the CLI and stdio MCP as an unprivileged user. Mount only the data folder and the project roots it should see; never your whole home, credential stores or the Docker socket. Stdio MCP needs `-i`, not a TTY, and writable MCP still needs `--write` with explicit `--root` folders. Use a host install for the browser workbench: publishing a container port does not expose the loopback-only workbench.
 
-```sh
-/path/to/rigshelf/rigshelf --version
-/path/to/rigshelf/rigshelf ui
-```
+## Releasing
 
-Use that same executable with `mcp` for an Agent connection. Add the extracted `bin` directory (portable) or executable directory (standalone) to your own PATH when you want short commands. Keep its `kitfold` compatibility launcher alongside it: generated MCP forwarding bridges still use that command. On Windows the standalone executable is `rigshelf.exe`; native Harness acceptance and the compatibility launcher need Windows qualification before a Windows release.
-
-Fresh data goes to `~/.local/share/rigshelf`; existing Kitfold data stays in place. Installing or replacing an application directory does not move the catalog. `RIGSHELF_DATA_DIR` selects another private data directory. Preserve a [reviewed library backup](BACKUP-SYNC.md) before changing machines; portable exports exclude machine-specific project authority and recovery state.
-
-Standalone compilation disables automatic `.env`, `bunfig.toml`, `tsconfig.json` and `package.json` loading. Supply selected credential references through the process environment. The portable POSIX launcher disables automatic `.env` loading and dependency auto-installation and selects the packaged Bun configuration. Directly invoking the JavaScript with Bun uses the options you supply yourself.
-
-## Containers
-
-The optional Dockerfile runs the bundled CLI as an unprivileged user. Mount only the intended private data directory and selected project roots, with appropriate ownership. Do not mount your whole home directory, global credential stores or Docker socket. Stdio MCP needs `-i`, not a pseudo-TTY. Writable MCP still requires `--write` and explicit `--root` permissions.
-
-Publishing a container port does not make the loopback-only workbench reachable. The container delivery is for CLI/MCP; the host portable or standalone application is the supported browser delivery. There is no automatic public listener or reverse-proxy configuration.
-
-## Releases
-
-A `vMAJOR.MINOR.PATCH` tag that matches `package.json` runs `.github/workflows/release.yml`. It verifies the tree, compiles `rigshelf` for darwin-arm64, darwin-x64, linux-arm64, linux-x64 and windows-x64 with the web interface embedded (`bun scripts/release.ts`), and opens a draft release with `checksums.txt` and provenance attestations. The [tapster](https://tapster.doguyilmaz.com) hub in `doguyilmaz/homebrew-tap` signs and notarizes the macOS binaries, publishes the release and writes the Homebrew, Scoop, apt and dnf entries. Connect the project once with `bunx @doguyilmaz/tapster add`, which adds the hub notification step.
-
-Publishing the release runs `.github/workflows/npm.yml`, which assembles `@doguyilmaz/rigshelf` (`bun scripts/npm-package.ts`) and publishes it with npm trusted publishing, so `bunx @doguyilmaz/rigshelf` needs no install. The Claude Code and Codex plugin in `plugin/` is published by the repository itself through `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`; bump `plugin/plugin.json` with `package.json`.
-
-## Before publishing
-
-Run the normal verification, UI and package smoke suites. Review the archive inventory and checksums, qualify each advertised OS/CPU and native Harness, and establish the vulnerability-reporting contact. Supply real GitHub/S3 destinations only through the explicit connection and review flow. Packaging never publishes artifacts, creates remote services or uploads private data.
+Pushing a `vMAJOR.MINOR.PATCH` tag that matches `package.json` runs `.github/workflows/release.yml`: it verifies the tree, compiles `rigshelf` for darwin-arm64, darwin-x64, linux-arm64, linux-x64 and windows-x64 with the interface embedded, and opens a draft release with checksums and provenance attestations. The [tapster](https://tapster.doguyilmaz.com) hub signs and notarizes the macOS binaries, publishes the release and updates the Homebrew, Scoop, apt and dnf entries. Publishing the release runs `.github/workflows/npm.yml`, which publishes `@doguyilmaz/rigshelf` with npm trusted publishing. Bump `plugin/plugin.json` together with `package.json`.

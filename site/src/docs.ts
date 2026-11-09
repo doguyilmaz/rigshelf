@@ -49,6 +49,13 @@ export const guides = [
     description: 'Reviewed library backups to GitHub or S3-compatible storage.',
   },
   {
+    slug: 'remote',
+    source: 'docs/REMOTE.md',
+    title: 'Remote machines',
+    group: 'Daily use',
+    description: 'Compare and sync your agent setup with a server over SSH.',
+  },
+  {
     slug: 'harnesses',
     source: 'docs/COMPATIBILITY.md',
     title: 'Harness compatibility',
@@ -91,18 +98,25 @@ export const guides = [
     description: 'Local access, credentials, imported content and trust boundaries.',
   },
   {
-    slug: 'security-review',
-    source: 'docs/SECURITY-REVIEW.md',
-    title: 'Security review',
+    slug: 'security-model',
+    source: 'docs/SECURITY-MODEL.md',
+    title: 'Security model',
     group: 'Reference',
-    description: 'The frozen audit, corrections and limits of the evidence.',
+    description: 'What Rigshelf protects, and its limits.',
   },
   {
-    slug: 'validation',
-    source: 'docs/VALIDATION.md',
-    title: 'Validation record',
+    slug: 'agent-contracts',
+    source: 'docs/AGENT-CONTRACTS.md',
+    title: 'Agent contracts',
     group: 'Reference',
-    description: 'Exercised tests and the acceptance work that remains.',
+    description: 'The vendor documentation each adapter follows.',
+  },
+  {
+    slug: 'testing',
+    source: 'docs/TESTING.md',
+    title: 'Testing',
+    group: 'Reference',
+    description: 'The checks behind each change and what they cover.',
   },
   {
     slug: 'branding',
@@ -110,13 +124,6 @@ export const guides = [
     title: 'Brand & compatibility',
     group: 'Reference',
     description: 'The Rigshelf identity and retained protocol names.',
-  },
-  {
-    slug: 'research',
-    source: 'docs/RESEARCH.md',
-    title: 'Source references',
-    group: 'Reference',
-    description: 'Primary documentation behind the maintained contracts.',
   },
   {
     slug: 'contributing',
@@ -142,9 +149,9 @@ export const guides = [
   {
     slug: 'website',
     source: 'docs/WEBSITE.md',
-    title: 'Website & documentation',
+    title: 'Website',
     group: 'Reference',
-    description: 'Develop, verify and host the separate public static site.',
+    description: 'Develop, check and host the static site.',
   },
 ] as const;
 
