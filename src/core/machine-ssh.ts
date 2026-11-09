@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { readBounded } from './bounded-read';
 import { type MachineDoctor, parseMachineDoctor } from './machine-doctor';
 import { type MachineInventory, parseMachineInventory } from './machine-inventory';
 
@@ -97,27 +98,6 @@ export function printable(text: string): string {
 
 const MAX_ERROR_BYTES = 64 * 1024;
 
-/** Reads at most `limit` bytes, stopping the child instead of buffering an unbounded stream. */
-async function readCapped(
-  stream: ReadableStream<Uint8Array>,
-  limit: number,
-  stop: () => void,
-): Promise<{ text: string; overflow: boolean }> {
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  const reader = stream.getReader();
-  for (let part = await reader.read(); !part.done; part = await reader.read()) {
-    size += part.value.byteLength;
-    if (size > limit) {
-      stop();
-      await reader.cancel();
-      return { text: '', overflow: true };
-    }
-    chunks.push(part.value);
-  }
-  return { text: Buffer.concat(chunks).toString('utf8'), overflow: false };
-}
-
 /** Keeps only the last `limit` bytes, so a noisy login shell cannot fail a call whose answer is fine. */
 async function readTail(stream: ReadableStream<Uint8Array>, limit: number): Promise<string> {
   const chunks: Uint8Array[] = [];
@@ -142,11 +122,13 @@ async function spawnRemote(args: string[], input?: string): Promise<RemoteResult
   try {
     const stop = () => child.kill();
     const [stdout, stderr] = await Promise.all([
-      readCapped(child.stdout, MAX_OUTPUT_BYTES, stop),
+      readBounded(child.stdout, MAX_OUTPUT_BYTES, () => {
+        stop();
+        return new Error('The remote response is too large.');
+      }),
       readTail(child.stderr, MAX_ERROR_BYTES),
     ]);
-    if (stdout.overflow) throw new Error('The remote response is too large.');
-    return { code: await child.exited, stdout: stdout.text, stderr };
+    return { code: await child.exited, stdout: stdout.toString('utf8'), stderr };
   } finally {
     clearTimeout(timer);
   }

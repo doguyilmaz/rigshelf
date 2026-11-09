@@ -1,5 +1,6 @@
 import { gunzipSync } from 'node:zlib';
 import { extract } from 'tar-stream';
+import { readBounded } from './bounded-read';
 import { safeRelative } from './safety';
 
 export interface RepositoryFile {
@@ -35,23 +36,15 @@ async function download(url: string, maximum: number): Promise<Uint8Array> {
   }
   if (!response) throw new Error('Empty GitHub response');
   if (!response.ok) throw new Error(`GitHub archive endpoint returned HTTP ${response.status}`);
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('Empty GitHub response');
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (true) {
-    const part = await reader.read();
-    if (part.done) break;
-    size += part.value.length;
-    if (size > maximum) {
-      await reader.cancel();
-      throw new Error(
+  if (!response.body) throw new Error('Empty GitHub response');
+  return readBounded(
+    response.body,
+    maximum,
+    () =>
+      new Error(
         'Repository archive exceeds its bounded download limit. Import a local skill directory instead.',
-      );
-    }
-    chunks.push(part.value);
-  }
-  return Buffer.concat(chunks);
+      ),
+  );
 }
 export async function publicHead(repo: string): Promise<string> {
   const feed = new TextDecoder().decode(
