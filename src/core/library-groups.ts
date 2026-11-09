@@ -11,7 +11,6 @@ export interface LibrarySourceGroup {
   total: number;
 }
 
-/** A display hierarchy only. Source relationships and immutable snapshots stay unchanged. */
 export function librarySourceGroups(
   matches: LibraryItem[],
   allItems: LibraryItem[],

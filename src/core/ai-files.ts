@@ -24,7 +24,6 @@ export interface AiFileInventory {
   plugins: { path: string; provider: string }[];
 }
 
-/** A marketplace index identifies package directories; unrelated source trees are not packages. */
 async function catalogPackages(
   root: string,
   boundaries: string[],

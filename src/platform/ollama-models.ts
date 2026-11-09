@@ -27,7 +27,6 @@ const ModelsSchema = z.object({
     .max(1000),
 });
 
-/** Model metadata reported by {@link getOllamaModels}; no model is loaded by discovery. */
 export interface OllamaModel {
   /** The exact name to pass to the Ollama generation request. */
   name: string;

@@ -4,7 +4,6 @@ export type DocumentChoice = Pick<
   DocumentLocation,
   'id' | 'path' | 'scope' | 'provider' | 'sourcePath' | 'readOnly' | 'kind'
 >;
-/** Keep legacy project-relative records visible while a partial/global-only rescan adds richer locations. */
 export function documentChoices(
   project: Project,
   shared: DocumentLocation[] = [],

@@ -53,7 +53,6 @@ export async function memoryProjectPaths(project: string): Promise<string[]> {
   return [...paths];
 }
 
-/** Only the memory-location field is retained; hooks, account and environment fields are ignored. */
 export async function configuredMemoryDirectory(
   file: string,
   home: string,

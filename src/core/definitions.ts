@@ -11,7 +11,6 @@ export class DefinitionConflict extends Error {
   }
 }
 
-/** Saves a validated Preset atomically; create-only calls preserve an existing ID. */
 export function savePreset(
   store: Store,
   input: unknown,
@@ -30,7 +29,6 @@ export function savePreset(
   })();
 }
 
-/** Saves authored guidance without applying project files or granting automation. */
 export function saveRule(
   store: Store,
   input: unknown,

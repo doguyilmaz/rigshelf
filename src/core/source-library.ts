@@ -34,7 +34,6 @@ export function validateSourceUrl(value: string): void {
       'Use a public HTTPS source URL without credentials or secret query parameters.',
     );
 }
-/** Parse a reference without network, catalog writes or recipe execution. */
 export function previewSource(raw: unknown): Source {
   const value = AddSourceSchema.parse(raw);
   let input = (value.input || value.url || '').trim();

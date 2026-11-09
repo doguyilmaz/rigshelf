@@ -14,7 +14,6 @@ export interface ScanDiagnostic {
   line?: number;
   column?: number;
 }
-/** Legacy string receipts remain readable; this view never changes the recorded scan. */
 export function scanDiagnostics(messages: string[]): ScanDiagnostic[] {
   return [...new Set(messages)].map((message) => {
     const index = message.lastIndexOf(': ');
