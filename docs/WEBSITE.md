@@ -32,7 +32,13 @@ bun run test:site
 
 ## Hosting
 
-Set `RIGSHELF_SITE_URL` to the public HTTPS origin before building; it adds canonical URLs, the social image URL and a sitemap. Publish only `site/dist`, with the security headers from `site/public/_headers` and `404.html` for missing routes. The site has no server, credentials, analytics or forms.
+The site runs at [rigshelf.doguyilmaz.com](https://rigshelf.doguyilmaz.com) as the `rigshelf-prod-site` Cloudflare Worker, which serves `site/dist` as static assets with the security headers from `site/public/_headers` and `404.html` for missing routes. Deploy with:
+
+```sh
+bun run site:deploy
+```
+
+It builds with `RIGSHELF_SITE_URL` set (canonical URLs, social image URL and sitemap), then runs `cf deploy` from `site/deploy`. That folder uses npm because the Cloudflare CLI runs only on Node.js; sign in once with `npx cf auth login` there, or set `CLOUDFLARE_API_TOKEN`. The site has no server, credentials, analytics or forms.
 
 ## Design
 

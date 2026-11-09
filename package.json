@@ -36,6 +36,7 @@
     "site:build": "bun run --cwd site build",
     "site:check": "bun run --cwd site check",
     "site:preview": "bun run --cwd site preview",
+    "site:deploy": "RIGSHELF_SITE_URL=https://rigshelf.doguyilmaz.com bun run site:build && npm --prefix site/deploy ci && npm --prefix site/deploy run deploy",
     "test:site": "bun scripts/ui-site.ts"
   },
   "dependencies": {
