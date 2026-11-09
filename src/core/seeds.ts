@@ -1,7 +1,5 @@
-import resourceNotes from '../../data/resource-notes.txt' with { type: 'text' };
-import type { Preset, Rule, Source } from './model';
-import { recordPluginRecipe } from './recipes';
-import { hash, slug } from './safety';
+import type { Preset } from './model';
+import { slug } from './safety';
 import type { Store } from './store';
 
 export const presets: Preset[] = [
@@ -197,121 +195,8 @@ presets.push(
   },
 );
 
-const rules: Rule[] = [
-  {
-    id: 'communication',
-    name: 'Clear communication',
-    scope: 'global',
-    content:
-      'Keep replies short, clear, and concrete. Lead with the result. Explain material limitations. Commit only when authorized, with meaningful messages describing the change.',
-    enabled: true,
-    priority: 10,
-    provenance: 'User requirements',
-  },
-  {
-    id: 'engineering',
-    name: 'Engineering habits',
-    scope: 'global',
-    content:
-      'Handle async failures explicitly. Use descriptive names and named constants when numbers carry meaning. Keep functions focused; split functions longer than roughly 50 lines when it improves clarity. Avoid deeply nested callbacks. Remove temporary debug logging before completing work.',
-    enabled: true,
-    priority: 20,
-    provenance: 'User requirements',
-  },
-  {
-    id: 'typescript',
-    name: 'TypeScript contracts',
-    scope: 'typescript',
-    content:
-      'Avoid explicit any. Validate untrusted input at boundaries. Prefer small, typed interfaces and clear error states.',
-    enabled: true,
-    priority: 30,
-    provenance: 'User requirements',
-  },
-  {
-    id: 'mobile',
-    name: 'Mobile verification',
-    scope: 'mobile',
-    content:
-      'Validate visible UI changes on the selected simulator or emulator using the available device tools. Check safe areas, keyboard behavior, loading states, and accessible controls.',
-    enabled: true,
-    priority: 40,
-    provenance: 'User requirements',
-  },
-  {
-    id: 'backend',
-    name: 'Backend boundaries',
-    scope: 'backend',
-    content:
-      'Validate requests and return explicit errors. Keep credentials outside source. Test meaningful authorization and data boundaries. Avoid speculative infrastructure.',
-    enabled: true,
-    priority: 40,
-    provenance: 'User requirements',
-  },
-];
-
-export function classifyResource(line: string): Source {
-  const url = line.match(/https?:\/\/[^\s]+/)?.[0] || '';
-  const ownerRepo = url
-    .match(/^https:\/\/github\.com\/([^/]+\/[^/#?]+)/)?.[1]
-    ?.replace(/\.git$/, '');
-  const skillsRepo = url.match(/^https:\/\/skills\.sh\/([^/]+\/[^/#?]+)/)?.[1];
-  const recipeRepo = line.match(/(?:skills|add-skill)\s+(?:add\s+)?([\w.-]+\/[\w.-]+)/)?.[1];
-  const marketplaceRepo = line.match(/\/plugin marketplace add ([\w.-]+\/[\w.-]+)/)?.[1];
-  const repo = ownerRepo || skillsRepo || recipeRepo || marketplaceRepo;
-  const explicit = /^(?:bun|bunx|npx|npm|pnpm|yarn|curl|\/plugin)\b/.test(line);
-  const type: Source['type'] =
-    repo && !url.includes('/status/')
-      ? 'github'
-      : line.startsWith('/plugin')
-        ? 'plugin'
-        : url.includes('skills.sh')
-          ? 'listing'
-          : 'resource';
-  const name =
-    repo || (url ? new URL(url).hostname + new URL(url).pathname.replace(/\/$/, '') : line);
-  const canonicalUrl = repo && type === 'github' ? `https://github.com/${repo}` : url;
-  return {
-    id:
-      repo && type === 'github'
-        ? `github-${hash(canonicalUrl.toLowerCase()).slice(0, 20)}`
-        : `source-${hash(line).slice(0, 16)}`,
-    name: name.slice(0, 500),
-    url: canonicalUrl,
-    type,
-    recipe: explicit
-      ? line.replace(/^bunx add-skill /, 'bunx skills add ')
-      : type === 'github' && repo && (line.includes('skills.sh') || /skill/i.test(repo))
-        ? `bunx skills add ${repo}`
-        : '',
-    status: 'unchecked',
-    recipeKind: explicit ? 'explicit' : 'suggested',
-    categories: line.startsWith('/plugin') ? ['plugin'] : undefined,
-    notes: line + (line.includes('curl') ? '\nManual recipe; never automatically executed.' : ''),
-  };
-}
-
 export function seed(store: Store): void {
   if (store.get('meta', 'seed-v1')) return;
-  const lines = resourceNotes.split('\n').filter(Boolean);
-  for (const line of [...new Set(lines)]) {
-    const source = classifyResource(line);
-    const previous = store.get<Source>('source', source.id);
-    store.put(
-      'source',
-      previous
-        ? {
-            ...previous,
-            notes: previous.notes.includes(line) ? previous.notes : `${previous.notes}\n${line}`,
-            categories: [
-              ...new Set([...(previous.categories || []), ...(source.categories || [])]),
-            ],
-          }
-        : source,
-    );
-    recordPluginRecipe(store, source, line.startsWith('/plugin ') ? line : '');
-  }
   for (const preset of presets) store.put('preset', preset);
-  for (const rule of rules) store.put('rule', rule);
   store.put('meta', { id: 'seed-v1', name: slug('version one') });
 }

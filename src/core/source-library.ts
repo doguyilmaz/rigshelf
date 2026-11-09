@@ -2,8 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { Source } from './model';
 import { recordPluginRecipe } from './recipes';
-import { redact } from './safety';
-import { classifyResource } from './seeds';
+import { hash, redact } from './safety';
 import type { Store } from './store';
 import { checkSource, discoverSourceSkills } from './upstream';
 
@@ -164,4 +163,45 @@ export function editSource(store: Store, id: string, raw: unknown): Source {
   if (changed) store.remove('source-index', id);
   store.event('source.edited', next.name);
   return next;
+}
+
+export function classifyResource(line: string): Source {
+  const url = line.match(/https?:\/\/[^\s]+/)?.[0] || '';
+  const ownerRepo = url
+    .match(/^https:\/\/github\.com\/([^/]+\/[^/#?]+)/)?.[1]
+    ?.replace(/\.git$/, '');
+  const skillsRepo = url.match(/^https:\/\/skills\.sh\/([^/]+\/[^/#?]+)/)?.[1];
+  const recipeRepo = line.match(/(?:skills|add-skill)\s+(?:add\s+)?([\w.-]+\/[\w.-]+)/)?.[1];
+  const marketplaceRepo = line.match(/\/plugin marketplace add ([\w.-]+\/[\w.-]+)/)?.[1];
+  const repo = ownerRepo || skillsRepo || recipeRepo || marketplaceRepo;
+  const explicit = /^(?:bun|bunx|npx|npm|pnpm|yarn|curl|\/plugin)\b/.test(line);
+  const type: Source['type'] =
+    repo && !url.includes('/status/')
+      ? 'github'
+      : line.startsWith('/plugin')
+        ? 'plugin'
+        : url.includes('skills.sh')
+          ? 'listing'
+          : 'resource';
+  const name =
+    repo || (url ? new URL(url).hostname + new URL(url).pathname.replace(/\/$/, '') : line);
+  const canonicalUrl = repo && type === 'github' ? `https://github.com/${repo}` : url;
+  return {
+    id:
+      repo && type === 'github'
+        ? `github-${hash(canonicalUrl.toLowerCase()).slice(0, 20)}`
+        : `source-${hash(line).slice(0, 16)}`,
+    name: name.slice(0, 500),
+    url: canonicalUrl,
+    type,
+    recipe: explicit
+      ? line.replace(/^bunx add-skill /, 'bunx skills add ')
+      : type === 'github' && repo && (line.includes('skills.sh') || /skill/i.test(repo))
+        ? `bunx skills add ${repo}`
+        : '',
+    status: 'unchecked',
+    recipeKind: explicit ? 'explicit' : 'suggested',
+    categories: line.startsWith('/plugin') ? ['plugin'] : undefined,
+    notes: line + (line.includes('curl') ? '\nManual recipe; never automatically executed.' : ''),
+  };
 }

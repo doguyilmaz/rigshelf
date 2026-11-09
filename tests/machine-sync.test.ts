@@ -119,12 +119,15 @@ test('directives are added when missing, kept when different unless replacement 
     priority: 10,
     provenance: 'Custom',
   };
-  laptop.store.put('rule', mine);
-  const edited = {
-    ...laptop.store.get<Rule>('rule', 'communication')!,
-    content: 'Laptop wording.',
+  const shared: Rule = {
+    ...mine,
+    id: 'communication',
+    name: 'Communication',
+    content: 'Server wording.',
   };
-  laptop.store.put('rule', edited);
+  laptop.store.put('rule', mine);
+  laptop.store.put('rule', { ...shared, content: 'Laptop wording.' });
+  server.put('rule', shared);
   const { request } = await buildSyncRequest(laptop.store, [laptop.root], { home: laptop.home });
   const kept = await prepareSync(server, request, [serverRoot]);
   expect(server.get<Rule>('rule', 'house-style')?.content).toBe('Keep replies short.');
