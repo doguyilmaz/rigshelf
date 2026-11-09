@@ -13,7 +13,7 @@ afterEach(async () => {
 test('only concrete, valid host aliases are offered from ssh config', () => {
   const config = [
     'Host build-box staging',
-    '  HostName 10.0.0.2',
+    '  HostName 192.0.2.20',
     'Host *.internal !secret',
     'Host github.com',
     'host  lower-case',
