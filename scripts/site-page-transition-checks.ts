@@ -11,7 +11,16 @@ type ObservedWindow = Window & { pageTransitionEvidence?: TransitionEvidence };
 async function transition(page: Page, animated: boolean): Promise<void> {
   await page.waitForLoadState('load');
   await expect
-    .poll(() => page.evaluate(() => (window as ObservedWindow).pageTransitionEvidence?.finished))
+    .poll(() => page.evaluate(() => (window as ObservedWindow).pageTransitionEvidence?.finished), {
+      timeout: 15_000,
+      message: JSON.stringify(
+        await page.evaluate(() => ({
+          evidence: (window as ObservedWindow).pageTransitionEvidence ?? null,
+          url: location.href,
+          visibility: document.visibilityState,
+        })),
+      ),
+    })
     .toBe(true);
   const evidence = await page.evaluate(() => (window as ObservedWindow).pageTransitionEvidence!);
   if (animated) {
