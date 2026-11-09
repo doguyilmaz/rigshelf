@@ -38,7 +38,7 @@ Machines (your ~/.ssh/config and ssh-agent, no stored keys; nothing changes ther
                                                 for the agents installed there; prepare plans there.
                                                 Hooks and the status line stay unless --with-hooks.
   rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
-  rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
+  rigshelf ui <ssh-alias> [--port 47471] [--remote-port 47471]
                                                 Open that machine's workbench here through an SSH tunnel
 `;
 
@@ -301,6 +301,13 @@ function localPortFree(port: number): boolean {
   }
 }
 
+/** Forwards from the user's ~/.ssh/config may fail without harm; only a failure on this tunnel's port stops it. */
+export function ownForwardFailed(stderr: string, port: number): boolean {
+  return new RegExp(
+    `(?:\\[127\\.0\\.0\\.1\\]|localhost|127\\.0\\.0\\.1):${port}\\b|listen to port: ${port}\\b`,
+  ).test(stderr);
+}
+
 /** Opens the remote workbench through `ssh -L`; nothing listens beyond loopback on either machine. */
 export async function openRemoteWorkbench(
   alias: string,
@@ -311,6 +318,8 @@ export async function openRemoteWorkbench(
     requested ??
     Array.from({ length: PORT_ATTEMPTS }, (_, index) => DEFAULT_PORT + index).find(localPortFree);
   if (!port) throw new Error('No free local port near 47471. Choose one with --port.');
+  if (!localPortFree(port))
+    throw new Error(`Port ${port} is in use here. Choose another with --port.`);
   const child = Bun.spawn(tunnelArguments(alias, port, remotePort ?? port), {
     stdin: 'pipe',
     stdout: 'pipe',
@@ -319,13 +328,24 @@ export async function openRemoteWorkbench(
   const stop = () => child.kill('SIGTERM');
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
-  const stderr = new Response(child.stderr).text();
+  let errors = '';
+  const stderr = (async () => {
+    const decoder = new TextDecoder();
+    const reader = child.stderr.getReader();
+    for (let part = await reader.read(); !part.done; part = await reader.read())
+      errors = (errors + decoder.decode(part.value, { stream: true })).slice(-OUTPUT_TAIL);
+    return errors;
+  })();
   const decoder = new TextDecoder();
   let output = '';
   let ready = false;
   const reader = child.stdout.getReader();
   for (let part = await reader.read(); !part.done; part = await reader.read()) {
     output = (output + decoder.decode(part.value, { stream: true })).slice(-OUTPUT_TAIL);
+    if (!ready && ownForwardFailed(errors, port)) {
+      stop();
+      break;
+    }
     const url = !ready && remoteReadyUrl(output, port);
     if (url) {
       ready = true;

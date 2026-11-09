@@ -22,7 +22,7 @@ import {
 } from '../src/core/machine-ssh';
 import { claudeMemoryKey } from '../src/core/memory-locations';
 import type { Store } from '../src/core/store';
-import { formatSyncReport } from '../src/machine-cli';
+import { formatSyncReport, ownForwardFailed } from '../src/machine-cli';
 
 const cleanups: string[] = [];
 afterEach(async () => {
@@ -217,7 +217,14 @@ test('a remote doctor answer is validated and returned flat', async () => {
 test('a remote workbench tunnel forwards one loopback port and runs only the fixed ui command', () => {
   const args = tunnelArguments('build-box', 47480);
   expect(args).not.toContain('-tt');
-  expect(args).toContain('ExitOnForwardFailure=yes');
+  expect(args).not.toContain('ExitOnForwardFailure=yes');
+  expect(
+    ownForwardFailed(
+      'bind [127.0.0.1]:13389: Address already in use\nchannel_setup_fwd_listener_tcpip: cannot listen to port: 13389\n',
+      47480,
+    ),
+  ).toBe(false);
+  expect(ownForwardFailed('bind [127.0.0.1]:47480: Address already in use\n', 47480)).toBe(true);
   expect(args[args.indexOf('-L') + 1]).toBe('127.0.0.1:47480:127.0.0.1:47480');
   expect(args.at(-1)).toBe(
     `exec "$SHELL" -lc 'rigshelf ui --port 47480 --attached --public-port 47480'`,

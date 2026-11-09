@@ -84,7 +84,7 @@ bun run rigshelf connection --agents claude,codex
 bun run rigshelf machine compare my-server   # read-only sync status over your ~/.ssh/config
 bun run rigshelf machine sync my-server      # plans there for matching projects, memory, global guidance, settings and Skills; add --apply
                                              # hooks stay unless --with-hooks; leave parts out with --skip-memory --skip-global
-bun run rigshelf ui --on my-server           # that server's workbench here, through an SSH tunnel
+bun run rigshelf ui my-server                # that server's workbench here, through an SSH tunnel
 ```
 
 `setup` prepares a plan; `--apply` explicitly applies it immediately. `--entries ""` selects guidance only. A reviewed replacement requires `--replace-existing`; rollback protects later edits with preconditions.

@@ -1,6 +1,6 @@
 # Remote machines (proposal)
 
-Status: available in the CLI: read-only inventory, compare and doctor; `machine sync`/`machine apply` for project kits, the Library they use and directives; and `rigshelf ui --on` with a remote badge. Memory, global guidance, Claude settings and global Skills are included by default, each as its own plan. Settings → Machines offers the same check, prepare and confirmed apply in the workbench.
+Status: available in the CLI: read-only inventory, compare and doctor; `machine sync`/`machine apply` for project kits, the Library they use and directives; and `rigshelf ui <alias>` with a remote badge. Memory, global guidance, Claude settings and global Skills are included by default, each as its own plan. Settings → Machines offers the same check, prepare and confirmed apply in the workbench.
 
 ## Problem
 
@@ -77,13 +77,13 @@ Rigshelf version on both sides; agent CLIs installed on the server (they decide 
 | Rigshelf agent with its own TLS port | New keys and certificates to issue, rotate and revoke | A new public or VPN listener | Rejected: a second authentication system to secure |
 | Cloudflare Tunnel or ngrok to the workbench | Cloudflare Access policies / OAuth | Public hostname | Rejected for built-in use; see Remote control |
 
-Hardening in the implementation: host aliases are validated before they reach `ssh` and `--` separates them from options; remote commands come from a fixed set (`machine inventory|doctor|prepare`, `apply <plan-id>`, `ui --port … --attached --public-port …`) with validated roots and UUID plan IDs; `BatchMode`, connect and keep-alive timeouts and `ForwardAgent=no` are always set, and `ClearAllForwardings` is set for every command except `ui --on` (it would also clear that command's own loopback forward, so forwards from your `~/.ssh/config` stay active there); output is size-limited and every remote answer is schema-validated before use; bundles carry no credentials: credential-like files (keys, tokens, database URLs with passwords, secret-named values, secret CLI flags) are withheld, and files that approve MCP servers or hold Codex trust are refused by both machines. Text from the server is stripped of control characters before it reaches the terminal. Writes happen only through plans on the receiving machine, with preconditions, journal and rollback.
+Hardening in the implementation: host aliases are validated before they reach `ssh` and `--` separates them from options; remote commands come from a fixed set (`machine inventory|doctor|prepare`, `apply <plan-id>`, `ui --port … --attached --public-port …`) with validated roots and UUID plan IDs; `BatchMode`, connect and keep-alive timeouts and `ForwardAgent=no` are always set, and `ClearAllForwardings` is set for every command except `ui <alias>` (it would also clear that command's own loopback forward, so forwards from your `~/.ssh/config` stay active there); output is size-limited and every remote answer is schema-validated before use; bundles carry no credentials: credential-like files (keys, tokens, database URLs with passwords, secret-named values, secret CLI flags) are withheld, and files that approve MCP servers or hold Codex trust are refused by both machines. Text from the server is stripped of control characters before it reaches the terminal. Writes happen only through plans on the receiving machine, with preconditions, journal and rollback.
 
 ## Remote control
 
 Separate from sync, and later:
 
-1. `rigshelf ui --on <alias> [--port L] [--remote-port R]` runs `rigshelf ui --port R --attached --public-port L` on the server and forwards `127.0.0.1:L` to it with `ssh -L`. The printed `http://rigshelf.localhost:L/#access=…` URL carries the server's own access key. The remote workbench accepts only loopback hosts for its two ports and stops when the SSH connection closes (Ctrl-C). Nothing new listens beyond loopback on either machine. The header shows `Remote: <host>` while the workbench is opened this way, on its own line on narrow screens.
+1. `rigshelf ui <alias> [--port L] [--remote-port R]` runs `rigshelf ui --port R --attached --public-port L` on the server and forwards `127.0.0.1:L` to it with `ssh -L`. The printed `http://rigshelf.localhost:L/#access=…` URL carries the server's own access key. The remote workbench accepts only loopback hosts for its two ports and stops when the SSH connection closes (Ctrl-C). Nothing new listens beyond loopback on either machine. The local port is checked before connecting; forwards from your `~/.ssh/config` that fail (for example a port another session already holds) are ignored, and only a failure on the tunnel's own port stops it. The header shows `Remote: <host>` while the workbench is opened this way, on its own line on narrow screens.
 2. Tailscale Serve (tailnet only, never Funnel) is documented for users who already run Tailscale.
 3. Cloudflare Tunnel or ngrok are not built in. The workbench accepts only loopback hosts; supporting a public hostname would require enforced Cloudflare Access with origin-side JWT validation, which is a larger trust change than this product needs.
 
@@ -91,7 +91,7 @@ Separate from sync, and later:
 
 1. Read-only `machine inventory`, `machine compare <alias>` and `machine doctor <alias>` in the CLI, and a Machines view in the workbench (done).
 2. `rigshelf machine sync <alias>` sends each applied kit and prepares plans on the server; `--apply` or `rigshelf machine apply <alias> <plan-id>` applies them (done for kits, Library and directives).
-3. `rigshelf ui --on <alias>` with the remote badge (done).
+3. `rigshelf ui <alias>` with the remote badge (done).
 4. Per-project memory re-mapping (done: a separate plan rooted at the server's `~/.claude/projects`, credential-like files withheld, server-only files kept); syncing from the server back to this machine.
 
 ## Decisions (2026-11-08)
