@@ -20,8 +20,6 @@ Do not replace a Skill with a translated word meaning an ability, a Plugin with 
 
 When adding a locale, register its native display name, loader and supported identifier in `web/i18n.ts`; add a complete catalog and locale-specific number/plural behavior, then extend browser checks. Do not expose a language with a partially populated catalog as supported.
 
-## First public release gate
+## Adding languages
 
-The requested release target is **six languages**: English, Turkish, German, Spanish, French and Brazilian Portuguese. English and Turkish are implemented. The other four are planned translation work and must pass the same coverage, interpolation, layout and workflow checks before a public release. They are not currently advertised in the selector.
-
-All six require a language review for terminology and natural phrasing. The current Turkish translation has automated structural and browser verification; it is not independent linguistic certification. Expand complete-sentence messages where existing fragmented English copy prevents natural word order. Vendor diagnostics and user-authored library content remain identifiable as original content.
+English and Turkish are available. More languages are welcome: a new locale needs a complete catalog that passes the same coverage, interpolation and layout checks before it appears in the selector. Vendor messages and your own Library content stay in their original language.

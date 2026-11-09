@@ -1,6 +1,6 @@
 # First project walkthrough
 
-Start with `bun run dev` from this checkout, or `rigshelf ui` when the CLI is linked. Open the private access URL printed by that process. If the default port is occupied, the terminal prints another available local port. An explicit `--port` stays fixed and reports a useful error rather than stopping a listener. Access keys survive ordinary restarts; stop all workbenches before using `ui --reset-access` to rotate future access. Keep the access URL private.
+Run `rigshelf ui` (see [installation](DISTRIBUTION.md)) and open the private access link it prints. If port 47471 is busy, the next free port is used; `--port` picks a fixed one. The access key survives restarts; `rigshelf ui --reset-access` rotates it for the next start. Keep the link private.
 
 The first setup screen starts with a folder choice. **Try with a safe example** beside it offers practice; **Getting started** in the top bar opens the workflow guide and example. The example is an explicit simulation: choosing agents, reviewing file paths, Apply and rollback make no API requests and change no real project, catalog or approval.
 
@@ -14,7 +14,7 @@ For new content, use **Library → Add to library → Start with AI**. Paste a l
 2. In **Library**, use **Scan this machine**. Physical AI locations are inspected even when gitignored or untracked. Supported Skills and sanitized MCP definitions enter your private library. This does not activate them in an agent or edit originals.
 3. Review partial/unavailable-location diagnostics. In **Projects**, use AI file types to separate instructions, memory, rules, Agents, Commands, Config, Plugins and Hooks. Global files have their own group. Skill snapshots and installation relationships are browsed in Library.
 
-**Find tools on this machine** inside project setup retains your current source/kit view. Read the scan status, then use **Back to kit Library** when ready. A late scan response does not close a different inspector. Ctrl-C reports shutdown and waits for active inventory/file operations before closing the private catalog.
+**Find tools on this machine** inside project setup retains your current source/kit view. Read the scan status, then use **Back to kit Library** when ready.
 
 ## Set up a project
 

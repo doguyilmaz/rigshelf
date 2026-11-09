@@ -102,11 +102,6 @@ export async function checkDocsCommands(page: Page, origin: string): Promise<voi
   expect(await page.evaluate(() => getSelection()?.toString())).toBe(rendered[0]);
 
   await page.setViewportSize({ width: 320, height: 740 });
-  const table = page.getByRole('region', { name: 'Choose a delivery — table 1' });
-  await table.focus();
-  await page.keyboard.press('ArrowRight');
-  await expect.poll(() => table.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
-  expect(await page.evaluate(() => scrollX)).toBe(0);
   const code = page.locator('.code-example pre').last();
   await code.focus();
   await page.keyboard.press('ArrowRight');
@@ -116,9 +111,15 @@ export async function checkDocsCommands(page: Page, origin: string): Promise<voi
   await page.getByText('On this page', { exact: true }).first().click();
   await page
     .getByRole('navigation', { name: 'Mobile table of contents' })
-    .getByRole('link', { name: 'Source checkout', exact: true })
+    .getByRole('link', { name: 'Build your own archive', exact: true })
     .click();
-  await expect(page.locator('#source-checkout')).toBeFocused();
+  await expect(page.locator('#build-your-own-archive')).toBeFocused();
   await expect(page.locator('.docs-mobile-tools details[open]')).toHaveCount(0);
+  await page.goto(`${origin}/docs/harnesses/`);
+  const table = page.getByRole('region', { name: 'Reference — table 1' });
+  await table.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => table.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => scrollX)).toBe(0);
   await page.setViewportSize({ width: 1440, height: 1000 });
 }

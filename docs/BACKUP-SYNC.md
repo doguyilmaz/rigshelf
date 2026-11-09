@@ -63,11 +63,3 @@ rigshelf backup restore <restore-review-id>
 `rigshelf --help` includes checked edits, frozen retry, merge review/merge, PR closure and history continuation. Sync waits for its owned job; an unmerged PR returns pending. CLI output is JSON. Destination JSON contains configuration and variable names only; use the UI or `BackupDestinationSchema` in `src/core/backup-destinations.ts`. Existing edits require `--expect previous.json`.
 
 The [MCP guide](MCP.md) covers read/plan reviews and explicitly writable execution. MCP cannot create or reroute destinations. Imported content never grants backup authority.
-
-## Verification scope
-
-Isolated protocol fixtures cover Git batching, unrelated files, lost acknowledgments, duplicates, edited PRs/protection, public repositories, unsafe paths, native S3 credential selection, conditional failures, stale reviews, cancellation, alias/process exclusion, no-op verification, history, restore and integrity limits. Chromium fixtures cover connection/review/Sync/merge/restore, responsive layout and accessibility. These are development regressions, not qualified security reproductions or live provider certification.
-
-No real account or destination is preconfigured. Before relying on a service, run its connection test, publish a small reviewed library, verify restore in a disposable catalog, and check access/encryption/retention settings. Real GitHub/R2/S3 acceptance remains separate from protocol fixtures.
-
-Primary contracts: [Git trees](https://docs.github.com/en/rest/git/trees), [PR merge](https://docs.github.com/en/rest/pulls/pulls), [AWS conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html), [R2 extensions](https://developers.cloudflare.com/r2/api/s3/extensions/) and [Bun S3](https://bun.com/docs/runtime/s3).

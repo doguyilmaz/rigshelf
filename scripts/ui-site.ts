@@ -115,18 +115,10 @@ try {
   checks.push(
     'Native cross-document transitions produce real 180ms fade animations between light/dark pages and guides, retain fragment alignment and Back/Forward, and settle after interruption. Keyboard links, reduced motion and reload stay immediate; Search initializes after navigation.',
   );
-  for (const path of [
-    '/',
-    '/previous/',
-    '/docs/',
-    ...guides.map((guide) => `/docs/${guide.slug}/`),
-  ]) {
+  for (const path of ['/', '/docs/', ...guides.map((guide) => `/docs/${guide.slug}/`)]) {
     const response = await page.goto(`${origin}${path}`);
     expect(response?.status()).toBe(200);
-    if (path === '/' || path === '/previous/')
-      await page.screenshot({
-        path: join(evidence, path === '/' ? 'home-viewport.png' : 'previous-viewport.png'),
-      });
+    if (path === '/') await page.screenshot({ path: join(evidence, 'home-viewport.png') });
     await fits(path);
     if (path.startsWith('/docs/') && path !== '/docs/') {
       await checkDocsReadability(page, path);
@@ -452,7 +444,7 @@ try {
   await staticPage.goto(`${origin}/docs/installation/`);
   await expect(staticPage.locator('.code-example pre').first()).toBeVisible();
   expect(await staticPage.locator('.code-example pre').first().textContent()).toContain(
-    'bun install --frozen-lockfile',
+    'brew install doguyilmaz/tap/rigshelf',
   );
   await expect(staticPage.locator('.copy-code').first()).toBeHidden();
   await staticPage.setViewportSize({ width: 1920, height: 1440 });

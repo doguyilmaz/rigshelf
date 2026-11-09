@@ -18,10 +18,4 @@ Manual values use existing versioned tag storage: `platform:<id>`, `technology:<
 
 ## Browser views
 
-Filters persist across navigation/reload in `agent-setup.library.v1`. Save up to 12 named views. Saving with an existing name updates it; deletion only removes that browser view. These are browser preferences, separate from project presets and portable library content. Invalid or oversized preference data falls back to bounded defaults. When browser storage fails, views are kept only for the current visit and the interface says so.
-
-## Preview and verification
-
-The independent `/prototypes/library.html` preview renders the real Library component with fictional metadata. Its build isolates preference/language keys and replaces all API access with local example reads or explicit refusal. It never forwards scan, import, edit or project-write requests. The inline version uses the same compiled component and example state.
-
-Core tests cover token boundaries, manual overrides, AND/OR behavior, multiword/diacritic search, version deduplication, same-installation matching, facet counts, unknown classification, archival/origin/review independence and corrupt browser preferences. The 520-item browser scenario covers combined browsing, saved views, persisted filters, metadata editing without content changes, type separation and six viewport widths.
+Filters persist across navigation/reload in browser storage. Save up to 12 named views. Saving with an existing name updates it; deletion only removes that browser view. These are browser preferences, separate from project presets and portable library content. Invalid or oversized preference data falls back to bounded defaults. When browser storage fails, views are kept only for the current visit and the interface says so.

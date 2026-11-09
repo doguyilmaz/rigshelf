@@ -12,16 +12,12 @@ The request accepts only an optional starting path. The chooser starts from its 
 
 One chooser may be active per server. Duplicate requests are refused. Leaving the field's page aborts the browser request and its owned native process, including when Setup retains its draft offscreen; server shutdown aborts and drains pending selection. The normal HTTP idle timeout is disabled for this bounded interactive request. Choosing a directory does not establish that it is an approved project or that its contents are safe. The chooser endpoint itself still only returns a path: read-only inspection is a separate authenticated browser request.
 
-## Platform adapters and validation
+## Platform adapters
 
-| Platform | Adapter | Validation boundary |
+| Platform | Adapter | Status |
 | --- | --- | --- |
-| macOS | `/usr/bin/osascript` with a fixed `choose folder` script | Native invocation/cancellation exercised locally; automated browser flows inject a chooser driver. Selecting through the real OS window remains manual QA because the available native automation cannot target the osascript window. |
-| Windows | PowerShell with the system WinForms `FolderBrowserDialog` | Command construction is tested; the Windows desktop interaction has not been manually certified. |
-| Linux desktop | Installed `zenity`, falling back to installed `kdialog` | Command construction and unavailable-tool behavior are tested; the desktop interaction has not been manually certified. No packages are installed automatically. |
+| macOS | `/usr/bin/osascript` with a fixed `choose folder` script | Tested on macOS. |
+| Windows | PowerShell with the system WinForms `FolderBrowserDialog` | Not yet tested on a Windows desktop. |
+| Linux desktop | Installed `zenity`, falling back to installed `kdialog` | Not yet tested on a Linux desktop. No packages are installed automatically. |
 
 The adapters follow the platform documentation: [AppleScript commands](https://developer.apple.com/library/archive/documentation/AppleScript/Conceptual/AppleScriptLangGuide/reference/ASLR_cmds.html), [WinForms FolderBrowserDialog](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.folderbrowserdialog), [KDialog directory selection](https://develop.kde.org/docs/administration/kdialog/) and the [GNOME Zenity source](https://github.com/GNOME/zenity).
-
-Tests cover literal shell-sensitive/Unicode paths, nearest existing ancestors, preserved spaces, cancellation, invalid and non-directory results, duplicate requests, abort/drain behavior, HTTP authorization and unchanged project authority. The browser flow covers all four fields, selection versus explicit import/save, cancellation/error fallback, pending-request cancellation, and responsive/accessibility checks. Evidence stays in ignored `.local/qa/directory-picker`.
-
-Verification passed: `bun run verify` (100 tests across 16 files and 719 matching English/Turkish messages), `bun run lint`, and all seven `bun run test:ui` suites. These are normal development checks, not a separately qualified security audit or certification of every native desktop adapter.

@@ -5,7 +5,7 @@ description: Prepares project kits from the Rigshelf private Skills/MCP library,
 
 # Rigshelf integration
 
-Use the Rigshelf MCP tools in the current session, or the `rigshelf` CLI. Use the actual session Harness; T3's model choice and Ollama are separate from project discovery formats.
+Use the Rigshelf MCP tools in the current session, or the `rigshelf` CLI. Use the actual session Harness; a manager's model choice and Ollama are separate from project discovery formats.
 
 ## Prepare a project
 
