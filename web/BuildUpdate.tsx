@@ -21,7 +21,11 @@ export function BuildUpdate() {
         if (!build.enabled) return;
         if (build.fingerprint) {
           initial ??= build.fingerprint;
-          const loaded = [...document.querySelectorAll('script[src],link[rel="stylesheet"]')]
+          const loaded = [
+            ...document.querySelectorAll(
+              'script[src],link[rel="stylesheet"],link[rel="modulepreload"]',
+            ),
+          ]
             .map((value) => value.getAttribute(value.tagName === 'SCRIPT' ? 'src' : 'href') || '')
             .filter((value) => value.startsWith('/assets/'))
             .sort();
