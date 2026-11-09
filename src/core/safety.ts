@@ -75,7 +75,7 @@ export async function privateDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true, mode: 0o700 });
 }
 
-const PLACEHOLDER = '${KITFOLD_SECRET}';
+const PLACEHOLDER = '${RIGSHELF_SECRET}';
 /** Names whose value is a secret, matched on the last `_`/`-` separated parts so `STRIPE_SECRET_KEY` and `aws_secret_access_key` count. */
 const SECRET_NAME_END =
   /(?:^|[_-])(?:api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|role[_-]?key|access[_-]?token|auth[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|secret|token)$/i;

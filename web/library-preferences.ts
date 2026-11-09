@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { defaultLibraryFilters, type LibraryFilters } from '../src/core/library';
 import type { LibraryGrouping } from '../src/core/library-groups';
 
-const key = 'agent-setup.library.v1';
+const key = 'rigshelf:library:v1';
 const MAX_SAVED_VIEWS = 12;
 export interface SavedLibraryView {
   id: string;

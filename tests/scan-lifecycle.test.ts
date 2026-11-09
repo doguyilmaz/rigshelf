@@ -85,7 +85,7 @@ test('HTTP workbench shutdown awaits its real fixture inventory without reading 
   const origin = new URL(server.accessUrl).origin;
   const started = await fetch(`${origin}/api/scan`, {
     method: 'POST',
-    headers: { 'x-kitfold-token': token, 'content-type': 'application/json' },
+    headers: { 'x-rigshelf-token': token, 'content-type': 'application/json' },
     body: '{}',
   });
   expect(started.status).toBe(200);

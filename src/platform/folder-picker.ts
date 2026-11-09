@@ -29,7 +29,7 @@ const WINDOWS_SCRIPT = `Add-Type -AssemblyName System.Windows.Forms
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
 $dialog.Description = 'Choose a folder for Rigshelf'
-$dialog.SelectedPath = $env:KITFOLD_PICKER_START
+$dialog.SelectedPath = $env:RIGSHELF_PICKER_START
 $dialog.ShowNewFolderButton = $false
 try {
   if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
@@ -118,7 +118,7 @@ function pickerEnvironment(initialPath: string): NodeJS.ProcessEnv {
     'APPDATA',
     'LOCALAPPDATA',
   ];
-  const environment: NodeJS.ProcessEnv = { KITFOLD_PICKER_START: initialPath };
+  const environment: NodeJS.ProcessEnv = { RIGSHELF_PICKER_START: initialPath };
   for (const name of names) if (process.env[name]) environment[name] = process.env[name];
   return environment;
 }

@@ -102,7 +102,7 @@ export function startServer(
     if (origin && !origins.includes(origin))
       return new Response('Origin denied', { status: 403, headers });
     if (url.pathname.startsWith('/api/')) {
-      if (request.headers.get('x-kitfold-token') !== token)
+      if (request.headers.get('x-rigshelf-token') !== token)
         return Response.json(
           {
             error:
@@ -125,7 +125,7 @@ export function startServer(
               ...headers,
               'Content-Type': 'application/gzip',
               'Content-Disposition': 'attachment; filename="rigshelf-library.json.gz"',
-              'X-Kitfold-Excluded': String(archive.excluded),
+              'X-Rigshelf-Excluded': String(archive.excluded),
             },
           });
         } catch (error) {

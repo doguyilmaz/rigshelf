@@ -480,7 +480,7 @@ test('doctor names missing MCP environment, untrusted Codex projects, low disk a
   const app = join(root, 'work/app');
   await repository(app, 'git@github.com:owner/app.git');
   await Bun.write(
-    join(app, '.kitfold/kit.json'),
+    join(app, '.rigshelf/kit.json'),
     JSON.stringify({
       schemaVersion: 1,
       providers: ['claude', 'codex'],

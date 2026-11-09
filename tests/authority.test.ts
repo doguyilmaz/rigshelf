@@ -66,7 +66,7 @@ test('repository manifests cannot claim deletion or MCP ownership without a priv
   const { store, project } = await setup();
   const relative = '.agents/skills/victim/notes.md';
   await mkdir(join(project, '.agents/skills/victim'), { recursive: true });
-  await mkdir(join(project, '.kitfold'));
+  await mkdir(join(project, '.rigshelf'));
   await Bun.write(join(project, relative), 'Owner-authored material');
   const mcp = McpSchema.parse({ transport: 'stdio', command: 'owner-server' });
   await Bun.write(
@@ -74,7 +74,7 @@ test('repository manifests cannot claim deletion or MCP ownership without a priv
     JSON.stringify({ mcpServers: { example: { command: 'owner-server', args: [], env: {} } } }),
   );
   await Bun.write(
-    join(project, '.kitfold/kit.json'),
+    join(project, '.rigshelf/kit.json'),
     JSON.stringify({
       schemaVersion: 1,
       providers: ['claude'],
@@ -109,10 +109,10 @@ test('automation rejects edited manifests, replaced roots and revoked project ap
   });
   await executePlan(store, plan.id, 'apply');
   await approveProject(store, project, true);
-  const manifest = await Bun.file(join(project, '.kitfold/kit.json')).text();
-  await Bun.write(join(project, '.kitfold/kit.json'), `${manifest} `);
+  const manifest = await Bun.file(join(project, '.rigshelf/kit.json')).text();
+  await Bun.write(join(project, '.rigshelf/kit.json'), `${manifest} `);
   await expect(checkProject(store, project, true)).rejects.toThrow('reviewed kit changed');
-  await Bun.write(join(project, '.kitfold/kit.json'), manifest);
+  await Bun.write(join(project, '.rigshelf/kit.json'), manifest);
   await approveProject(store, project, false);
   await expect(checkProject(store, project, true)).rejects.toThrow('approval');
   await approveProject(store, project, true);

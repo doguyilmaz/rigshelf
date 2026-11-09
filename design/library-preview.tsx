@@ -228,8 +228,8 @@ function Preview() {
   const [notice, setNotice] = useState('');
   useEffect(() => {
     const discard = (event: Event) => (event as CustomEvent<DiscardRequest>).detail.proceed();
-    window.addEventListener('kitfold-discard', discard);
-    return () => window.removeEventListener('kitfold-discard', discard);
+    window.addEventListener('rigshelf-discard', discard);
+    return () => window.removeEventListener('rigshelf-discard', discard);
   }, []);
   return (
     <div className="preview-surface">

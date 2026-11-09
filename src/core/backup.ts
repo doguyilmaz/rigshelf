@@ -88,7 +88,7 @@ const FileImport = z.object({
   executable: z.boolean(),
 });
 export const BackupSchema = z.object({
-  format: z.literal('kitfold-library'),
+  format: z.literal('rigshelf-library'),
   schemaVersion: z.literal(SCHEMA_VERSION),
   exportedAt: z.string(),
   entries: z
@@ -137,7 +137,7 @@ export function exportLibrary(store: Store) {
   });
   const omitted = new Set(excluded.map((value) => value.id));
   return {
-    format: 'kitfold-library',
+    format: 'rigshelf-library',
     schemaVersion: SCHEMA_VERSION,
     exportedAt: now(),
     entries,

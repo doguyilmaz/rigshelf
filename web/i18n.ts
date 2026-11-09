@@ -10,7 +10,7 @@ interface LocaleState {
   loading: Locale | null;
   error: string;
 }
-const storageKey = 'agent-setup.language';
+const storageKey = 'rigshelf:language';
 const listeners = new Set<() => void>();
 const catalogs: Partial<Record<Locale, Record<string, string>>> = { en: {} };
 const isLocale = (value: unknown): value is Locale => value === 'en' || value === 'tr';

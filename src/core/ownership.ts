@@ -52,7 +52,7 @@ export async function approveProject(store: Store, path: string, enabled: boolea
 
 export async function matchesManifest(owned: Ownership, nextHash?: string): Promise<boolean> {
   try {
-    const path = await assertWritePath(owned.projectPath, '.kitfold/kit.json');
+    const path = await assertWritePath(owned.projectPath, '.rigshelf/kit.json');
     return [owned.manifestHash, nextHash].includes(
       hash(await readLocalBytes(path, MAX_KIT_MANIFEST_BYTES)),
     );

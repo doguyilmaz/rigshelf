@@ -2,10 +2,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
-if (process.env.KITFOLD_TEST_START_MARKER)
-  await Bun.write(process.env.KITFOLD_TEST_START_MARKER, 'started');
+if (process.env.RIGSHELF_TEST_START_MARKER)
+  await Bun.write(process.env.RIGSHELF_TEST_START_MARKER, 'started');
 
-const server = new McpServer({ name: 'kitfold-test-server', version: '1.0.0' });
+const server = new McpServer({ name: 'rigshelf-test-server', version: '1.0.0' });
 server.tool(
   'echo',
   'Echo dummy data and environment visibility for a local fixture.',
@@ -17,7 +17,7 @@ server.tool(
         text: JSON.stringify({
           message,
           token: process.env.TOKEN || '',
-          ambient: process.env.KITFOLD_UNDECLARED_SECRET || '',
+          ambient: process.env.RIGSHELF_UNDECLARED_SECRET || '',
         }),
       },
     ],

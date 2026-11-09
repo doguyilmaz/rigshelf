@@ -79,11 +79,11 @@ ${command} --version
 ${command} mcp
 \`\`\`
 
-Add ${portable ? 'the bin directory' : 'this directory'} to your own PATH for short commands. Preserve the kitfold compatibility launcher alongside Rigshelf; generated MCP bridges use it. [MCP connection guide](docs/MCP.md).
+Add ${portable ? 'the bin directory' : 'this directory'} to your own PATH for short commands. [MCP connection guide](docs/MCP.md).
 
 ## Data and updates
 
-Application files are separate from your private catalog. Fresh installs use ~/.local/share/rigshelf; existing Kitfold data stays in place. RIGSHELF_DATA_DIR chooses another private directory. Replacing this application directory does not move or remove that data. Use the [reviewed backup flow](docs/BACKUP-SYNC.md) before changing machines.
+Application files are separate from your private catalog. Data lives in ~/.local/share/rigshelf; RIGSHELF_DATA_DIR chooses another private directory. Replacing this application directory does not move or remove that data. Use the [reviewed backup flow](docs/BACKUP-SYNC.md) before changing machines.
 
 The archive checksum sidecar and manifest.json identify exact bytes. They do not establish publisher identity or certify third-party instructions. Native artifacts are local builds without Rigshelf publisher signing or notarization. Verify a target before advertising it as supported.
 

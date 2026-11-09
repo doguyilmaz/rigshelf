@@ -150,7 +150,7 @@ try {
     await page.setViewportSize({ width, height: 900 });
     await audit(`backups-${width}`);
   }
-  await page.evaluate(() => localStorage.setItem('agent-setup.language', 'tr'));
+  await page.evaluate(() => localStorage.setItem('rigshelf:language', 'tr'));
   await page.goto(`${new URL(server.accessUrl).origin}/#backups`);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Yedekler', exact: true })).toBeVisible();

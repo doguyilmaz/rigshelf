@@ -28,7 +28,6 @@ export interface AppState {
   events: { id: number; createdAt: string; action: string; detail: string }[];
   discoveries?: import('../src/core/discovery').Discovery[];
   dataDirectory: string;
-  legacyDataDirectory?: boolean;
   scan: ScanProgress;
   lastScan?: ScanResult;
   plans: (Omit<Plan, 'changes'> & { fileCount: number })[];
@@ -54,7 +53,7 @@ export async function api<T>(
     method,
     signal,
     headers: {
-      'x-kitfold-token': token,
+      'x-rigshelf-token': token,
       ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -77,10 +76,10 @@ export function accessToken(): string {
   const parameters = new URLSearchParams(location.hash.slice(1));
   const incoming = parameters.get('access');
   if (incoming && /^[a-f0-9]{64}$/.test(incoming)) {
-    sessionStorage.setItem('kitfold-access', incoming);
+    sessionStorage.setItem('rigshelf-access', incoming);
     history.replaceState(null, '', `${location.pathname}#setup`);
   }
-  return sessionStorage.getItem('kitfold-access') || '';
+  return sessionStorage.getItem('rigshelf-access') || '';
 }
 export function download(name: string, data: unknown): void {
   const url = URL.createObjectURL(

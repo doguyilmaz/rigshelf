@@ -46,7 +46,7 @@ test('returning-project inspection restores privately reviewed Harnesses, brief 
   reviseSkill(data.store, original.id, {
     body: 'A newer version must not replace the installed pin.',
   });
-  const before = await Bun.file(join(data.project, '.kitfold/kit.json')).text();
+  const before = await Bun.file(join(data.project, '.rigshelf/kit.json')).text();
   const result = (await route(data.store, 'POST', 'detect', {
     projectPath: data.project,
     restorePrevious: true,
@@ -57,7 +57,7 @@ test('returning-project inspection restores privately reviewed Harnesses, brief 
   expect(result.project.requirements).toBe('A focused command-line utility.');
   expect(result.presetId).toBe('cli');
   expect(result.previousSetup?.manifestMatches).toBe(true);
-  expect(await Bun.file(join(data.project, '.kitfold/kit.json')).text()).toBe(before);
+  expect(await Bun.file(join(data.project, '.rigshelf/kit.json')).text()).toBe(before);
   expect(data.store.list('approval')).toEqual([]);
   expect(data.store.planSummaries()).toHaveLength(1);
   const changed = (await route(data.store, 'POST', 'detect', {
@@ -78,9 +78,9 @@ test('a copied repository manifest is not presented as a privately reviewed setu
   });
   await executePlan(data.store, plan.id, 'apply');
   const other = join(data.root, 'other');
-  await mkdir(join(other, '.kitfold'), { recursive: true });
+  await mkdir(join(other, '.rigshelf'), { recursive: true });
   await Bun.write(join(other, 'package.json'), '{}');
-  await copyFile(join(data.project, '.kitfold/kit.json'), join(other, '.kitfold/kit.json'));
+  await copyFile(join(data.project, '.rigshelf/kit.json'), join(other, '.rigshelf/kit.json'));
   const result = (await route(data.store, 'POST', 'detect', {
     projectPath: other,
     restorePrevious: true,
@@ -99,7 +99,7 @@ test('manifest status refuses linked leaves and replaced parent directories inst
   });
   await executePlan(data.store, plan.id, 'apply');
   const owned = (await ownedProject(data.store, data.project))!;
-  const path = join(data.project, '.kitfold/kit.json');
+  const path = join(data.project, '.rigshelf/kit.json');
   await rename(path, join(data.root, 'manifest-original.json'));
   await symlink(join(data.root, 'manifest-original.json'), path);
   expect(await matchesManifest(owned)).toBe(false);
@@ -108,7 +108,7 @@ test('manifest status refuses linked leaves and replaced parent directories inst
     restorePrevious: true,
   })) as SetupDetection;
   expect(result.previousSetup?.manifestMatches).toBe(false);
-  await rename(join(data.project, '.kitfold'), join(data.project, '.kitfold-saved'));
-  await symlink(join(data.project, '.kitfold-saved'), join(data.project, '.kitfold'));
+  await rename(join(data.project, '.rigshelf'), join(data.project, '.rigshelf-saved'));
+  await symlink(join(data.project, '.rigshelf-saved'), join(data.project, '.rigshelf'));
   expect(await matchesManifest(owned)).toBe(false);
 });

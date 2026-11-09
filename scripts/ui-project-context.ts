@@ -129,7 +129,7 @@ try {
   await expect(page.locator('.workspace-kit .kit-entry.selected')).toHaveCount(0);
   expect(data.store.list('approval')).toEqual([]);
   expect(data.store.list('trust')).toEqual([]);
-  expect(await Bun.file(join(other, '.kitfold/kit.json')).exists()).toBe(false);
+  expect(await Bun.file(join(other, '.rigshelf/kit.json')).exists()).toBe(false);
   checks.push(
     'Switching project clears the draft context; consumed Library requests never replay into the next project, and context/navigation grants no ownership or automation permission.',
   );

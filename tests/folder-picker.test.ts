@@ -12,7 +12,7 @@ test('folder dialog commands keep Unicode, quotes and shell syntax out of execut
   expect(mac.args[1]).not.toContain(path);
   const windows = directoryPickerCommand('win32', path, () => '/trusted/powershell.exe');
   expect(windows.args.at(-1)).not.toContain(path);
-  expect(windows.args.at(-1)).toContain('$env:KITFOLD_PICKER_START');
+  expect(windows.args.at(-1)).toContain('$env:RIGSHELF_PICKER_START');
   const linux = directoryPickerCommand('linux', path, (name) => `/trusted/${name}`);
   expect(linux.executable).toBe('/trusted/zenity');
   expect(linux.args).toContain(`--filename=${path}/`);

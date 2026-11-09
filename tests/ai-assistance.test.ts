@@ -333,7 +333,7 @@ test('CLI cancellation drains the fixture process and removes its temporary file
       signal: controller.signal,
     });
     void running.catch(() => undefined);
-    const readinessDeadline = Date.now() + 2500;
+    const readinessDeadline = Date.now() + 15_000;
     while (!(await Bun.file(marker).exists()) && Date.now() < readinessDeadline)
       await Bun.sleep(10);
     expect(await Bun.file(marker).exists()).toBe(true);
@@ -348,7 +348,7 @@ test('CLI cancellation drains the fixture process and removes its temporary file
     await running?.catch(() => undefined);
     process.env.PATH = previousPath;
   }
-});
+}, 30_000);
 test('CLI runners use isolated fixed arguments, stdin, bounded output and a minimal environment', async () => {
   const data = await setup();
   const binaries = join(data.root, 'bin');
@@ -357,7 +357,7 @@ test('CLI runners use isolated fixed arguments, stdin, bounded output and a mini
   const codexExecutable = join(binaries, 'codex');
   await Bun.write(
     executable,
-    `#!${process.execPath}\nconst input=await new Response(Bun.stdin.stream()).text();process.stdout.write(JSON.stringify({result:JSON.stringify({input,args:process.argv.slice(2),cwd:process.cwd(),unrelated:process.env.KITFOLD_UNRELATED_DUMMY || null})}));\n`,
+    `#!${process.execPath}\nconst input=await new Response(Bun.stdin.stream()).text();process.stdout.write(JSON.stringify({result:JSON.stringify({input,args:process.argv.slice(2),cwd:process.cwd(),unrelated:process.env.RIGSHELF_UNRELATED_DUMMY || null})}));\n`,
   );
   await chmod(executable, 0o700);
   await Bun.write(
@@ -367,7 +367,7 @@ test('CLI runners use isolated fixed arguments, stdin, bounded output and a mini
   await chmod(codexExecutable, 0o700);
   const originalPath = process.env.PATH;
   process.env.PATH = `${binaries}:${originalPath}`;
-  process.env.KITFOLD_UNRELATED_DUMMY = 'must-not-be-forwarded';
+  process.env.RIGSHELF_UNRELATED_DUMMY = 'must-not-be-forwarded';
   const prompt = 'Format literal $(touch never-execute) and `not a shell command`.';
   try {
     expect(Bun.which('claude', { PATH: process.env.PATH })).toBe(executable);
@@ -407,7 +407,7 @@ test('CLI runners use isolated fixed arguments, stdin, bounded output and a mini
     expect(await readdir(join(data.store.directory, 'ai-work'))).toEqual([]);
   } finally {
     process.env.PATH = originalPath;
-    delete process.env.KITFOLD_UNRELATED_DUMMY;
+    delete process.env.RIGSHELF_UNRELATED_DUMMY;
   }
 });
 

@@ -28,7 +28,7 @@ export function BackupReviewPanel({
       if (file) {
         const response = await fetch('/api/backup-review', {
           method: 'POST',
-          headers: { 'x-kitfold-token': accessToken(), 'content-type': 'application/gzip' },
+          headers: { 'x-rigshelf-token': accessToken(), 'content-type': 'application/gzip' },
           body: file,
         });
         const result = await response.json();

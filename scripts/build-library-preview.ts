@@ -17,8 +17,8 @@ const result = await Bun.build({
         build.onLoad({ filter: /web\/(?:library-preferences|i18n)\.ts$/ }, async (args) => ({
           loader: 'ts',
           contents: (await Bun.file(args.path).text())
-            .replace('agent-setup.library.v1', 'agent-setup.library-preview.v1')
-            .replace('agent-setup.language', 'agent-setup.library-preview.language')
+            .replace('rigshelf:library:v1', 'rigshelf:library-preview:v1')
+            .replace('rigshelf:language', 'agent-setup.library-preview.language')
             .replace(
               'filters: defaultLibraryFilters(),',
               "filters: { ...defaultLibraryFilters(), platforms: ['mobile'] },",

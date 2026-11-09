@@ -56,7 +56,7 @@ export async function writeChange(
   }
   await mkdir(dirname(target), { recursive: true, mode: 0o700 });
   await assertWritePath(plan.projectPath, change.path);
-  const temporary = `${target}.kitfold-${randomUUID()}`;
+  const temporary = `${target}.rigshelf-${randomUUID()}`;
   try {
     const handle = await open(
       temporary,
@@ -171,7 +171,7 @@ export async function executePlan(
     throw new Error('Project root changed since planning. Create a new plan.');
   await mkdir(plan.projectPath, { recursive: true });
   plan.rootIdentity = await rootIdentity(plan.projectPath);
-  const lockPath = join(plan.projectPath, '.kitfold-write.lock');
+  const lockPath = join(plan.projectPath, '.rigshelf-write.lock');
   const lock = await open(lockPath, 'wx', 0o600).catch((error) => {
     throw new Error(
       error.code === 'EEXIST'
@@ -215,7 +215,7 @@ export async function executePlan(
 
 export async function syncInstallations(store: Store, plan: Plan): Promise<void> {
   const project = await detectProject(plan.projectPath, plan.requirements || '');
-  const manifestChange = plan.changes.find((change) => change.path === '.kitfold/kit.json');
+  const manifestChange = plan.changes.find((change) => change.path === '.rigshelf/kit.json');
   const affectedIds = new Set(plan.entries);
   if (manifestChange?.before)
     for (const entry of parseKit(Buffer.from(manifestChange.before, 'base64').toString()).entries)

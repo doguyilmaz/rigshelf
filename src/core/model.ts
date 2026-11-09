@@ -38,7 +38,7 @@ export const McpSchema = z
       .refine((value) => {
         try {
           const template = /^\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(value)
-            ? 'https://kitfold.invalid'
+            ? 'https://rigshelf.invalid'
             : value.replace(/\$\{[A-Za-z_][A-Za-z0-9_]*\}/g, 'placeholder');
           const url = new URL(template);
           return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password;

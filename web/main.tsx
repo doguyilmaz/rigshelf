@@ -129,8 +129,8 @@ function App(): ReactNode {
   };
   useEffect(() => {
     const handle = (event: Event) => setDiscard((event as CustomEvent<DiscardRequest>).detail);
-    window.addEventListener('kitfold-discard', handle);
-    return () => window.removeEventListener('kitfold-discard', handle);
+    window.addEventListener('rigshelf-discard', handle);
+    return () => window.removeEventListener('rigshelf-discard', handle);
   }, []);
   const refresh = useCallback(async () => {
     const data = await api<AppState>('state');

@@ -60,11 +60,8 @@ const context = await browser.newContext({
   reducedMotion: 'reduce',
 });
 await context.addInitScript((filters) => {
-  if (!localStorage.getItem('agent-setup.library.v1'))
-    localStorage.setItem(
-      'agent-setup.library.v1',
-      JSON.stringify({ version: 1, filters, saved: [] }),
-    );
+  if (!localStorage.getItem('rigshelf:library:v1'))
+    localStorage.setItem('rigshelf:library:v1', JSON.stringify({ version: 1, filters, saved: [] }));
 }, defaultLibraryFilters());
 const page = await context.newPage();
 const directory = resolve('.local/qa/source-groups');

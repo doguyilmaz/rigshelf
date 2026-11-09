@@ -34,7 +34,7 @@ test('the real CLI prints a usable private URL and gracefully drains its isolate
   const port = reservation.port!;
   await reservation.stop(true);
   const child = Bun.spawn([process.execPath, resolve('src/cli.ts'), 'ui', '--port', String(port)], {
-    env: { KITFOLD_DATA_DIR: data.store.directory },
+    env: { RIGSHELF_DATA_DIR: data.store.directory },
     stdout: 'pipe',
     stderr: 'pipe',
   });
@@ -66,7 +66,7 @@ test('the real CLI prints a usable private URL and gracefully drains its isolate
   expect((await fetch(`${base}/api/state`)).status).toBe(403);
   const started = await fetch(`${base}/api/scan`, {
     method: 'POST',
-    headers: { 'x-kitfold-token': token, 'content-type': 'application/json' },
+    headers: { 'x-rigshelf-token': token, 'content-type': 'application/json' },
     body: '{}',
   });
   expect(started.status).toBe(200);
@@ -97,7 +97,7 @@ test('same-catalog access survives a process restart, stays out of state/portabl
   cleanups.unshift(async () => reopened.close());
   const second = startServer(reopened, port);
   expect(second.accessUrl).toContain(token);
-  const headers = { 'x-kitfold-token': token };
+  const headers = { 'x-rigshelf-token': token };
   const state = await (await fetch(`http://127.0.0.1:${port}/api/state`, { headers })).text();
   expect(state).not.toContain(token);
   expect(JSON.stringify(exportLibrary(reopened))).not.toContain(token);
@@ -110,7 +110,7 @@ test('same-catalog access survives a process restart, stays out of state/portabl
   expect((await fetch(`http://127.0.0.1:${port}/api/state`, { headers })).status).toBe(403);
   const next = new URL(reset.accessUrl).hash.slice(8);
   expect(
-    (await fetch(`http://127.0.0.1:${port}/api/state`, { headers: { 'x-kitfold-token': next } }))
+    (await fetch(`http://127.0.0.1:${port}/api/state`, { headers: { 'x-rigshelf-token': next } }))
       .status,
   ).toBe(200);
 });

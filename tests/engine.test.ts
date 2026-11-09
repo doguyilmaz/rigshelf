@@ -90,7 +90,7 @@ describe('reviewable project setup', () => {
     await Bun.write(join(project, 'AGENTS.md'), 'Changed after planning');
     await expect(executePlan(store, plan.id, 'apply')).rejects.toThrow('File changed');
     expect(await Bun.file(join(project, 'AGENTS.md')).text()).toBe('Changed after planning');
-    expect(await Bun.file(join(project, '.kitfold/kit.json')).exists()).toBe(false);
+    expect(await Bun.file(join(project, '.rigshelf/kit.json')).exists()).toBe(false);
   });
 
   test('rollback protects later edits and does not partially restore unrelated files', async () => {
@@ -158,7 +158,7 @@ describe('reviewable project setup', () => {
 
   test('invalid markers and unreviewed dangerous instructions fail before writing', async () => {
     const { store, project } = await setup();
-    expect(() => managedBlock('<!-- kitfold:begin -->', 'new')).toThrow('Malformed');
+    expect(() => managedBlock('<!-- rigshelf:begin -->', 'new')).toThrow('Malformed');
     const skill = (await route(store, 'POST', 'custom', {
       name: 'risky-guide',
       description: 'A risky workflow.',
@@ -205,7 +205,7 @@ describe('brownfield projects', () => {
     );
     const plan = await createPlan(store, request(project, [entry.id], { providers: ['codex'] }));
     expect(plan.entries).toEqual([entry.id]);
-    expect(plan.changes.map((change) => change.path)).toEqual(['AGENTS.md', '.kitfold/kit.json']);
+    expect(plan.changes.map((change) => change.path)).toEqual(['AGENTS.md', '.rigshelf/kit.json']);
     expect(plan.warnings.join('\n')).not.toContain('Kept existing');
     await executePlan(store, plan.id, 'apply');
     const again = await createPlan(store, request(project, [entry.id], { providers: ['codex'] }));
@@ -531,7 +531,7 @@ describe('portability, credentials and automation', () => {
       headers: { Authorization: 'Bearer private' },
     });
     expect(JSON.stringify(mcp)).not.toContain('private');
-    expect(mcp.args[1]).toBe('${KITFOLD_SECRET}');
+    expect(mcp.args[1]).toBe('${RIGSHELF_SECRET}');
     expect(mcp.env.MODE).toBe('development');
   });
 
@@ -600,7 +600,7 @@ describe('portability, credentials and automation', () => {
     })) as Entry;
     const saved = store.entry(http.id)!;
     expect(saved.mcp!.url).toBe(
-      'https://example.test/mcp?token=${AUTH_TOKEN}&secret=${KITFOLD_SECRET}&mode=public',
+      'https://example.test/mcp?token=${AUTH_TOKEN}&secret=${RIGSHELF_SECRET}&mode=public',
     );
     expect(saved.body).not.toContain('literal-fixture-fragment');
   });

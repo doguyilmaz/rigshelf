@@ -242,7 +242,7 @@ async function collectPackages(
     const entry = savePluginReference(
       store,
       {
-        format: 'kitfold-native-plugin-reference',
+        format: 'rigshelf-native-plugin-reference',
         provider,
         nativeId: identity.nativeId,
         version: manifest?.version,
@@ -275,7 +275,7 @@ async function collectPackages(
 
 function nativeReference(provider: Provider, nativeId: string, version?: string): PluginReference {
   return {
-    format: 'kitfold-native-plugin-reference',
+    format: 'rigshelf-native-plugin-reference',
     provider,
     nativeId,
     version,
