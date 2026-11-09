@@ -105,6 +105,13 @@ export const guides = [
     description: 'Exercised tests and the acceptance work that remains.',
   },
   {
+    slug: 'workflow-verification',
+    source: 'docs/WORKFLOW-AUDIT.md',
+    title: 'Workflow verification',
+    group: 'Reference',
+    description: 'Isolated acceptance record for project workflows and AI authoring.',
+  },
+  {
     slug: 'branding',
     source: 'docs/BRANDING.md',
     title: 'Brand & compatibility',
