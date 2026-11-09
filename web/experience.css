@@ -239,22 +239,6 @@ textarea {
 .experience-shell .page-header .eyebrow {
   display: none;
 }
-.experience-shell .btn {
-  min-height: 38px;
-  border-radius: 7px;
-  font-size: 12px;
-}
-.experience-shell .btn-primary {
-  background: #262626;
-  color: white;
-  box-shadow:
-    inset 0 1px #ffffff15,
-    0 1px 2px #00000012;
-}
-.experience-shell .btn-secondary {
-  background: white;
-  border-color: #dddddd;
-}
 .experience-shell input,
 .experience-shell textarea {
   font-size: 13px;
@@ -274,9 +258,6 @@ textarea {
 }
 .experience-shell .library-source-toggle {
   background: #fafafa;
-}
-.experience-shell .library-source-label {
-  font-size: 13px;
 }
 .experience-shell .entry-list-row {
   background: white;
@@ -302,21 +283,6 @@ textarea {
   font-size: 10px;
   text-transform: none;
   letter-spacing: 0.01em;
-}
-.experience-shell .setup-heading {
-  margin-bottom: 28px;
-}
-.experience-shell .setup-heading p {
-  font-size: 14px;
-  color: #6c6c6c;
-  margin-top: 12px;
-  line-height: 1.7;
-}
-.experience-shell .setup-workspace {
-  background: white;
-  padding: 28px;
-  border: 1px solid var(--experience-line);
-  border-radius: 12px;
 }
 @media (hover: hover) and (pointer: fine) {
   .experience-nav > button:hover,
@@ -395,9 +361,6 @@ textarea {
   .experience-shell .app-footer {
     width: calc(100% - 40px);
   }
-  .experience-shell .setup-workspace {
-    padding: 20px;
-  }
 }
 @media (max-width: 420px) {
   .experience-header {
@@ -415,9 +378,6 @@ textarea {
   }
   .experience-shell h1 {
     font-size: 28px;
-  }
-  .experience-shell .setup-workspace {
-    padding: 16px;
   }
   .experience-shell .app-footer {
     width: calc(100% - 32px);
@@ -516,9 +476,6 @@ textarea {
   color: #6c6c6c;
   font-size: 11px;
   line-height: 1.5;
-}
-.launchpad-folder-footer .btn {
-  flex-shrink: 0;
 }
 .launchpad-lower {
   display: grid;
@@ -636,10 +593,6 @@ textarea {
   font-size: 12px;
   line-height: 1.75;
   margin-bottom: 20px;
-}
-.launchpad-import .btn {
-  background: white;
-  width: 100%;
 }
 .launchpad-import .inline-button {
   display: block;

@@ -15,68 +15,6 @@ a:focus-visible {
   font-weight: 650;
   letter-spacing: -0.8px;
 }
-.brand-mark {
-  width: 28px;
-  height: 28px;
-  border: 0;
-  color: var(--ink);
-}
-.brand-period {
-  display: none;
-}
-.workspace-label {
-  margin-top: 38px;
-  color: var(--muted);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-}
-.local-tag {
-  border-color: var(--line-strong);
-}
-.nav-item {
-  color: #606060;
-  font-size: 13px;
-}
-.nav-item svg {
-  color: #686868;
-}
-.nav-item:hover {
-  background: #f0f0f0;
-  color: #222;
-}
-.nav-item.active {
-  background: #ebebeb;
-  color: #202020;
-  font-weight: 600;
-}
-.nav-item.active svg {
-  color: #333;
-}
-.nav-item small,
-.nav-item.active small {
-  color: #575757;
-  border-color: #d3d3d3;
-}
-.quick-search {
-  border-color: var(--line);
-  color: #626262;
-}
-.quick-search kbd,
-.storage-label {
-  color: #686868;
-}
-.storage-label .live-dot,
-.workspace-label .live-dot,
-.private-indicator .live-dot {
-  background: #686868;
-}
-.topbar {
-  background: #fff;
-}
-.topbar > div > span:last-child,
-.topbar .slash {
-  color: #686868;
-}
 .page-header {
   margin-bottom: 20px;
   gap: 20px;
@@ -89,25 +27,17 @@ a:focus-visible {
 .page-header > .button-row {
   margin-top: 0;
 }
-.page-header h1,
-.setup-heading h1 {
+.page-header h1 {
   font-size: 30px;
   line-height: 1.25;
   letter-spacing: -0.9px;
   font-weight: 600;
 }
-.page-description,
-.setup-heading > div > p {
+.page-description {
   font-size: 13px;
   line-height: 1.7;
   color: var(--muted);
   margin-top: 9px;
-}
-.setup-heading {
-  margin-bottom: 20px;
-}
-.setup-heading h1 em {
-  font-style: normal;
 }
 .button {
   font-size: 12px;
@@ -160,8 +90,7 @@ a:focus-visible {
   border-color: #dfdfdf;
   color: #555;
 }
-.notice-dot,
-.live-dot {
+.notice-dot {
   background: #686868;
 }
 .agent-choice.chosen {
@@ -177,7 +106,7 @@ a:focus-visible {
   background: #fafafa;
   border-color: #e3e3e3;
 }
-.preset-icon,
+
 .empty-icon,
 .entry-icon {
   background: #f3f3f3;
@@ -866,8 +795,7 @@ a:focus-visible {
   .brand {
     font-size: 22px;
   }
-  .page-header h1,
-  .setup-heading h1 {
+  .page-header h1 {
     font-size: 27px;
   }
   .page-header > .button-row {
@@ -1025,15 +953,6 @@ a:focus-visible {
 }
 .library-sort-controls > .select-control {
   width: 150px;
-}
-.setup-form > .form-section:first-child > .field-label {
-  margin-top: 16px;
-}
-@media (max-width: 1190px) {
-  .setup-project-fields {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-  }
 }
 @media (max-width: 540px) {
   .select-option {

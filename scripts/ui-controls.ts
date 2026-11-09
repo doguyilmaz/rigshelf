@@ -227,16 +227,6 @@ try {
   await nextEditor.getByRole('button', { name: 'Close dialog', exact: true }).click();
   await expect(page.locator('dialog.modal')).toHaveCount(0);
   checks.push('Replacing one editor with another settles to one dialog and shares one backdrop.');
-  await page.goto(`${new URL(server.accessUrl).origin}/prototypes/project-setup.html?v=1`);
-  await page.getByRole('button', { name: 'Step by step', exact: true }).click();
-  await expect(page.locator('.prototype-app')).toHaveClass(/canvas/);
-  await assertNeutralTheme(page, 'guided prototype');
-  await page.getByRole('button', { name: 'Files visible', exact: true }).click();
-  await expect(page.locator('.prototype-app')).toHaveClass(/console/);
-  await assertNeutralTheme(page, 'files prototype');
-  await page.getByRole('button', { name: 'All together', exact: true }).click();
-  await expect(page.locator('.prototype-app')).toHaveClass(/workbench/);
-  await assertNeutralTheme(page, 'workbench prototype');
   checks.push(
     'Rendered chrome, popups, editors, backdrops and all layout previews use neutral colors.',
   );

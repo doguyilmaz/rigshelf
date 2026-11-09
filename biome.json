@@ -6,7 +6,6 @@
       "web/**",
       "tests/**",
       "scripts/**",
-      "design/**/*.tsx",
       "*.json",
       "vite.config.ts",
       "!web/public",
