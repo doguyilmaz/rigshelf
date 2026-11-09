@@ -81,7 +81,7 @@ Uses your `~/.ssh/config`; nothing is exposed to the network. See [remote machin
 - [AI assistance](docs/AI-ASSISTANCE.md): turn notes or links into drafts with Claude Code, Codex, Ollama or any Chat Completions endpoint.
 - [Backup](docs/BACKUP-SYNC.md): sync the Library to a private GitHub repository or S3-compatible bucket.
 - [Agent formats](docs/COMPATIBILITY.md) · [MCP](docs/MCP.md) · [data](docs/DATA.md) · [security model](docs/SECURITY-MODEL.md)
-- [Contributing](CONTRIBUTING.md) · [testing](docs/TESTING.md)
+- [Product concepts](docs/PRODUCT.md) · [engineering decisions](docs/DECISIONS.md) · [contributing](CONTRIBUTING.md) · [testing](docs/TESTING.md)
 
 ## License
 
