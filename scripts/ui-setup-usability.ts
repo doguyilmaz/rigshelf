@@ -2,12 +2,12 @@ import { mkdir, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { chromium, expect } from '@playwright/test';
-import type { Project, Rule } from '../src/core/model';
+import type { Project } from '../src/core/model';
 import { scan } from '../src/core/scanner';
 import { route } from '../src/core/service';
 import { reviseSkill } from '../src/core/skill-revisions';
 import { startServer } from '../src/server';
-import { fixture, sampleSkill } from '../tests/helpers';
+import { fixture, sampleRule, sampleSkill } from '../tests/helpers';
 import { assertNeutralTheme } from './theme-check';
 
 const data = await fixture();
@@ -226,7 +226,7 @@ try {
   await page.unroute('**/api/plans');
   await page.getByRole('button', { name: 'Update kit', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeEnabled();
-  const rule = data.store.list<Rule>('rule')[0]!;
+  const rule = sampleRule(data.store);
   data.store.put('rule', { ...rule, content: `${rule.content}\nA changed fixture directive.` });
   await page.getByRole('button', { name: 'Refresh workbench', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Review setup', exact: true })).toBeDisabled();
