@@ -12,7 +12,7 @@ jobs:
         with: { persist-credentials: false, ref: "${{ github.event.release.tag_name }}" }
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with: { bun-version: 1.4.4 }
-      - run: bun install --frozen-lockfile --ignore-scripts
+      - run: bun install --frozen-lockfile --ignore-scripts --backend=copyfile
       - run: bun run build
       - name: Assemble the npm package
         run: bun scripts/npm-package.ts npm
