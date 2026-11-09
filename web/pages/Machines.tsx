@@ -411,7 +411,7 @@ export function Machines({ notify }: PageProps): ReactNode {
             </section>
           )}
           <p className="machine-muted">
-            {t("Open this server's workbench here:")} <code>rigshelf ui --on {alias}</code>
+            {t("Open this server's workbench here:")} <code>rigshelf ui {alias}</code>
           </p>
         </div>
       )}

@@ -24,7 +24,9 @@ import { VERSION } from './version';
 
 const help = `Rigshelf · Project setup for coding agents
 
-  rigshelf ui [--port 47471] [--reset-access]     Open the local web workbench
+  rigshelf ui [ssh-alias] [--port 47471] [--reset-access]
+                                                Open the workbench; with an SSH alias, that machine's
+                                                workbench here through an SSH tunnel
   rigshelf scan [--root /path] [--no-global]     Import actual local files; no project edits
   rigshelf catalog [query]                      Search installed library metadata
   rigshelf detect /project [--requirements text] Suggest a focused kit
@@ -94,7 +96,6 @@ async function main(): Promise<void> {
       'remote-root': { type: 'string', multiple: true },
       manifest: { type: 'string' },
       json: { type: 'boolean' },
-      on: { type: 'string' },
       attached: { type: 'boolean' },
       'public-port': { type: 'string' },
       'remote-port': { type: 'string' },
@@ -159,13 +160,13 @@ async function main(): Promise<void> {
         const port = values.port === undefined ? 47471 : Number(values.port);
         if (!Number.isInteger(port) || port < 1024 || port > 65535)
           throw new Error('Choose a port between 1024 and 65535.');
-        if (values.on) {
+        if (subject) {
           store.close();
           persistent = true;
           const remotePort =
             values['remote-port'] === undefined ? undefined : Number(values['remote-port']);
           process.exitCode = await openRemoteWorkbench(
-            values.on,
+            subject,
             values.port === undefined ? undefined : port,
             remotePort,
           );

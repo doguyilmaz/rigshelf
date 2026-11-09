@@ -75,8 +75,6 @@ export function tunnelArguments(
   return [
     'ssh',
     ...baseOptions,
-    '-o',
-    'ExitOnForwardFailure=yes',
     '-L',
     `127.0.0.1:${localPort}:127.0.0.1:${remotePort}`,
     '--',

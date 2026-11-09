@@ -78,7 +78,7 @@ try {
   expect(errors).toEqual([]);
   const report = {
     checks: [
-      'A workbench opened through ui --on names its machine in the header at desktop and phone widths.',
+      'A workbench opened through ui <alias> names its machine in the header at desktop and phone widths.',
       'Existing Kitfold storage remains visible at its actual path with an explicit English/Turkish compatibility explanation.',
       'New connection snippets use Rigshelf in native Codex configuration; existing content and resources remain unchanged.',
       'Storage explanation and connection preview fit three desktop/mobile widths without page errors or automated accessibility violations.',
