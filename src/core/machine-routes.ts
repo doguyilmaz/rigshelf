@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 import { readText } from './detect';
 import { compareInventories } from './machine-compare';
-import { machineDoctor } from './machine-doctor';
+import { doctorIssues, machineDoctor } from './machine-doctor';
 import { buildMachineInventory, inventoryRoots } from './machine-inventory';
 import { installedAgents } from './machine-scope';
 import {
@@ -70,9 +70,14 @@ export async function machineRoute(
       remoteInventory(alias, { run }),
       remoteDoctor(alias, { run }),
     ]);
-    const here = machineDoctor();
+    const here = await machineDoctor();
     return {
-      doctor: { here, there, sameVersion: here.rigshelf === there.rigshelf },
+      doctor: {
+        here,
+        there,
+        sameVersion: here.rigshelf === there.rigshelf,
+        issues: doctorIssues(there),
+      },
       report: compareInventories(local, remote, installedAgents(there.harnesses)),
     };
   }

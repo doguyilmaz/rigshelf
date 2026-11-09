@@ -66,7 +66,7 @@ Each item has one status and one suggested action:
 
 ## Doctor
 
-Rigshelf version on both sides; harness CLIs present on the server; Codex project trust and Claude Code project MCP approval (reported, never granted remotely); required environment variable names present; `PATH` for non-interactive shells; free disk space for a planned bundle; clock skew.
+Rigshelf version on both sides; agent CLIs installed on the server (they decide which global Skill folders sync fills); for each project with a kit, the environment variable names its MCP servers need that are not set in the server's login shell, and whether Codex trusts the project when the kit uses Codex (reported, never granted remotely); less than 1 GiB free in the server's home; clocks more than five minutes apart. Values are never read or shown, only names. `machine doctor <alias>` lists these findings, and Settings → Machines shows them above the comparison.
 
 ## Transport security
 

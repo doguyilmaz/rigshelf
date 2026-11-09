@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { compareInventories } from '../src/core/machine-compare';
+import { doctorIssues, machineDoctor } from '../src/core/machine-doctor';
 import {
   buildMachineInventory,
   type MachineInventory,
@@ -20,6 +21,7 @@ import {
   tunnelArguments,
 } from '../src/core/machine-ssh';
 import { claudeMemoryKey } from '../src/core/memory-locations';
+import type { Store } from '../src/core/store';
 import { formatSyncReport } from '../src/machine-cli';
 
 const cleanups: string[] = [];
@@ -463,4 +465,49 @@ test('global files of absent agents are left out, and files sync does not copy a
     '.codex/config.toml': ['missing-remote', 'set-up-manually'],
   });
   expect(report.global.otherAgents).toEqual(['gemini']);
+});
+
+test('doctor names missing MCP environment, untrusted Codex projects, low disk and clock skew', async () => {
+  const root = await temporary();
+  const home = join(root, 'home');
+  const app = join(root, 'work/app');
+  await repository(app, 'git@github.com:owner/app.git');
+  await Bun.write(
+    join(app, '.kitfold/kit.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      providers: ['claude', 'codex'],
+      entries: [{ id: 'db-mcp' }, { id: 'guide' }],
+    }),
+  );
+  await Bun.write(
+    join(home, '.codex/config.toml'),
+    `[projects."${join(root, 'other')}"]\ntrust_level = "trusted"\n`,
+  );
+  const store = {
+    entry: (id: string) =>
+      id === 'db-mcp'
+        ? {
+            kind: 'mcp',
+            body: { env: { DATABASE_URL: '${RIGSHELF_TEST_DB_URL}', HOME: '${HOME}' } },
+          }
+        : { kind: 'skill', body: 'Uses ${NOT_AN_MCP_VARIABLE}' },
+  } as unknown as Store;
+  const there = await machineDoctor({ store, roots: [join(root, 'work')], home });
+  expect(there.projects).toEqual([
+    { name: 'app', missingEnv: ['RIGSHELF_TEST_DB_URL'], codexTrusted: false },
+  ]);
+  expect(doctorIssues({ ...there, diskFree: 200 * 1024 ** 2, time: 0 }, 10 * 60 * 1000)).toEqual([
+    'Less than 1 GiB free there (200 MiB).',
+    'Clocks differ by 10 minutes.',
+    'app: set RIGSHELF_TEST_DB_URL there for its MCP servers.',
+    'app: Codex does not trust this project there; trust it in Codex.',
+  ]);
+  await Bun.write(
+    join(home, '.codex/config.toml'),
+    `model = "x"\n\n[projects."${app}"]\ntrust_level = "trusted"\n`,
+  );
+  expect((await machineDoctor({ store, roots: [join(root, 'work')], home })).projects).toEqual([
+    { name: 'app', missingEnv: ['RIGSHELF_TEST_DB_URL'], codexTrusted: true },
+  ]);
 });

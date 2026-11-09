@@ -16,7 +16,7 @@ import type { PageProps } from '../main';
 import { Select } from '../Select';
 
 interface Compared {
-  doctor: { here: MachineDoctor; there: MachineDoctor; sameVersion: boolean };
+  doctor: { here: MachineDoctor; there: MachineDoctor; sameVersion: boolean; issues: string[] };
   report: SyncReport;
 }
 interface Prepared {
@@ -265,6 +265,15 @@ export function Machines({ notify }: PageProps): ReactNode {
                       .join(', ') || t('none'),
                 })}
               </p>
+              {compared.doctor.issues.length > 0 && (
+                <Notice tone="warning">
+                  <ul className="machine-issues">
+                    {compared.doctor.issues.map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                </Notice>
+              )}
               <section className="machine-card">
                 <h3>{t('Global')}</h3>
                 <GroupBadges section={compared.report.global} />

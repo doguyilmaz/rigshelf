@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { readLocalBytes } from './core/local-files';
 import { compareInventories, type SyncReport, type SyncSection } from './core/machine-compare';
-import { machineDoctor } from './core/machine-doctor';
+import { doctorIssues, machineDoctor } from './core/machine-doctor';
 import {
   buildMachineInventory,
   inventoryRoots,
@@ -256,10 +256,17 @@ export async function runMachineCommand(
       }),
     };
   if (action === 'doctor') {
-    const here = machineDoctor();
+    const here = await machineDoctor({ store, roots: await inventoryRoots(store, values.root) });
     if (!alias) return { result: { here } };
     const there = await remoteDoctor(alias);
-    return { result: { here, there, sameVersion: here.rigshelf === there.rigshelf } };
+    return {
+      result: {
+        here,
+        there,
+        sameVersion: here.rigshelf === there.rigshelf,
+        issues: doctorIssues(there),
+      },
+    };
   }
   if (action === 'compare') {
     if (!alias && !values.manifest)
