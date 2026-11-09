@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { lstat, readdir, realpath } from 'node:fs/promises';
+import { lstat, mkdir, readdir, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, relative } from 'node:path';
 import { z } from 'zod';
@@ -576,19 +576,12 @@ async function writableFolder(path: string, home: string, missing: string): Prom
   return path;
 }
 
-/** `.agents` is a plain shared folder, so it is created when missing; agent folders must exist first. */
+/** `.agents` is a plain shared folder, so an empty one is created when missing; agent folders must exist first. */
 async function globalTarget(home: string, root: GlobalRoot) {
   const path = join(home, root);
   if (root === '.agents' && !(await lstat(path).catch(() => undefined)))
-    return { folder: await writableFolder(home, home, `${home} is missing.`), prefix: root };
-  return {
-    folder: await writableFolder(
-      path,
-      home,
-      `~/${root} does not exist here; install that agent first.`,
-    ),
-    prefix: '',
-  };
+    await mkdir(path, { mode: 0o755 });
+  return writableFolder(path, home, `~/${root} does not exist here; install that agent first.`);
 }
 
 /** Without sent commands, the server keeps its own hooks and status line. */
@@ -707,7 +700,7 @@ export async function prepareSync(
   for (const root of new Set((request.globalFiles ?? []).map((file) => file.root))) {
     const files = (request.globalFiles ?? []).filter((file) => file.root === root);
     const copied = await copyResult(async () => {
-      const { folder, prefix } = await globalTarget(home, root);
+      const folder = await globalTarget(home, root);
       if (root === '.claude' && !request.settingsCommands)
         for (const file of files)
           if (file.path === CLAUDE_SETTINGS)
@@ -715,7 +708,7 @@ export async function prepareSync(
       return copyPlan(
         store,
         folder,
-        prefix,
+        '',
         files,
         [[request.sourceHome, home]],
         'Copy global agent configuration from the other machine',

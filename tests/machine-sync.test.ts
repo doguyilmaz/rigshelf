@@ -320,8 +320,7 @@ test('global Skills reach .agents and installed agents only; settings keep the s
     hooks: { Stop: '/srv/notify' },
   });
   await executePlan(server, byRoot['.agents']!.planId!, 'rollback');
-  expect(await Bun.file(join(serverHome, '.agents')).exists()).toBe(false);
-  expect(await stat(join(serverHome, '.agents')).catch(() => undefined)).toBeUndefined();
+  expect(await stat(join(serverHome, '.agents/skills')).catch(() => undefined)).toBeUndefined();
 });
 
 test('hooks and the status line travel only when sent explicitly', async () => {
