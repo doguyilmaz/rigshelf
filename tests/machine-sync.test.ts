@@ -712,3 +712,15 @@ test('Skill docs with code examples travel; recognizable keys and hidden Skill f
   ]);
   expect(withheld.map((value) => value.name)).toEqual(['~/.agents/skills/leaky/SKILL.md']);
 });
+
+test('language caches inside Skills are neither sent nor compared', async () => {
+  const { laptop } = await machines();
+  const skill = join(laptop.home, '.agents/skills/py');
+  await Bun.write(join(skill, 'SKILL.md'), '---\nname: py\n---\n');
+  await Bun.write(join(skill, 'scripts/__pycache__/core.cpython-313.pyc'), `${laptop.home}\n`);
+  const { request } = await buildSyncRequest(laptop.store, [], {
+    home: laptop.home,
+    remoteAgents: [],
+  });
+  expect(request.globalFiles?.map((file) => file.path)).toEqual(['skills/py/SKILL.md']);
+});
