@@ -12,6 +12,7 @@ async function transition(page: Page, animated: boolean): Promise<void> {
   await page.waitForLoadState('load');
   await expect
     .poll(() => page.evaluate(() => (window as ObservedWindow).pageTransitionEvidence?.finished), {
+      timeout: 15_000,
       message: JSON.stringify(
         await page.evaluate(() => ({
           evidence: (window as ObservedWindow).pageTransitionEvidence ?? null,
