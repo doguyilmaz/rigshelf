@@ -1,6 +1,6 @@
 # Remote machines (proposal)
 
-Status: available in the CLI: read-only inventory, compare and doctor; `machine sync`/`machine apply` for project kits, the Library they use and directives; and `rigshelf ui --on` with a remote badge. `machine sync --memory <project>` adds opted-in memory as a separate plan. Settings → Machines offers the same check, prepare and confirmed apply in the workbench.
+Status: available in the CLI: read-only inventory, compare and doctor; `machine sync`/`machine apply` for project kits, the Library they use and directives; and `rigshelf ui --on` with a remote badge. Memory, global guidance, Claude settings and global Skills are included by default, each as its own plan. Settings → Machines offers the same check, prepare and confirmed apply in the workbench.
 
 ## Problem
 
@@ -19,7 +19,7 @@ The spike also showed that byte-for-byte copying is wrong for part of this: memo
 
 - One transport: the system `ssh` with the user's `~/.ssh/config`, keys and agent. Rigshelf stores no passwords or keys and opens no port.
 - Read first. Comparing is read-only on both machines; changing a machine always goes through a reviewed plan applied by Rigshelf on that machine, with the existing preconditions, journal and rollback.
-- Reproduce, don't mirror. The goal is that the server can produce the same project setup, not a copy of every global file. Global Skills stay discouraged, as on the laptop.
+- Same setup on both machines. Matched projects, memory, global guidance, settings and Skills sync by default; anything that runs commands (hooks, status line) or holds account state stays behind unless the user sends it.
 - Secrets never travel. Private files are reported by name and status only; required environment variables are reported by name.
 
 ## Machines
@@ -50,7 +50,7 @@ Projects match by repository key: the normalized `origin` URL read from `.git/co
 Three layers, each grouped by harness and kind, with drill-down to single items:
 
 - **Library**: Skills, MCP definitions, Presets and directives by Snapshot digest. Moving the Library uses the existing export bundle or backup destination.
-- **Global**: per harness, Skills (compared per Skill folder digest), guidance, MCP configuration and settings.
+- **Global**: Skills (one row per Skill name across `~/.agents/skills` and the folders of agents installed on the server; folders of agents that are not installed there are named once and left out), guidance, MCP configuration and settings. `~/.claude/skills/synced` belongs to Claude Code's claude.ai sync and is skipped.
 - **Project**: the applied kit, gitignored agent files (local guidance, local settings, rules, agents, hooks) and memory.
 
 Each item has one status and one suggested action:
@@ -92,7 +92,7 @@ Separate from sync, and later:
 1. Read-only `machine inventory`, `machine compare <alias>` and `machine doctor <alias>` in the CLI, and a Machines view in the workbench (done).
 2. `rigshelf machine sync <alias>` sends each applied kit and prepares plans on the server; `--apply` or `rigshelf machine apply <alias> <plan-id>` applies them (done for kits, Library and directives).
 3. `rigshelf ui --on <alias>` with the remote badge (done).
-4. Per-project memory re-mapping (done: `--memory`, a separate plan rooted at the server's `~/.claude/projects`, credential-like files withheld, server-only files kept); syncing from the server back to this machine.
+4. Per-project memory re-mapping (done: a separate plan rooted at the server's `~/.claude/projects`, credential-like files withheld, server-only files kept); syncing from the server back to this machine.
 
 ## Decisions (2026-11-08)
 
@@ -100,4 +100,5 @@ Separate from sync, and later:
 - **Memory:** off by default. It is enabled per project, then re-mapped to the server's project path; it is never copied byte for byte.
 - **Global guidance (2026-11-09):** included by default; settings, global Skills and memory stay opt-in.
 - **Skills for every project (2026-11-09):** the Library's "Add to every project" pins a Snapshot in the base Preset, so each project kit carries its own pinned copy and machine sync moves it with the kit; copying global Skill folders stays opt-in. Scope signed off by the user on 2026-11-09.
+- **Everything by default (2026-11-09, replaces the opt-in scope above):** `machine sync` sends local files, memory, global guidance, `~/.claude/settings.json` and global Skills. Flags only leave things out: `--skip-local-files`, `--skip-memory`, `--skip-global`. Global Skills go to `~/.agents/skills` (created when missing) and to the folders of agents that `machine doctor` finds installed on the server; each Skill is copied once per folder, so the server matches what each agent sees here. Settings travel without `hooks` and `statusLine` because they run commands; the server keeps its own unless `--with-hooks` sends them. A server folder linked to a folder inside its home (dotfiles) is written through; a link outside home is refused. A single linked file is skipped and named; the rest of that folder's plan still applies. Monorepo subfolder kits stay unsupported until needed.
 - **Harnesses:** a server receives the same harness formats the project uses on the laptop (Claude Code, Codex, OpenCode, Kiro, Grok and the rest of the supported set), so the plan on the server mirrors the laptop's selection.
