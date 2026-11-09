@@ -34,7 +34,7 @@
     "@iarna/toml": "^2.2.5",
     "@modelcontextprotocol/sdk": "^1.25.0",
     "jsonc-parser": "^3.3.1",
-    "lucide-react": "^0.468.0",
+    "lucide-react": "^1.70.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tar-stream": "^3.2.2",
@@ -49,9 +49,9 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/tar-stream": "^3.1.5",
-    "@vitejs/plugin-react": "^5.0.4",
-    "typescript": "^5.9.3",
-    "vite": "^7.2.2"
+    "@vitejs/plugin-react": "^6.2.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6"
   },
   "license": "MIT",
   "engines": {
