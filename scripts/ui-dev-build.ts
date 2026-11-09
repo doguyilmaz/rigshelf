@@ -8,15 +8,7 @@ const data = await fixture();
 data.store.put('settings', { id: 'main', ...data.store.settings(), roots: [], scanGlobals: false });
 const checkout = join(data.root, 'checkout');
 await mkdir(checkout);
-for (const name of [
-  'src',
-  'web',
-  'scripts',
-  'design',
-  'package.json',
-  'vite.config.ts',
-  'tsconfig.json',
-])
+for (const name of ['src', 'web', 'scripts', 'package.json', 'vite.config.ts', 'tsconfig.json'])
   await cp(resolve(name), join(checkout, name), { recursive: true });
 await symlink(resolve('node_modules'), join(checkout, 'node_modules'), 'dir');
 const port = 48025;

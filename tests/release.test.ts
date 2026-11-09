@@ -32,13 +32,13 @@ test('packaging refuses linked input and traversal instead of copying outside by
     expect(() => releasePath(path)).toThrow();
 });
 
-test('runtime allowlist excludes incidental data and prototypes from the release', () => {
+test('runtime allowlist excludes incidental data from the release', () => {
   for (const path of [
     'dist/catalog.sqlite',
     'dist/credentials.json',
     'dist/.env',
     'dist/assets/private-123456.json',
-    'dist/prototypes/library.js',
+    'dist/notes/preview.js',
     'dist/assets/main-123456.js.map',
   ])
     expect(runtimeAsset(path)).toBe(false);

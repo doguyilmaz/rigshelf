@@ -23,7 +23,6 @@
     "web",
     "tests",
     "scripts",
-    "vite.config.ts",
-    "design/**/*.tsx"
+    "vite.config.ts"
   ]
 }

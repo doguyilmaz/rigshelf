@@ -194,29 +194,6 @@ try {
   checks.push(
     'An archived-only Library is recoverable through Show all items, which restores visibility without deleting or changing Snapshot content.',
   );
-  const beforePreferences = await page.evaluate(() => localStorage.getItem('rigshelf:library:v1'));
-  const beforeEntries = data.store.entries(true).length;
-  const beforeSources = data.store.sources().length;
-  const network: string[] = [];
-  page.on('request', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/api/')) network.push(request.url());
-  });
-  await page.goto(`${new URL(server.accessUrl).origin}/prototypes/library.html`);
-  await expect(page.getByRole('heading', { name: 'Library', exact: true })).toBeVisible();
-  await choose('Technology', 'Expo');
-  await choose('Task', 'Authentication');
-  await expect(page.locator('.entry-list-row')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Scan this machine', exact: true }).click();
-  await expect(page.locator('.preview-notice')).toContainText('design preview');
-  expect(network).toHaveLength(0);
-  expect(data.store.entries(true).length).toBe(beforeEntries);
-  expect(data.store.sources().length).toBe(beforeSources);
-  expect(await page.evaluate(() => localStorage.getItem('rigshelf:library:v1'))).toBe(
-    beforePreferences,
-  );
-  checks.push(
-    'The interactive preview uses the real filter UI, isolates browser preferences, and forwards no API requests.',
-  );
   if (errors.length) throw new Error(errors.join('\n'));
   await Bun.write(`${directory}/report.json`, JSON.stringify({ checks, errors }, null, 2));
   process.stdout.write(`${JSON.stringify({ checks, errors }, null, 2)}\n`);

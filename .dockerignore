@@ -9,8 +9,6 @@
 !web/**
 !scripts/
 !scripts/**
-!design/
-!design/**
 !docs/
 !docs/*.md
 !plugin/
