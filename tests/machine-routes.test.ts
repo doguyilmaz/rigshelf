@@ -73,7 +73,7 @@ test('machine routes compare, prepare and apply through the injected runner', as
     data.store,
     'POST',
     'machines/sync',
-    { alias: 'build-box', memory: [] },
+    { alias: 'build-box' },
     { machineRunner, machineHome: data.home },
   )) as {
     prepared: { projects: unknown[] };

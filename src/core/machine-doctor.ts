@@ -5,6 +5,7 @@ const harnessCommands: Record<string, string> = {
   claude: 'claude',
   codex: 'codex',
   kiro: 'kiro-cli',
+  gemini: 'gemini',
   opencode: 'opencode',
   antigravity: 'agy',
   grok: 'grok',

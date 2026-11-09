@@ -5,6 +5,7 @@ import { readText } from './detect';
 import { compareInventories } from './machine-compare';
 import { machineDoctor } from './machine-doctor';
 import { buildMachineInventory, inventoryRoots } from './machine-inventory';
+import { installedAgents } from './machine-scope';
 import {
   applyRemotePlans,
   HOST_ALIAS,
@@ -21,13 +22,11 @@ const MAX_SSH_CONFIG_BYTES = 1024 * 1024;
 const Alias = z.string().regex(HOST_ALIAS);
 const SyncInput = z.object({
   alias: Alias,
-  memory: z.array(z.string().min(1).max(300)).max(300).default([]),
   replaceDirectives: z.boolean().default(false),
   localFiles: z.boolean().default(true),
-  globalGuidance: z.boolean().default(true),
-  globalSettings: z.boolean().default(false),
-  globalSkills: z.boolean().default(false),
-  everything: z.boolean().default(false),
+  memory: z.boolean().default(true),
+  global: z.boolean().default(true),
+  commands: z.boolean().default(false),
 });
 const ApplyInput = z.object({ alias: Alias, planIds: z.array(z.string().uuid()).min(1).max(600) });
 
@@ -74,15 +73,18 @@ export async function machineRoute(
     const here = machineDoctor();
     return {
       doctor: { here, there, sameVersion: here.rigshelf === there.rigshelf },
-      report: compareInventories(local, remote),
+      report: compareInventories(local, remote, installedAgents(there.harnesses)),
     };
   }
   if (action === 'sync') {
-    const { alias, memory, replaceDirectives, ...scope } = SyncInput.parse(input);
-    const remote = await remoteInventory(alias, { run });
+    const { alias, replaceDirectives, ...scope } = SyncInput.parse(input);
+    const [remote, there] = await Promise.all([
+      remoteInventory(alias, { run }),
+      remoteDoctor(alias, { run }),
+    ]);
     const sync = await buildSyncRequest(store, await inventoryRoots(store), {
       onlyRepositories: serverRepositories(remote),
-      memory,
+      remoteAgents: installedAgents(there.harnesses),
       home,
       ...scope,
     });

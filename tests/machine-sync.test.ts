@@ -45,6 +45,7 @@ test('a server receives the applied kit through its own reviewed plan', async ()
   const serverProject = join(serverRoot, 'app-checkout');
   await repository(serverProject, 'https://github.com/owner/app');
   const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.project], {
+    home: laptop.home,
     localFiles: false,
   });
   expect(skipped).toEqual([]);
@@ -79,7 +80,9 @@ test('projects without a kit or repository are skipped, and unmatched repositori
   const { laptop, server, serverRoot } = await machines();
   await repository(join(laptop.root, 'nokit'), 'git@github.com:owner/nokit.git');
   await mkdir(serverRoot, { recursive: true });
-  const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.root]);
+  const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.root], {
+    home: laptop.home,
+  });
   expect(skipped.map((value) => value.reason)).toEqual(
     expect.arrayContaining([expect.stringContaining('no Rigshelf kit or local agent files')]),
   );
@@ -122,7 +125,7 @@ test('directives are added when missing, kept when different unless replacement 
     content: 'Laptop wording.',
   };
   laptop.store.put('rule', edited);
-  const { request } = await buildSyncRequest(laptop.store, [laptop.root]);
+  const { request } = await buildSyncRequest(laptop.store, [laptop.root], { home: laptop.home });
   const kept = await prepareSync(server, request, [serverRoot]);
   expect(server.get<Rule>('rule', 'house-style')?.content).toBe('Keep replies short.');
   expect(server.get<Rule>('rule', 'communication')?.content).not.toBe('Laptop wording.');
@@ -153,7 +156,7 @@ test('a malformed sync request is refused before anything is imported', async ()
   expect(server.entries(true)).toEqual([]);
 });
 
-test('opted-in memory is re-keyed and re-mapped to the server clone through its own plan', async () => {
+test('memory is re-keyed and re-mapped to the server clone through its own plan', async () => {
   const { laptop, server, serverRoot } = await machines();
   const skill = sampleSkill(laptop.store, 'memory-guide');
   await repository(laptop.project, 'git@github.com:owner/app.git');
@@ -179,11 +182,11 @@ test('opted-in memory is re-keyed and re-mapped to the server clone through its 
   const without = await buildSyncRequest(laptop.store, [laptop.project], {
     home: laptop.home,
     localFiles: false,
+    memory: false,
   });
   expect(without.request.projects[0]?.memory).toBeUndefined();
   const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
     home: laptop.home,
-    memory: ['project'],
     localFiles: false,
   });
   expect(withheld.map((value) => value.name)).toContain('memory/token.md');
@@ -202,7 +205,7 @@ test('opted-in memory is re-keyed and re-mapped to the server clone through its 
   expect(await Bun.file(target).exists()).toBe(false);
 });
 
-test('untracked local agent files and opted-in global guidance reach the server; tracked and private files do not', async () => {
+test('untracked local agent files and global guidance reach the server; tracked and private files do not', async () => {
   const { laptop, server, serverRoot } = await machines();
   const git = (...args: string[]) =>
     Bun.spawnSync([
@@ -239,7 +242,6 @@ test('untracked local agent files and opted-in global guidance reach the server;
   await repository(clone, 'https://github.com/owner/app');
   const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
     home: laptop.home,
-    globalGuidance: true,
   });
   const [project] = request.projects;
   expect(project?.kit).toBeUndefined();
@@ -271,23 +273,28 @@ test('untracked local agent files and opted-in global guidance reach the server;
   );
 });
 
-test('opted-in global settings and Skills copy per harness folder; account and trust files are refused', async () => {
+test('global Skills reach .agents and installed agents only; settings keep the server hooks unless sent', async () => {
   const { laptop, server, serverRoot } = await machines();
   await mkdir(serverRoot, { recursive: true });
   await Bun.write(
     join(laptop.home, '.claude/settings.json'),
-    `{"hooks":{"Stop":"${laptop.home}/bin/notify"}}\n`,
+    `{"model":"opus","hooks":{"Stop":"${laptop.home}/bin/notify"},"statusLine":{"command":"aims"}}\n`,
   );
   await Bun.write(join(laptop.home, '.claude/skills/review/SKILL.md'), '---\nname: review\n---\n');
+  await Bun.write(join(laptop.home, '.claude/skills/synced/abc/SKILL.md'), 'claude.ai copy\n');
   await Bun.write(join(laptop.home, '.agents/skills/linked/SKILL.md'), '---\nname: linked\n---\n');
+  await Bun.write(join(laptop.home, '.cline/skills/linked/SKILL.md'), '---\nname: linked\n---\n');
   await symlink('../../.agents/skills/linked', join(laptop.home, '.claude/skills/linked'));
+  await Bun.write(join(laptop.home, '.claude.json'), '{"oauthAccount":{}}');
   const serverHome = join(laptop.root, 'server-home');
-  await mkdir(join(serverHome, '.claude'), { recursive: true });
+  await Bun.write(
+    join(serverHome, '.claude/settings.json'),
+    '{"hooks":{"Stop":"/srv/notify"},"model":"haiku"}\n',
+  );
   const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.root], {
     home: laptop.home,
     localFiles: false,
-    globalSettings: true,
-    globalSkills: true,
+    remoteAgents: ['claude'],
   });
   expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`).sort()).toEqual([
     '.agents/skills/linked/SKILL.md',
@@ -295,22 +302,47 @@ test('opted-in global settings and Skills copy per harness folder; account and t
     '.claude/skills/linked/SKILL.md',
     '.claude/skills/review/SKILL.md',
   ]);
+  expect(JSON.stringify(request)).not.toContain(Buffer.from('aims').toString('base64'));
   expect(withheld.map((value) => value.name)).toEqual(
-    expect.arrayContaining(['~/.claude.json', '~/.codex/config.toml']),
+    expect.arrayContaining(['~/.claude.json', '~/.claude/settings.json hooks, statusLine']),
   );
   const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
     home: serverHome,
   });
   const byRoot = Object.fromEntries(prepared.global.map((value) => [value.root, value]));
-  expect(byRoot['.agents']?.error).toContain('install that agent first');
+  expect(byRoot['.agents']?.files).toBe(1);
   expect(byRoot['.claude']?.files).toBe(3);
+  await executePlan(server, byRoot['.agents']!.planId!, 'apply');
   await executePlan(server, byRoot['.claude']!.planId!, 'apply');
+  expect(await Bun.file(join(serverHome, '.agents/skills/linked/SKILL.md')).exists()).toBe(true);
+  expect(await Bun.file(join(serverHome, '.claude/settings.json')).json()).toEqual({
+    model: 'opus',
+    hooks: { Stop: '/srv/notify' },
+  });
+  await executePlan(server, byRoot['.agents']!.planId!, 'rollback');
+  expect(await Bun.file(join(serverHome, '.agents')).exists()).toBe(false);
+  expect(await stat(join(serverHome, '.agents')).catch(() => undefined)).toBeUndefined();
+});
+
+test('hooks and the status line travel only when sent explicitly', async () => {
+  const { laptop, server, serverRoot } = await machines();
+  await mkdir(serverRoot, { recursive: true });
+  const settings = `{"hooks":{"Stop":"${laptop.home}/bin/notify"}}\n`;
+  await Bun.write(join(laptop.home, '.claude/settings.json'), settings);
+  const serverHome = join(laptop.root, 'server-home');
+  await Bun.write(join(serverHome, '.claude/settings.json'), '{"hooks":{"Stop":"/srv/notify"}}\n');
+  const { request } = await buildSyncRequest(laptop.store, [], {
+    home: laptop.home,
+    commands: true,
+    remoteAgents: [],
+  });
+  const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
+    home: serverHome,
+  });
+  await executePlan(server, prepared.global[0]!.planId!, 'apply');
   expect(await Bun.file(join(serverHome, '.claude/settings.json')).text()).toBe(
     `{"hooks":{"Stop":"${serverHome}/bin/notify"}}\n`,
   );
-  expect(await Bun.file(join(serverHome, '.claude/skills/linked/SKILL.md')).exists()).toBe(true);
-  await executePlan(server, byRoot['.claude']!.planId!, 'rollback');
-  expect(await Bun.file(join(serverHome, '.claude/settings.json')).exists()).toBe(false);
 });
 
 test('no copied tree sends Git metadata, dependencies, private files or credential-like content', async () => {
@@ -349,8 +381,6 @@ test('no copied tree sends Git metadata, dependencies, private files or credenti
   await Bun.write(join(memory, '.env'), 'SECRET=3\n');
   const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
     home: laptop.home,
-    memory: ['project'],
-    globalSkills: true,
   });
   const sent = [
     ...(request.projects[0]?.localFiles ?? []).map((file) => file.path),
@@ -426,12 +456,12 @@ test('global guidance is sent by default and can be left out', async () => {
   const skipped = await buildSyncRequest(laptop.store, [laptop.root], {
     home: laptop.home,
     localFiles: false,
-    globalGuidance: false,
+    global: false,
   });
   expect(skipped.request.globalFiles).toBeUndefined();
 });
 
-test('everything mode adds settings, global Skills and memory for every project, never account or trust files', async () => {
+test('by default sync adds settings, global Skills and memory for every project, never account or trust files', async () => {
   const { laptop } = await machines();
   await repository(laptop.project, 'git@github.com:owner/app.git');
   const skill = sampleSkill(laptop.store, 'all-guide');
@@ -457,7 +487,6 @@ test('everything mode adds settings, global Skills and memory for every project,
   const { request } = await buildSyncRequest(laptop.store, [laptop.project], {
     home: laptop.home,
     localFiles: false,
-    everything: true,
   });
   expect(request.projects[0]?.memory?.map((file) => file.path)).toEqual(['notes.md']);
   expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`).sort()).toEqual([
@@ -476,8 +505,9 @@ test('projects the server has no clone of send nothing, not even local files', a
   await Bun.write(join(matched, 'CLAUDE.local.md'), 'Matched notes\n');
   await Bun.write(join(other, 'CLAUDE.local.md'), 'Unmatched notes\n');
   const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.root], {
+    home: laptop.home,
     onlyRepositories: ['github.com/owner/matched'],
-    globalGuidance: false,
+    global: false,
   });
   expect(request.projects.map((project) => project.repository)).toEqual([
     'github.com/owner/matched',
@@ -494,7 +524,6 @@ test('MCP approvals and Codex trust never travel, whatever the laptop sends', as
   await Bun.write(join(laptop.home, '.claude/settings.json'), approval);
   const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
     home: laptop.home,
-    globalSettings: true,
   });
   expect(JSON.stringify(request)).not.toContain(Buffer.from(approval).toString('base64'));
   expect(withheld.map((value) => value.name)).toEqual(
@@ -533,8 +562,7 @@ test('a global Skill link is followed only to a Skill folder inside the same hom
   await symlink(join(laptop.home, 'dev/skills/own'), join(laptop.home, '.claude/skills/own'));
   const { request, withheld } = await buildSyncRequest(laptop.store, [], {
     home: laptop.home,
-    globalGuidance: false,
-    globalSkills: true,
+    remoteAgents: ['claude'],
   });
   expect(request.globalFiles?.map((file) => `${file.root}/${file.path}`)).toEqual([
     '.claude/skills/own/SKILL.md',
@@ -553,7 +581,8 @@ test('a second checkout of the same repository is reported instead of sent twice
     await Bun.write(join(laptop.root, name, 'CLAUDE.local.md'), `${name} notes\n`);
   }
   const { request, skipped } = await buildSyncRequest(laptop.store, [laptop.root], {
-    globalGuidance: false,
+    home: laptop.home,
+    global: false,
   });
   expect(request.projects.map((project) => project.sourceProject)).toEqual([
     join(laptop.root, 'app'),
@@ -564,22 +593,52 @@ test('a second checkout of the same repository is reported instead of sent twice
   });
 });
 
-test('a harness folder that is a link on the server is named as a link, not as missing', async () => {
+test('a harness folder linked inside the server home is written through; one linked outside is refused', async () => {
   const { laptop, server, serverRoot } = await machines();
-  const serverHome = join(laptop.root, 'server-home');
-  await mkdir(join(laptop.root, 'dotfiles/claude'), { recursive: true });
-  await mkdir(serverHome, { recursive: true });
-  await symlink(join(laptop.root, 'dotfiles/claude'), join(serverHome, '.claude'));
   await Bun.write(join(laptop.home, '.claude/CLAUDE.md'), 'Global notes\n');
-  const { request } = await buildSyncRequest(laptop.store, [], { home: laptop.home });
+  await Bun.write(join(laptop.home, '.codex/AGENTS.md'), 'Codex notes\n');
+  const serverHome = join(laptop.root, 'server-home');
+  await mkdir(join(serverHome, 'dotfiles/claude'), { recursive: true });
+  await mkdir(join(laptop.root, 'elsewhere/codex'), { recursive: true });
+  await symlink(join(serverHome, 'dotfiles/claude'), join(serverHome, '.claude'));
+  await symlink(join(laptop.root, 'elsewhere/codex'), join(serverHome, '.codex'));
+  const { request } = await buildSyncRequest(laptop.store, [], {
+    home: laptop.home,
+    remoteAgents: ['claude', 'codex'],
+  });
   const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
     home: serverHome,
   });
-  expect(prepared.global).toEqual([
-    {
-      root: '.claude',
-      error: expect.stringContaining('is a link; Rigshelf does not write through links'),
-    },
+  const byRoot = Object.fromEntries(prepared.global.map((value) => [value.root, value]));
+  expect(byRoot['.codex']?.error).toContain('links outside the home folder');
+  await executePlan(server, byRoot['.claude']!.planId!, 'apply');
+  expect(await Bun.file(join(serverHome, 'dotfiles/claude/CLAUDE.md')).text()).toBe(
+    'Global notes\n',
+  );
+});
+
+test('a linked file on the server is skipped on its own; the other files still get a plan', async () => {
+  const { laptop, server, serverRoot } = await machines();
+  await Bun.write(join(laptop.home, '.claude/skills/one/SKILL.md'), '---\nname: one\n---\n');
+  await Bun.write(join(laptop.home, '.claude/skills/two/SKILL.md'), '---\nname: two\n---\n');
+  const serverHome = join(laptop.root, 'server-home');
+  await Bun.write(join(laptop.root, 'shared/SKILL.md'), 'shared\n');
+  await mkdir(join(serverHome, '.claude/skills/one'), { recursive: true });
+  await symlink(
+    join(laptop.root, 'shared/SKILL.md'),
+    join(serverHome, '.claude/skills/one/SKILL.md'),
+  );
+  const { request } = await buildSyncRequest(laptop.store, [], {
+    home: laptop.home,
+    remoteAgents: ['claude'],
+  });
+  const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
+    home: serverHome,
+  });
+  const claude = prepared.global.find((value) => value.root === '.claude');
+  expect(claude?.files).toBe(1);
+  expect(claude?.skipped).toEqual([
+    'skills/one/SKILL.md: Refusing linked output: skills/one/SKILL.md',
   ]);
 });
 
@@ -595,7 +654,8 @@ test('MCP approval keys block configuration files, even escaped, but not Skills 
     '---\nname: mcp-notes\n---\nNever set enableAllProjectMcpServers in shared settings.\n',
   );
   const { request, withheld } = await buildSyncRequest(laptop.store, [laptop.project], {
-    globalGuidance: false,
+    home: laptop.home,
+    global: false,
   });
   const sent = request.projects[0]?.localFiles?.map((file) => file.path) ?? [];
   expect(sent).toContain('.claude/skills/mcp-notes/SKILL.md');

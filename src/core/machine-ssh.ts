@@ -209,6 +209,7 @@ export async function remoteDoctor(
   }
 }
 
+const Skipped = z.array(z.string().max(2000)).max(2000).optional();
 const PreparedSchema = z.object({
   library: z.object({ entries: z.number().int().min(0) }),
   directives: z.object({
@@ -231,6 +232,7 @@ const PreparedSchema = z.object({
         localPlanId: z.string().regex(PLAN_ID).optional(),
         localFiles: z.number().int().min(0).optional(),
         localError: z.string().max(2000).optional(),
+        skipped: Skipped,
       }),
     )
     .max(300),
@@ -241,6 +243,7 @@ const PreparedSchema = z.object({
         planId: z.string().regex(PLAN_ID).optional(),
         files: z.number().int().min(0).optional(),
         error: z.string().max(2000).optional(),
+        skipped: Skipped,
       }),
     )
     .max(10),

@@ -409,3 +409,28 @@ test('an unreachable host stops the remaining plans instead of waiting on each',
     error: 'Not attempted: Could not connect to box: ssh: connect to host box: Operation timed out',
   });
 });
+
+test('global Skills compare once per name, only in folders of agents installed there', async () => {
+  const root = await temporary();
+  const laptop = join(root, 'laptop');
+  const server = join(root, 'server');
+  for (const folder of ['.agents', '.claude', '.cline'])
+    await Bun.write(join(laptop, `${folder}/skills/shared/SKILL.md`), 'shared\n');
+  await Bun.write(join(laptop, '.claude/skills/claude-only/SKILL.md'), 'mine\n');
+  await Bun.write(join(laptop, '.claude/skills/synced/abc/SKILL.md'), 'claude.ai\n');
+  await Bun.write(join(laptop, '.cursor/skills/cursor-only/SKILL.md'), 'cursor\n');
+  await Bun.write(join(server, '.agents/skills/shared/SKILL.md'), 'shared\n');
+  await Bun.write(join(server, '.claude/skills/shared/SKILL.md'), 'older\n');
+  await Bun.write(join(server, '.claude/skills/server-only/SKILL.md'), 'server\n');
+  const [local, remote] = await Promise.all(
+    [laptop, server].map((home) => buildMachineInventory({ home, roots: [] })),
+  );
+  const report = compareInventories(local, remote, ['claude']);
+  const skills = report.global.rows.filter((row) => row.group === 'skill');
+  expect(skills.map((row) => [row.key, row.harness, row.status])).toEqual([
+    ['skills/shared', 'agents, claude', 'different'],
+    ['skills/claude-only', 'claude', 'missing-remote'],
+    ['skills/server-only', 'claude', 'missing-local'],
+  ]);
+  expect(report.global.otherAgents).toEqual(['cline', 'cursor']);
+});

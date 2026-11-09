@@ -131,8 +131,11 @@ try {
   await expect(page.getByText('Only on build-box (1): server-tools')).toBeVisible();
   await project.getByText('2 differences').click();
   await expect(project.getByText('.claude/skills/guide', { exact: true })).toBeVisible();
-  await project.getByLabel('Include memory in sync').check();
-  await page.getByLabel('Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)').check();
+  await expect(page.getByLabel('Claude memory of each matched project')).toBeChecked();
+  await expect(page.getByLabel('Global guidance, Claude settings and Skills')).toBeChecked();
+  await expect(
+    page.getByLabel('Hooks and status line commands (they run on the server)'),
+  ).not.toBeChecked();
   await audit('compare-1440');
   await page.getByRole('button', { name: 'Prepare sync', exact: true }).click();
   await expect(page.getByText('4 file changes')).toBeVisible();
@@ -145,7 +148,7 @@ try {
   const prepared = JSON.parse(
     requests.find((value) => value.command.includes('machine prepare'))!.input!,
   );
-  expect(prepared.projects[0].memory).toBeUndefined();
+  expect(prepared.settingsCommands).toBe(false);
   expect(prepared.globalFiles).toBeUndefined();
 
   expect(requests.some((value) => value.command.includes('rigshelf apply'))).toBe(false);
@@ -182,7 +185,7 @@ try {
   const report = {
     checks: [
       'Machines lists concrete SSH aliases, compares groups per project and collapses projects only on one side.',
-      'Prepare sync sends opted-in memory and applies nothing until the user confirms both plans.',
+      'Prepare sync sends memory and global setup by default, keeps hooks back, and applies nothing until the user confirms.',
       'A failed plan is reported while the others apply; retrying applies only the plan that failed.',
       'Version mismatch, kept directives and plan sizes are visible; the page fits 1440 and 390 widths without accessibility violations.',
     ],

@@ -10,6 +10,7 @@ import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import { readLocalBytes } from './local-files';
 import { type MachineInventory, machineProjects } from './machine-inventory';
 import { replacePaths } from './machine-paths';
+import { CLAUDE_MANAGED_SKILLS, type GlobalRoot, globalRoots, skillRoots } from './machine-scope';
 import { claudeMemoryKey } from './memory-locations';
 import { type Change, type Plan, ProvidersSchema, type Rule, RuleSchema } from './model';
 import { rootIdentity } from './ownership';
@@ -50,22 +51,14 @@ const localFiles = [
   '.grok/config.toml',
   '.agents/mcp_config.json',
 ];
-const globalRoots = [
-  '.claude',
-  '.agents',
-  '.codex',
-  '.kiro',
-  '.gemini',
-  '.grok',
-  '.config/opencode',
-] as const;
-type GlobalRoot = (typeof globalRoots)[number];
 const globalGuidanceFiles: [GlobalRoot, string][] = [
   ['.claude', 'CLAUDE.md'],
   ['.codex', 'AGENTS.md'],
   ['.gemini', 'GEMINI.md'],
 ];
-const globalSettingsFiles: [GlobalRoot, string][] = [['.claude', 'settings.json']];
+const CLAUDE_SETTINGS = 'settings.json';
+/** Settings keys that run commands; they stay on each machine unless sent explicitly. */
+const commandKeys = ['hooks', 'statusLine'];
 const refusedGlobalSettings = [
   ['~/.claude.json', 'Holds Claude Code account and project trust; sign in on the server instead.'],
   ['~/.codex/config.toml', 'Holds Codex project trust; trust projects on the server yourself.'],
@@ -126,6 +119,7 @@ const SyncRequestSchema = z.object({
   library: z.unknown(),
   sourceHome: z.string().min(1).max(4096),
   projects: z.array(ProjectRequest).max(MAX_SYNC_PROJECTS),
+  settingsCommands: z.boolean().default(false),
   globalFiles: z
     .array(
       CopiedFileShape.extend({ root: z.enum(globalRoots) })
@@ -143,6 +137,7 @@ type CopiedFiles = z.infer<typeof Files>;
 type Withheld = { id: string; name: string; reason: string };
 export interface PreparedProject {
   repository: string;
+  skipped?: string[];
   path?: string;
   planId?: string;
   files?: number;
@@ -157,6 +152,7 @@ export interface PreparedProject {
 }
 export interface PreparedGlobal {
   root: string;
+  skipped?: string[];
   planId?: string;
   files?: number;
   error?: string;
@@ -251,6 +247,7 @@ async function skillFiles(home: string, root: string, budget: FileBudget): Promi
   const entries = await readdir(join(root, 'skills'), { withFileTypes: true }).catch(() => []);
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+    if (`${relative(home, root)}/skills/${entry.name}` === CLAUDE_MANAGED_SKILLS) continue;
     const name = `~/${relative(home, root)}/skills/${entry.name}`;
     const folder = await realpath(join(root, 'skills', entry.name)).catch(() => undefined);
     if (!folder || !(await lstat(folder)).isDirectory()) continue;
@@ -277,6 +274,45 @@ async function collectMemory(home: string, project: string, budget: FileBudget) 
   return files;
 }
 
+export interface SyncScope {
+  home?: string;
+  /** Untracked agent files in each project; on by default. */
+  localFiles?: boolean;
+  /** Claude memory of each matched project; on by default. */
+  memory?: boolean;
+  /** Global guidance, Claude settings and Skills; on by default. */
+  global?: boolean;
+  /** Hooks and status line commands from Claude settings; off by default. */
+  commands?: boolean;
+  /** Agents installed on the server; Skills go to `.agents` and their folders. Unset fills every folder. */
+  remoteAgents?: string[];
+  /** Repository keys the server has a clone of; other projects are never read. */
+  onlyRepositories?: Iterable<string>;
+}
+
+function parsedSettings(base64: string): Record<string, unknown> | undefined {
+  try {
+    const value: unknown = JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function withoutCommands(base64: string): { content: string; removed: string[] } | undefined {
+  const settings = parsedSettings(base64);
+  if (!settings) return;
+  const removed = commandKeys.filter((key) => key in settings);
+  if (!removed.length) return { content: base64, removed };
+  for (const key of removed) delete settings[key];
+  return {
+    content: Buffer.from(`${JSON.stringify(settings, null, 2)}\n`).toString('base64'),
+    removed,
+  };
+}
+
 export function serverRepositories(inventory: MachineInventory): string[] {
   return inventory.projects.flatMap((project) => (project.repository ? [project.repository] : []));
 }
@@ -284,25 +320,13 @@ export function serverRepositories(inventory: MachineInventory): string[] {
 export async function buildSyncRequest(
   store: Store,
   roots: string[],
-  options: {
-    home?: string;
-    memory?: string[];
-    everything?: boolean;
-    localFiles?: boolean;
-    globalGuidance?: boolean;
-    globalSettings?: boolean;
-    globalSkills?: boolean;
-    /** Repository keys the server has a clone of; other projects are never read. */
-    onlyRepositories?: Iterable<string>;
-  } = {},
+  options: SyncScope = {},
 ): Promise<{
   request: SyncRequest;
   skipped: { name: string; reason: string }[];
   withheld: Withheld[];
 }> {
   const home = options.home ?? homedir();
-  const withMemory = new Set(options.memory ?? []);
-  const all = options.everything ?? false;
   const skipped: { name: string; reason: string }[] = [];
   const withheld: Withheld[] = [];
   const budget = new FileBudget(withheld);
@@ -335,9 +359,7 @@ export async function buildSyncRequest(
         reason: 'Git could not list tracked files; local files were not sent',
       });
     const memory =
-      all || withMemory.has(project.name) || withMemory.has(project.repository)
-        ? await collectMemory(home, project.path, budget)
-        : undefined;
+      options.memory === false ? undefined : await collectMemory(home, project.path, budget);
     if (!kit && !local?.length && !memory?.length) {
       skipped.push({ name: project.name, reason: 'no Rigshelf kit or local agent files here' });
       continue;
@@ -364,16 +386,32 @@ export async function buildSyncRequest(
     const read = await budget.read(join(home, root, path), `~/${root}/${path}`);
     if (read) globalFiles.push({ root, path, ...read });
   };
-  if (options.globalGuidance ?? true)
+  if (options.global ?? true) {
     for (const [root, path] of globalGuidanceFiles) await addGlobal(root, path);
-  if (all || options.globalSettings) {
-    for (const [root, path] of globalSettingsFiles) await addGlobal(root, path);
-    for (const [name, reason] of refusedGlobalSettings) budget.hold(name!, reason!);
-  }
-  if (all || options.globalSkills)
-    for (const root of globalRoots)
+    await addGlobal('.claude', CLAUDE_SETTINGS);
+    const settings = globalFiles.find(
+      (file) => file.root === '.claude' && file.path === CLAUDE_SETTINGS,
+    );
+    if (settings && !options.commands) {
+      const stripped = withoutCommands(settings.content);
+      if (stripped === undefined) {
+        globalFiles.splice(globalFiles.indexOf(settings), 1);
+        budget.hold('~/.claude/settings.json', 'Not valid JSON; copy it by hand.');
+      } else if (stripped.removed.length) {
+        settings.content = stripped.content;
+        budget.hold(
+          `~/.claude/settings.json ${stripped.removed.join(', ')}`,
+          'Runs commands; the server keeps its own unless you send them with hooks.',
+        );
+      }
+    }
+    for (const [name, reason] of refusedGlobalSettings)
+      if (await lstat(join(home, name!.slice(2))).catch(() => undefined))
+        budget.hold(name!, reason!);
+    for (const root of skillRoots(options.remoteAgents))
       for (const path of await skillFiles(home, join(home, root), budget))
         await addGlobal(root, path);
+  }
   const exported = exportLibrary(store);
   const wanted = new Set(projects.flatMap((project) => project.kit?.entryIds ?? []));
   const entries = exported.entries.filter((value) => wanted.has(value.entry.id));
@@ -402,6 +440,7 @@ export async function buildSyncRequest(
         rules: exported.rules,
       },
       sourceHome: home,
+      settingsCommands: options.commands ?? false,
       projects,
       ...(globalFiles.length ? { globalFiles } : {}),
     },
@@ -440,11 +479,16 @@ async function copyPlan(
   files: CopiedFiles,
   remap: [string, string][],
   reason: string,
-): Promise<Plan | undefined> {
+): Promise<{ plan?: Plan; skipped: string[] }> {
   const changes: Change[] = [];
+  const skipped: string[] = [];
   for (const file of files) {
     const path = prefix ? `${prefix}/${file.path}` : file.path;
-    const target = await assertWritePath(root, path);
+    const target = await assertWritePath(root, path).catch((error: Error) => {
+      skipped.push(`${path}: ${error.message}`);
+      return undefined;
+    });
+    if (!target) continue;
     const after = remapped(file.content, remap);
     const before = await planFile(target);
     if (before?.equals(after)) continue;
@@ -459,7 +503,7 @@ async function copyPlan(
       afterMode: file.executable ? 0o700 : (mode ?? 0o600),
     });
   }
-  if (!changes.length) return;
+  if (!changes.length) return { skipped };
   const plan: Plan = {
     id: randomUUID(),
     projectPath: root,
@@ -467,7 +511,10 @@ async function copyPlan(
     entries: [],
     createdAt: now(),
     changes,
-    warnings: ['Files that exist only on this machine are kept.'],
+    warnings: [
+      'Files that exist only on this machine are kept.',
+      ...skipped.map((value) => `Skipped ${value}`),
+    ],
     status: 'planned',
     purpose: 'document',
     rootIdentity: await rootIdentity(root),
@@ -475,26 +522,61 @@ async function copyPlan(
   };
   store.put('plan', plan);
   store.event('sync.planned', `${changes.length} copied files under ${root}`);
-  return plan;
+  return { plan, skipped };
 }
 
 async function copyResult(
-  work: () => Promise<Plan | undefined>,
-): Promise<{ planId?: string; files: number } | { error: string }> {
+  work: () => Promise<{ plan?: Plan; skipped: string[] }>,
+): Promise<{ planId?: string; files: number; skipped: string[] } | { error: string }> {
   try {
-    const plan = await work();
-    return { planId: plan?.id, files: plan?.changes.length ?? 0 };
+    const { plan, skipped } = await work();
+    return { planId: plan?.id, files: plan?.changes.length ?? 0, skipped };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Could not prepare the copy.' };
   }
 }
 
-async function existingFolder(path: string, missing: string): Promise<string> {
+/** A folder to write into; a link is followed only to a folder inside the same home, such as a dotfiles checkout. */
+async function writableFolder(path: string, home: string, missing: string): Promise<string> {
   const info = await lstat(path).catch(() => undefined);
-  if (info?.isSymbolicLink())
-    throw new Error(`${path} is a link; Rigshelf does not write through links. Copy by hand.`);
+  if (info?.isSymbolicLink()) {
+    const target = await realpath(path).catch(() => undefined);
+    const realHome = await realpath(home).catch(() => home);
+    if (!target || target === realHome || !inside(realHome, target))
+      throw new Error(`${path} links outside the home folder; Rigshelf does not write there.`);
+    if (!(await lstat(target)).isDirectory()) throw new Error(missing);
+    return target;
+  }
   if (!info?.isDirectory()) throw new Error(missing);
   return path;
+}
+
+/** `.agents` is a plain shared folder, so it is created when missing; agent folders must exist first. */
+async function globalTarget(home: string, root: GlobalRoot) {
+  const path = join(home, root);
+  if (root === '.agents' && !(await lstat(path).catch(() => undefined)))
+    return { folder: await writableFolder(home, home, `${home} is missing.`), prefix: root };
+  return {
+    folder: await writableFolder(
+      path,
+      home,
+      `~/${root} does not exist here; install that agent first.`,
+    ),
+    prefix: '',
+  };
+}
+
+/** Without sent commands, the server keeps its own hooks and status line. */
+async function keepServerCommands(file: { content: string }, existing: string): Promise<string> {
+  const incoming = parsedSettings(file.content);
+  const current = parsedSettings(
+    (await planFile(existing).catch(() => undefined))?.toString('base64') ?? '',
+  );
+  if (!incoming || !current) return file.content;
+  const kept = commandKeys.filter((key) => key in current && !(key in incoming));
+  if (!kept.length) return file.content;
+  for (const key of kept) incoming[key] = current[key];
+  return Buffer.from(`${JSON.stringify(incoming, null, 2)}\n`).toString('base64');
 }
 
 /** Runs on the server: imports the sent Library additively, then prepares plans per matched clone without writing files. */
@@ -550,6 +632,7 @@ export async function prepareSync(
       } catch (error) {
         result.error = error instanceof Error ? error.message : 'Could not prepare the plan.';
       }
+    const skipped: string[] = [];
     if (project.localFiles) {
       const local = await copyResult(() =>
         copyPlan(
@@ -567,13 +650,15 @@ export async function prepareSync(
           ? { localError: local.error }
           : { localPlanId: local.planId, localFiles: local.files },
       );
+      if ('skipped' in local) skipped.push(...local.skipped);
     }
     if (project.memory) {
       const memory = await copyResult(async () =>
         copyPlan(
           store,
-          await existingFolder(
+          await writableFolder(
             join(home, '.claude/projects'),
+            home,
             'Claude Code has not created ~/.claude/projects here yet. Run Claude Code once, then sync memory.',
           ),
           `${claudeMemoryKey(clone.path)}/memory`,
@@ -588,26 +673,39 @@ export async function prepareSync(
           ? { memoryError: memory.error }
           : { memoryPlanId: memory.planId, memoryFiles: memory.files },
       );
+      if ('skipped' in memory) skipped.push(...memory.skipped);
     }
+    if (skipped.length) result.skipped = skipped;
     projects.push(result);
   }
   const global: PreparedGlobal[] = [];
   for (const root of new Set((request.globalFiles ?? []).map((file) => file.root))) {
     const files = (request.globalFiles ?? []).filter((file) => file.root === root);
-    const copied = await copyResult(async () =>
-      copyPlan(
+    const copied = await copyResult(async () => {
+      const { folder, prefix } = await globalTarget(home, root);
+      if (root === '.claude' && !request.settingsCommands)
+        for (const file of files)
+          if (file.path === CLAUDE_SETTINGS)
+            file.content = await keepServerCommands(file, join(folder, CLAUDE_SETTINGS));
+      return copyPlan(
         store,
-        await existingFolder(
-          join(home, root),
-          `~/${root} does not exist here; install that agent first.`,
-        ),
-        '',
+        folder,
+        prefix,
         files,
         [[request.sourceHome, home]],
         'Copy global agent configuration from the other machine',
-      ),
-    );
-    global.push({ root, ...copied });
+      );
+    });
+    global.push({
+      root,
+      ...('error' in copied
+        ? copied
+        : {
+            planId: copied.planId,
+            files: copied.files,
+            ...(copied.skipped.length ? { skipped: copied.skipped } : {}),
+          }),
+    });
   }
   return { library: { entries: library.entries }, directives, projects, global };
 }

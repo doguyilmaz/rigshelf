@@ -99,12 +99,10 @@ async function main(): Promise<void> {
       'public-port': { type: 'string' },
       'remote-port': { type: 'string' },
       'replace-directives': { type: 'boolean' },
-      memory: { type: 'string' },
       'skip-local-files': { type: 'boolean' },
-      'skip-global-guidance': { type: 'boolean' },
-      'global-settings': { type: 'boolean' },
-      'global-skills': { type: 'boolean' },
-      all: { type: 'boolean' },
+      'skip-memory': { type: 'boolean' },
+      'skip-global': { type: 'boolean' },
+      'with-hooks': { type: 'boolean' },
     },
   });
   if (values.version) {

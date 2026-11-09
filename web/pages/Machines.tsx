@@ -80,6 +80,7 @@ function Differences({ section }: { section: SyncSection }): ReactNode {
           <li key={`${row.status}:${row.key}`}>
             <code>{row.key}</code>
             <span>
+              {row.group === 'skill' && `${row.harness} · `}
               {t(statusLabels[row.status])} · {t(actionLabels[row.action] ?? row.action)}
             </span>
           </li>
@@ -110,12 +111,11 @@ export function Machines({ notify }: PageProps): ReactNode {
   const [hosts, setHosts] = useState<string[]>();
   const [alias, setAlias] = useState('');
   const [compared, setCompared] = useState<Compared>();
-  const [memory, setMemory] = useState<string[]>([]);
   const [scope, setScope] = useState({
-    globalGuidance: true,
-    globalSettings: false,
-    globalSkills: false,
-    everything: false,
+    localFiles: true,
+    memory: true,
+    global: true,
+    commands: false,
   });
   const [prepared, setPrepared] = useState<Prepared>();
   const [applied, setApplied] = useState<string[]>([]);
@@ -160,7 +160,7 @@ export function Machines({ notify }: PageProps): ReactNode {
   const prepare = () =>
     run('sync', async () => {
       setApplied([]);
-      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, memory, ...scope }));
+      setPrepared(await api<Prepared>('machines/sync', 'POST', { alias, ...scope }));
     });
   const planIds = prepared
     ? [
@@ -232,7 +232,6 @@ export function Machines({ notify }: PageProps): ReactNode {
                 setAlias(value);
                 setCompared(undefined);
                 reset();
-                setMemory([]);
               }}
               options={hosts.map((host) => ({ value: host, label: host }))}
             />
@@ -269,11 +268,14 @@ export function Machines({ notify }: PageProps): ReactNode {
               <section className="machine-card">
                 <h3>{t('Global')}</h3>
                 <GroupBadges section={compared.report.global} />
-                <p className="machine-muted">
-                  {t(
-                    'Global guidance syncs by default; settings and Skills only when you choose them below.',
-                  )}
-                </p>
+                {compared.report.global.otherAgents && (
+                  <p className="machine-muted">
+                    {t('Skills for agents not installed on {{alias}} are left out: {{agents}}', {
+                      alias,
+                      agents: compared.report.global.otherAgents.join(', '),
+                    })}
+                  </p>
+                )}
                 <Differences section={compared.report.global} />
               </section>
               {matched.map((project) => (
@@ -287,23 +289,6 @@ export function Machines({ notify }: PageProps): ReactNode {
                     </small>
                   </h3>
                   <GroupBadges section={project} />
-                  {project.groups.memory && (
-                    <label className="machine-memory">
-                      <input
-                        type="checkbox"
-                        checked={memory.includes(project.local!)}
-                        onChange={(event) => {
-                          reset();
-                          setMemory((current) =>
-                            event.target.checked
-                              ? [...current, project.local!]
-                              : current.filter((value) => value !== project.local),
-                          );
-                        }}
-                      />
-                      {t('Include memory in sync')}
-                    </label>
-                  )}
                   <Differences section={project} />
                 </section>
               ))}
@@ -316,13 +301,13 @@ export function Machines({ notify }: PageProps): ReactNode {
                 values={names(compared.report.projects, 'remote')}
               />
               <fieldset className="machine-scope">
-                <legend>{t('Also copy global configuration (optional)')}</legend>
+                <legend>{t('Send')}</legend>
                 {(
                   [
-                    ['globalGuidance', 'Global guidance (~/.claude/CLAUDE.md, ~/.codex/AGENTS.md)'],
-                    ['globalSettings', 'Claude Code settings (~/.claude/settings.json)'],
-                    ['globalSkills', 'Global Skills folders'],
-                    ['everything', 'Everything, including memory for every project'],
+                    ['localFiles', 'Local agent files that Git does not track'],
+                    ['memory', 'Claude memory of each matched project'],
+                    ['global', 'Global guidance, Claude settings and Skills'],
+                    ['commands', 'Hooks and status line commands (they run on the server)'],
                   ] as const
                 ).map(([key, label]) => (
                   <label className="machine-memory" key={key}>
@@ -340,7 +325,8 @@ export function Machines({ notify }: PageProps): ReactNode {
               </fieldset>
               <p className="machine-muted">
                 {t(
-                  'Local agent files that Git does not track are included. Private local settings stay on this machine.',
+                  'Skills go to the agents installed on {{alias}}. Private local settings, account files and credentials stay on this machine.',
+                  { alias },
                 )}
               </p>
               <div className="button-row">
@@ -372,6 +358,9 @@ export function Machines({ notify }: PageProps): ReactNode {
                       </span>
                     )}
                     {project.memoryError && <span>{project.memoryError}</span>}
+                    {project.skipped?.map((value) => (
+                      <span key={value}>{t('skipped {{value}}', { value })}</span>
+                    ))}
                   </li>
                 ))}
                 {prepared.prepared.global.map((guidance) => (
@@ -382,6 +371,9 @@ export function Machines({ notify }: PageProps): ReactNode {
                         ? t('{{count}} file changes', { count: guidance.files ?? 0 })
                         : (guidance.error ?? t('in sync'))}
                     </span>
+                    {guidance.skipped?.map((value) => (
+                      <span key={value}>{t('skipped {{value}}', { value })}</span>
+                    ))}
                   </li>
                 ))}
               </ul>

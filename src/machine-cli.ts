@@ -7,6 +7,7 @@ import {
   inventoryRoots,
   parseMachineInventory,
 } from './core/machine-inventory';
+import { installedAgents } from './core/machine-scope';
 import {
   type AppliedPlan,
   applyRemotePlans,
@@ -31,11 +32,11 @@ Machines (your ~/.ssh/config and ssh-agent, no stored keys; nothing changes ther
   rigshelf machine compare --manifest inventory.json   Compare with a saved inventory
   rigshelf machine doctor [ssh-alias]           Rigshelf version and harness CLIs on each machine
   rigshelf machine sync <ssh-alias> [--root /dir] [--remote-root /dir] [--replace-directives]
-                        [--memory project,project] [--skip-local-files] [--apply]
-                        [--skip-global-guidance] [--global-settings] [--global-skills]
-                        [--all]  everything above, including memory for every project
-                                                Send kits, untracked agent files and global guidance
-                                                for projects the server has; prepare plans there
+                        [--skip-local-files] [--skip-memory] [--skip-global] [--with-hooks] [--apply]
+                                                Send kits, untracked agent files and memory for projects
+                                                the server has, plus global guidance, settings and Skills
+                                                for the agents installed there; prepare plans there.
+                                                Hooks and the status line stay unless --with-hooks.
   rigshelf machine apply <ssh-alias> <plan-id>...  Apply reviewed plans that machine sync prepared
   rigshelf ui --on <ssh-alias> [--port 47471] [--remote-port 47471]
                                                 Open that machine's workbench here through an SSH tunnel
@@ -48,12 +49,10 @@ interface MachineOptions {
   json?: boolean;
   apply?: boolean;
   'replace-directives'?: boolean;
-  memory?: string;
   'skip-local-files'?: boolean;
-  'skip-global-guidance'?: boolean;
-  'global-settings'?: boolean;
-  'global-skills'?: boolean;
-  all?: boolean;
+  'skip-memory'?: boolean;
+  'skip-global'?: boolean;
+  'with-hooks'?: boolean;
 }
 
 const label: Record<string, string> = {
@@ -95,6 +94,11 @@ export function formatSyncReport(report: SyncReport, here: string, there: string
     `${here} → ${there}`,
     `Global  ${groupLine(report.global) || 'nothing found'}`,
     ...manual(report.global),
+    ...(report.global.otherAgents
+      ? [
+          `  Skills for agents not installed on ${there} are left out: ${report.global.otherAgents.join(', ')}`,
+        ]
+      : []),
   ];
   for (const project of report.projects.filter((value) => value.local && value.remote)) {
     const where = project.matchedBy === 'name' ? 'matched by folder name' : project.repository;
@@ -146,12 +150,14 @@ function formatSync(
       lines.push(`  memory: ${project.memoryFiles} files, plan ${project.memoryPlanId}`);
     else if (project.memoryError) lines.push(`  memory: ${project.memoryError}`);
     else if (project.memoryFiles === 0) lines.push('  memory: already in sync');
+    for (const value of project.skipped ?? []) lines.push(`  skipped ${value}`);
   }
   for (const guidance of prepared.global)
     lines.push(
       guidance.planId
         ? `Global ~/${guidance.root}: ${guidance.files} files, plan ${guidance.planId}`
         : `Global ~/${guidance.root}: ${guidance.error ?? 'already in sync'}`,
+      ...(guidance.skipped ?? []).map((value) => `  skipped ${value}`),
     );
   for (const value of sync.skipped) lines.push(`Skipped ${value.name}: ${value.reason}`);
   const ids = planIdsOf(prepared);
@@ -203,18 +209,17 @@ export async function runMachineCommand(
   }
   if (action === 'sync') {
     if (!alias) throw new Error('machine sync needs an SSH host alias.');
-    const remote = await remoteInventory(alias, { roots: values['remote-root'] });
+    const [remote, there] = await Promise.all([
+      remoteInventory(alias, { roots: values['remote-root'] }),
+      remoteDoctor(alias),
+    ]);
     const sync = await buildSyncRequest(store, await inventoryRoots(store, values.root), {
       onlyRepositories: serverRepositories(remote),
-      memory: values.memory
-        ?.split(',')
-        .map((value) => value.trim())
-        .filter(Boolean),
+      remoteAgents: installedAgents(there.harnesses),
       localFiles: !values['skip-local-files'],
-      globalGuidance: !values['skip-global-guidance'],
-      globalSettings: values['global-settings'],
-      globalSkills: values['global-skills'],
-      everything: values.all,
+      memory: !values['skip-memory'],
+      global: !values['skip-global'],
+      commands: values['with-hooks'],
     });
     if (!sync.request.projects.length && !sync.request.globalFiles?.length)
       return {
@@ -259,15 +264,16 @@ export async function runMachineCommand(
   if (action === 'compare') {
     if (!alias && !values.manifest)
       throw new Error('machine compare needs an SSH host alias or --manifest.');
-    const [local, remote] = await Promise.all([
+    const [local, remote, there] = await Promise.all([
       buildMachineInventory({ home: homedir(), roots: await inventoryRoots(store, values.root) }),
       values.manifest
         ? readLocalBytes(values.manifest, MAX_MANIFEST_BYTES).then((bytes) =>
             parseMachineInventory(bytes.toString('utf8')),
           )
         : remoteInventory(alias!, { roots: values['remote-root'] }),
+      values.manifest ? undefined : remoteDoctor(alias!),
     ]);
-    const report = compareInventories(local, remote);
+    const report = compareInventories(local, remote, there && installedAgents(there.harnesses));
     return values.json
       ? { result: report }
       : { text: formatSyncReport(report, 'this machine', alias || values.manifest!) };

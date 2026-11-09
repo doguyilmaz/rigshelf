@@ -7,6 +7,7 @@ import { VERSION } from '../version';
 import { ignoredDirectories, instructionNames, skillPaths } from './inventory-paths';
 import { readLocalBytes } from './local-files';
 import { mentionsPath, replacePaths } from './machine-paths';
+import { CLAUDE_MANAGED_SKILLS } from './machine-scope';
 import { claudeMemoryKey } from './memory-locations';
 import { redact } from './safety';
 import type { Store } from './store';
@@ -184,6 +185,7 @@ async function skillItems(root: string, roots: [string, string][], identity: str
     )) {
       if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
       const key = `${folder}/${entry.name}`;
+      if (key === CLAUDE_MANAGED_SKILLS && root === identity[0]) continue;
       const hashed = await hashFolder(join(root, key), key, identity);
       if (hashed)
         items.push({
