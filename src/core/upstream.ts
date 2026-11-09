@@ -22,7 +22,7 @@ const allowedResourceHosts = new Set([
   'x.com',
 ]);
 
-export function githubRepository(source: Source): string {
+function githubRepository(source: Source): string {
   const match = source.url.match(/^https:\/\/(?:github\.com|skills\.sh)\/([\w.-]+\/[^/?#]+)/);
   if (
     !match ||
@@ -170,7 +170,7 @@ export async function checkSource(store: Store, id: string): Promise<Source> {
   return updated;
 }
 
-export async function sourceTree(
+async function sourceTree(
   store: Store,
   id: string,
 ): Promise<{
@@ -270,7 +270,7 @@ export async function importUpstreamSkill(
 }
 
 /** Reuse one immutable, bounded source tree when checking several existing Skills. */
-export async function importSkillFromTree(
+async function importSkillFromTree(
   store: Store,
   tree: Awaited<ReturnType<typeof sourceTree>>,
   path: string,

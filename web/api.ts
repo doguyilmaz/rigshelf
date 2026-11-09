@@ -81,16 +81,6 @@ export function accessToken(): string {
   }
   return sessionStorage.getItem('rigshelf-access') || '';
 }
-export function download(name: string, data: unknown): void {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
-  );
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 export const formatDate = (date: string | undefined): string =>
   date
     ? new Date(date).toLocaleString(getLocale(), {

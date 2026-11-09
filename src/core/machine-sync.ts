@@ -149,7 +149,7 @@ const SyncRequestSchema = z.object({
 export type SyncRequest = z.infer<typeof SyncRequestSchema>;
 type CopiedFiles = z.infer<typeof Files>;
 type Withheld = { id: string; name: string; reason: string };
-export interface PreparedProject {
+interface PreparedProject {
   repository: string;
   skipped?: string[];
   path?: string;
@@ -164,7 +164,7 @@ export interface PreparedProject {
   localFiles?: number;
   localError?: string;
 }
-export interface PreparedGlobal {
+interface PreparedGlobal {
   root: string;
   skipped?: string[];
   planId?: string;
@@ -286,7 +286,7 @@ async function collectMemory(home: string, project: string, budget: FileBudget) 
   return files;
 }
 
-export interface SyncScope {
+interface SyncScope {
   home?: string;
   /** Untracked agent files in each project; on by default. */
   localFiles?: boolean;

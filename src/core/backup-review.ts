@@ -9,7 +9,7 @@ interface ComparableBundle {
   presets: { id: string; name: string }[];
   rules: { id: string; name: string }[];
 }
-export interface BackupRecord {
+interface BackupRecord {
   id: string;
   kind: string;
   name: string;

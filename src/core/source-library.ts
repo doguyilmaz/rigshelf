@@ -6,7 +6,7 @@ import { hash, redact } from './safety';
 import type { Store } from './store';
 import { checkSource, discoverSourceSkills } from './upstream';
 
-export const AddSourceSchema = z
+const AddSourceSchema = z
   .object({
     url: z.string().trim().max(4096).optional(),
     input: z.string().trim().max(5000).optional(),

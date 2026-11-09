@@ -1,6 +1,6 @@
 import { readBounded } from './bounded-read';
 
-export const MAX_PLAN_FILE_BYTES = 16 * 1024 * 1024;
+const MAX_PLAN_FILE_BYTES = 16 * 1024 * 1024;
 export const MAX_PLAN_BYTES = 128 * 1024 * 1024;
 export const MAX_PLAN_CHANGES = 10000;
 

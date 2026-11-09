@@ -12,7 +12,7 @@ import { readProjectDraft, writeProjectDraft } from './project-draft';
 import { rememberProject } from './recent-projects';
 import { setupSelection } from './setup-selection';
 
-export interface SetupDetection {
+interface SetupDetection {
   project: Project;
   presetId: string;
   recommendations: Recommendation[];

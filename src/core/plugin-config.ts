@@ -8,7 +8,7 @@ import { nativePluginId, type PluginRegistry, readPluginRegistry } from './plugi
 import type { PluginReference } from './plugin-model';
 import { object, readConfig } from './providers';
 
-export interface PluginConfig {
+interface PluginConfig {
   path: string;
   provider: PluginReference['provider'];
   project?: Project;

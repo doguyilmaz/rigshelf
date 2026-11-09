@@ -4,14 +4,7 @@ import { Button, Modal, Notice } from './components';
 import { t } from './i18n';
 import type { Page } from './main';
 
-export const ONBOARDING_KEY = 'rigshelf:onboarding:v1';
-export function onboardingSeen(): boolean {
-  try {
-    return localStorage.getItem(ONBOARDING_KEY) === 'seen';
-  } catch {
-    return false;
-  }
-}
+const ONBOARDING_KEY = 'rigshelf:onboarding:v1';
 export function rememberOnboarding(): void {
   try {
     localStorage.setItem(ONBOARDING_KEY, 'seen');

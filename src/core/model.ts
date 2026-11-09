@@ -7,7 +7,7 @@ export const SCHEMA_VERSION = 1;
 export const MAX_TEXT_BYTES = 512 * 1024;
 export const MAX_BUNDLE_BYTES = 16 * 1024 * 1024;
 export const MAX_FILES = 2000;
-export const providerIds = ['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok'] as const;
+const providerIds = ['claude', 'codex', 'kiro', 'opencode', 'antigravity', 'grok'] as const;
 export const ProviderSchema = z.enum(providerIds);
 export const ProvidersSchema = z
   .array(ProviderSchema)
@@ -17,7 +17,7 @@ export const ProvidersSchema = z
 export type Provider = z.infer<typeof ProviderSchema>;
 export const KindSchema = z.enum(['skill', 'mcp', 'plugin', 'resource']);
 export type Kind = z.infer<typeof KindSchema>;
-export const TagSchema = z.string().min(1).max(64);
+const TagSchema = z.string().min(1).max(64);
 export const RecordIdSchema = z
   .string()
   .min(1)

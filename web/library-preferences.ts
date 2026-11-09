@@ -4,7 +4,7 @@ import type { LibraryGrouping } from '../src/core/library-groups';
 
 const key = 'rigshelf:library:v1';
 const MAX_SAVED_VIEWS = 12;
-export interface SavedLibraryView {
+interface SavedLibraryView {
   id: string;
   name: string;
   filters: LibraryFilters;

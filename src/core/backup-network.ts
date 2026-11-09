@@ -1,7 +1,7 @@
 import { readBounded } from './bounded-read';
 
 export type BackupFetch = typeof fetch;
-export const BACKUP_REQUEST_TIMEOUT_MS = 60000;
+const BACKUP_REQUEST_TIMEOUT_MS = 60000;
 export class BackupRemoteError extends Error {
   constructor(
     message: string,

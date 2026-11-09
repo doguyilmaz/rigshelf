@@ -254,7 +254,7 @@ function persistSkill(
   return entry;
 }
 
-export async function originFor(
+async function originFor(
   directory: string,
   name: string,
   home: string,

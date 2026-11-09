@@ -91,7 +91,7 @@ function excludedLocation(root: string, canonical: string): boolean {
       .some((part) => privateRuntimeDirectories.has(part))
   );
 }
-export interface ProjectAiContexts {
+interface ProjectAiContexts {
   paths: string[];
   warnings: string[];
 }

@@ -70,7 +70,7 @@ const InventorySchema = z.object({
 });
 export type MachineItem = z.infer<typeof ItemSchema>;
 export type MachineInventory = z.infer<typeof InventorySchema>;
-export type MachineProject = MachineInventory['projects'][number];
+type MachineProject = MachineInventory['projects'][number];
 
 export function parseMachineInventory(text: string): MachineInventory {
   if (text.length > MAX_INVENTORY_TEXT) throw new Error('The machine inventory is too large.');
