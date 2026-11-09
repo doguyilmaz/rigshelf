@@ -1,5 +1,5 @@
 import type { MachineGroup, MachineInventory, MachineItem } from './machine-inventory';
-import { skillRoots } from './machine-scope';
+import { skillRoots, syncsGlobalItem } from './machine-scope';
 
 export const syncStatuses = ['same', 'different', 'missing-remote', 'missing-local'] as const;
 export type SyncStatus = (typeof syncStatuses)[number];
@@ -120,19 +120,27 @@ function section(local: MachineItem[], remote: MachineItem[]): SyncSection {
   return counted(itemRows(local, remote));
 }
 
+const knownAgents = new Set(['claude', 'codex', 'kiro', 'gemini', 'opencode', 'grok']);
+
+/** Files of agents not installed there are named once, and files sync does not copy are marked for setup by hand. */
 function globalSection(local: MachineItem[], remote: MachineItem[], installed?: string[]) {
   const isSkill = (item: MachineItem) => item.group === 'skill';
+  const absent = (item: MachineItem) =>
+    Boolean(installed) && knownAgents.has(item.harness) && !installed!.includes(item.harness);
+  const kept = (item: MachineItem) => !isSkill(item) && !absent(item);
   const skills = skillRows(local.filter(isSkill), remote.filter(isSkill), installed);
-  return counted(
-    [
-      ...skills.rows,
-      ...itemRows(
-        local.filter((item) => !isSkill(item)),
-        remote.filter((item) => !isSkill(item)),
-      ),
-    ],
-    skills.otherAgents,
+  const files = itemRows(local.filter(kept), remote.filter(kept)).map((row) =>
+    row.status !== 'same' && !syncsGlobalItem(row.key, row.group)
+      ? { ...row, action: 'set-up-manually' as const }
+      : row,
   );
+  const otherAgents = [
+    ...new Set([
+      ...skills.otherAgents,
+      ...local.filter((item) => !isSkill(item) && absent(item)).map((item) => item.harness),
+    ]),
+  ].sort();
+  return counted([...skills.rows, ...files], otherAgents);
 }
 
 /** Projects match by repository; only projects without a repository on both sides fall back to the folder name. */

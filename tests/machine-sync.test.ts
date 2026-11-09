@@ -334,7 +334,7 @@ test('hooks and the status line travel only when sent explicitly', async () => {
   const { request } = await buildSyncRequest(laptop.store, [], {
     home: laptop.home,
     commands: true,
-    remoteAgents: [],
+    remoteAgents: ['claude'],
   });
   const prepared = await prepareSync(server, JSON.parse(JSON.stringify(request)), [serverRoot], {
     home: serverHome,
@@ -661,4 +661,36 @@ test('MCP approval keys block configuration files, even escaped, but not Skills 
   expect(sent).toContain('.claude/skills/mcp-notes/SKILL.md');
   expect(sent).not.toContain('.mcp.json');
   expect(withheld.map((value) => value.name)).toContain('project/.mcp.json');
+});
+
+test('guidance imports, Claude rules, agents and commands travel; other agents and junk files do not', async () => {
+  const { laptop } = await machines();
+  await Bun.write(join(laptop.home, '.claude/CLAUDE.md'), '# Me\n\n@RTK.md\n');
+  await Bun.write(join(laptop.home, '.claude/RTK.md'), 'Use rtk.\n');
+  await Bun.write(join(laptop.home, '.codex/AGENTS.md'), `@${laptop.home}/.codex/RTK.md\n`);
+  await Bun.write(join(laptop.home, '.codex/RTK.md'), 'Use rtk.\n');
+  await Bun.write(join(laptop.home, '.gemini/GEMINI.md'), '# Gemini\n');
+  await Bun.write(join(laptop.home, '.claude/rules/argent.md'), 'Rule\n');
+  await Bun.write(join(laptop.home, '.claude/agents/inspector.md'), 'Agent\n');
+  await Bun.write(join(laptop.home, '.claude/agents/.DS_Store'), 'junk');
+  await Bun.write(join(laptop.home, '.claude/hooks/notify.sh'), '#!/bin/sh\n');
+  const sent = async (commands: boolean) =>
+    (
+      await buildSyncRequest(laptop.store, [], {
+        home: laptop.home,
+        remoteAgents: ['claude', 'codex'],
+        commands,
+      })
+    ).request.globalFiles
+      ?.map((file) => `${file.root}/${file.path}`)
+      .sort();
+  expect(await sent(false)).toEqual([
+    '.claude/CLAUDE.md',
+    '.claude/RTK.md',
+    '.claude/agents/inspector.md',
+    '.claude/rules/argent.md',
+    '.codex/AGENTS.md',
+    '.codex/RTK.md',
+  ]);
+  expect(await sent(true)).toContain('.claude/hooks/notify.sh');
 });

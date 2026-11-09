@@ -8,9 +8,19 @@ import { ignoredDirectories } from './inventory-paths';
 import { readKit } from './kit';
 import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import { readLocalBytes } from './local-files';
-import { type MachineInventory, machineProjects } from './machine-inventory';
+import { importedGuidance, type MachineInventory, machineProjects } from './machine-inventory';
 import { replacePaths } from './machine-paths';
-import { CLAUDE_MANAGED_SKILLS, type GlobalRoot, globalRoots, skillRoots } from './machine-scope';
+import {
+  accountFiles,
+  CLAUDE_MANAGED_SKILLS,
+  claudeRuleFolders,
+  SETTINGS_COMMAND_KEYS as commandKeys,
+  type GlobalRoot,
+  globalGuidanceFiles,
+  globalRoots,
+  junkFiles,
+  skillRoots,
+} from './machine-scope';
 import { claudeMemoryKey } from './memory-locations';
 import { type Change, type Plan, ProvidersSchema, type Rule, RuleSchema } from './model';
 import { rootIdentity } from './ownership';
@@ -51,18 +61,7 @@ const localFiles = [
   '.grok/config.toml',
   '.agents/mcp_config.json',
 ];
-const globalGuidanceFiles: [GlobalRoot, string][] = [
-  ['.claude', 'CLAUDE.md'],
-  ['.codex', 'AGENTS.md'],
-  ['.gemini', 'GEMINI.md'],
-];
 const CLAUDE_SETTINGS = 'settings.json';
-/** Settings keys that run commands; they stay on each machine unless sent explicitly. */
-const commandKeys = ['hooks', 'statusLine'];
-const refusedGlobalSettings = [
-  ['~/.claude.json', 'Holds Claude Code account and project trust; sign in on the server instead.'],
-  ['~/.codex/config.toml', 'Holds Codex project trust; trust projects on the server yourself.'],
-];
 
 const privateName = /(^|\/)(?:settings\.local\.json|\.env(?:\.[^/]*)?)$/;
 const MCP_APPROVAL = /enableAllProjectMcpServers|enabledMcpjsonServers/;
@@ -192,7 +191,8 @@ async function folderFiles(base: string, folder: string): Promise<string[]> {
       const path = join(current, entry.name);
       if (entry.isDirectory()) {
         if (!ignoredDirectories.has(entry.name)) await walk(path);
-      } else if (entry.isFile()) files.push(relative(base, path).split('\\').join('/'));
+      } else if (entry.isFile() && !junkFiles.has(entry.name))
+        files.push(relative(base, path).split('\\').join('/'));
     }
   };
   await walk(join(base, folder));
@@ -387,8 +387,16 @@ export async function buildSyncRequest(
     if (read) globalFiles.push({ root, path, ...read });
   };
   if (options.global ?? true) {
-    for (const [root, path] of globalGuidanceFiles) await addGlobal(root, path);
-    await addGlobal('.claude', CLAUDE_SETTINGS);
+    const installed = (agent: string) =>
+      !options.remoteAgents || options.remoteAgents.includes(agent);
+    for (const [root, path, agent] of [...globalGuidanceFiles, ...(await importedGuidance(home))])
+      if (installed(agent)) await addGlobal(root, path);
+    if (installed('claude')) {
+      await addGlobal('.claude', CLAUDE_SETTINGS);
+      for (const folder of [...claudeRuleFolders, ...(options.commands ? ['hooks'] : [])])
+        for (const path of await folderFiles(join(home, '.claude'), folder))
+          await addGlobal('.claude', path);
+    }
     const settings = globalFiles.find(
       (file) => file.root === '.claude' && file.path === CLAUDE_SETTINGS,
     );
@@ -405,9 +413,8 @@ export async function buildSyncRequest(
         );
       }
     }
-    for (const [name, reason] of refusedGlobalSettings)
-      if (await lstat(join(home, name!.slice(2))).catch(() => undefined))
-        budget.hold(name!, reason!);
+    for (const [key, reason] of accountFiles)
+      if (await lstat(join(home, key)).catch(() => undefined)) budget.hold(`~/${key}`, reason);
     for (const root of skillRoots(options.remoteAgents))
       for (const path of await skillFiles(home, join(home, root), budget))
         await addGlobal(root, path);

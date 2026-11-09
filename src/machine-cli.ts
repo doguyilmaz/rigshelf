@@ -95,9 +95,7 @@ export function formatSyncReport(report: SyncReport, here: string, there: string
     `Global  ${groupLine(report.global) || 'nothing found'}`,
     ...manual(report.global),
     ...(report.global.otherAgents
-      ? [
-          `  Skills for agents not installed on ${there} are left out: ${report.global.otherAgents.join(', ')}`,
-        ]
+      ? [`  Agents not installed on ${there} are left out: ${report.global.otherAgents.join(', ')}`]
       : []),
   ];
   for (const project of report.projects.filter((value) => value.local && value.remote)) {

@@ -270,7 +270,7 @@ export function Machines({ notify }: PageProps): ReactNode {
                 <GroupBadges section={compared.report.global} />
                 {compared.report.global.otherAgents && (
                   <p className="machine-muted">
-                    {t('Skills for agents not installed on {{alias}} are left out: {{agents}}', {
+                    {t('Agents not installed on {{alias}} are left out: {{agents}}', {
                       alias,
                       agents: compared.report.global.otherAgents.join(', '),
                     })}

@@ -1362,7 +1362,6 @@
   "Restore the base Preset to use a Snapshot in every project.": "Bir Snapshot'ı her projede kullanmak için base Preset'i geri yükleyin.",
   "Another revision is pinned; adding this one replaces it.": "Başka bir revizyon sabitlenmiş; bunu eklemek onun yerini alır.",
   "This Snapshot has findings, so setups leave it out until it is reviewed.": "Bu Snapshot'ta bulgular var; incelenene kadar kurulumlar onu dışarıda bırakır.",
-  "Skills for agents not installed on {{alias}} are left out: {{agents}}": "{{alias}} üzerinde kurulu olmayan agent'ların Skills'i dahil edilmez: {{agents}}",
   "Send": "Gönder",
   "Local agent files that Git does not track": "Git'in izlemediği yerel agent dosyaları",
   "Claude memory of each matched project": "Eşleşen her projenin Claude memory'si",
@@ -1370,5 +1369,6 @@
   "Hooks and status line commands (they run on the server)": "Hook'lar ve status line komutları (sunucuda çalışır)",
   "Skills go to the agents installed on {{alias}}. Private local settings, account files and credentials stay on this machine.": "Skills, {{alias}} üzerinde kurulu agent'lara gider. Özel yerel ayarlar, hesap dosyaları ve kimlik bilgileri bu makinede kalır.",
   "skipped {{value}}": "atlandı: {{value}}",
-  "Left out by these Presets and those built on them: {{names}}": "Şu Preset'ler ve onlardan türeyenler bunu dışarıda bırakır: {{names}}"
+  "Left out by these Presets and those built on them: {{names}}": "Şu Preset'ler ve onlardan türeyenler bunu dışarıda bırakır: {{names}}",
+  "Agents not installed on {{alias}} are left out: {{agents}}": "{{alias}} üzerinde kurulu olmayan agent'lar dahil edilmez: {{agents}}"
 }

@@ -84,7 +84,7 @@ test('an inventory groups Skills by folder and flags private and machine-specifi
   expect(review).toMatchObject({ group: 'skill', harness: 'claude', files: 2 });
   expect(inventory.global.find((item) => item.key === '.claude.json')?.privacy).toBe('private');
   expect(inventory.global.find((item) => item.key === '.codex/config.toml')?.privacy).toBe(
-    'machine-specific',
+    'private',
   );
   const [app] = inventory.projects;
   expect(app?.repository).toBe('github.com/owner/app');
@@ -433,4 +433,34 @@ test('global Skills compare once per name, only in folders of agents installed t
     ['skills/server-only', 'claude', 'missing-local'],
   ]);
   expect(report.global.otherAgents).toEqual(['cline', 'cursor']);
+});
+
+test('global files of absent agents are left out, and files sync does not copy are marked for setup by hand', async () => {
+  const root = await temporary();
+  const laptop = join(root, 'laptop');
+  const server = join(root, 'server');
+  await Bun.write(join(laptop, '.claude/CLAUDE.md'), '@RTK.md\n');
+  await Bun.write(join(laptop, '.claude/RTK.md'), 'rtk\n');
+  await Bun.write(join(laptop, '.gemini/GEMINI.md'), 'gemini\n');
+  await Bun.write(join(laptop, '.codex/config.toml'), 'model = "x"\n');
+  await Bun.write(
+    join(laptop, '.claude/settings.json'),
+    '{"model":"opus","hooks":{"Stop":"notify"}}',
+  );
+  await Bun.write(join(server, '.claude/CLAUDE.md'), '@RTK.md\n');
+  await Bun.write(join(server, '.claude/settings.json'), '{"model":"opus"}');
+  const [local, remote] = await Promise.all(
+    [laptop, server].map((home) => buildMachineInventory({ home, roots: [] })),
+  );
+  const report = compareInventories(local, remote, ['claude', 'codex']);
+  const rows = Object.fromEntries(
+    report.global.rows.map((row) => [row.key, [row.status, row.action]]),
+  );
+  expect(rows).toEqual({
+    '.claude/CLAUDE.md': ['same', 'none'],
+    '.claude/RTK.md': ['missing-remote', 'copy'],
+    '.claude/settings.json': ['same', 'none'],
+    '.codex/config.toml': ['missing-remote', 'set-up-manually'],
+  });
+  expect(report.global.otherAgents).toEqual(['gemini']);
 });

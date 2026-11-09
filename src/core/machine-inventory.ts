@@ -7,9 +7,18 @@ import { VERSION } from '../version';
 import { ignoredDirectories, instructionNames, skillPaths } from './inventory-paths';
 import { readLocalBytes } from './local-files';
 import { mentionsPath, replacePaths } from './machine-paths';
-import { CLAUDE_MANAGED_SKILLS } from './machine-scope';
+import {
+  accountFiles,
+  CLAUDE_MANAGED_SKILLS,
+  CLAUDE_SETTINGS,
+  type GlobalRoot,
+  globalGuidanceFiles,
+  guidanceImports,
+  junkFiles,
+  SETTINGS_COMMAND_KEYS,
+} from './machine-scope';
 import { claudeMemoryKey } from './memory-locations';
-import { redact } from './safety';
+import { inside, redact } from './safety';
 import type { Store } from './store';
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
@@ -69,17 +78,49 @@ export function parseMachineInventory(text: string): MachineInventory {
 }
 
 const globalFiles: [string, MachineGroup, string][] = [
-  ['.claude/CLAUDE.md', 'guidance', 'claude'],
-  ['.claude/settings.json', 'settings', 'claude'],
+  ...globalGuidanceFiles.map(([root, file, agent]): [string, MachineGroup, string] => [
+    `${root}/${file}`,
+    'guidance',
+    agent,
+  ]),
+  [CLAUDE_SETTINGS, 'settings', 'claude'],
   ['.claude.json', 'settings', 'claude'],
-  ['.codex/AGENTS.md', 'guidance', 'codex'],
   ['.codex/config.toml', 'settings', 'codex'],
   ['.kiro/settings/mcp.json', 'mcp', 'kiro'],
   ['.config/opencode/opencode.json', 'settings', 'opencode'],
-  ['.gemini/GEMINI.md', 'guidance', 'gemini'],
   ['.gemini/settings.json', 'settings', 'gemini'],
   ['.grok/config.toml', 'settings', 'grok'],
 ];
+const MAX_IMPORTS = 50;
+const MAX_IMPORT_DEPTH = 4;
+
+/** Markdown files that global guidance imports with `@file`, kept inside the importing agent's folder. */
+export async function importedGuidance(home: string): Promise<[GlobalRoot, string, string][]> {
+  const found: [GlobalRoot, string, string][] = [];
+  const seen = new Set<string>();
+  const visit = async (root: GlobalRoot, file: string, agent: string, depth: number) => {
+    const folder = join(home, root);
+    const text = await readLocalBytes(join(folder, file), MAX_FILE_BYTES)
+      .then((bytes) => bytes.toString('utf8'))
+      .catch(() => '');
+    for (const spec of guidanceImports(text)) {
+      if (found.length >= MAX_IMPORTS) return;
+      const target = spec.startsWith('~/')
+        ? join(home, spec.slice(2))
+        : isAbsolute(spec)
+          ? spec
+          : join(folder, dirname(file), spec);
+      if (!inside(folder, target) || seen.has(target)) continue;
+      seen.add(target);
+      if (!(await lstat(target).catch(() => undefined))?.isFile()) continue;
+      const path = relative(folder, target).split('\\').join('/');
+      found.push([root, path, agent]);
+      if (depth < MAX_IMPORT_DEPTH) await visit(root, path, agent, depth + 1);
+    }
+  };
+  for (const [root, file, agent] of globalGuidanceFiles) await visit(root, file, agent, 1);
+  return found;
+}
 const projectFiles: [string, MachineGroup, string][] = [
   ['.mcp.json', 'mcp', 'claude'],
   ['.claude/settings.json', 'settings', 'claude'],
@@ -110,15 +151,29 @@ function privacyOf(key: string, bytes: Buffer, roots: string[], scanSecrets: boo
   return roots.some((root) => mentionsPath(text, root)) ? 'machine-specific' : 'portable';
 }
 
+/** Settings compare without hooks and the status line, which each machine keeps unless sent. */
+function comparable(key: string, bytes: Buffer): Buffer {
+  if (key !== CLAUDE_SETTINGS) return bytes;
+  try {
+    const settings = JSON.parse(bytes.toString('utf8')) as Record<string, unknown>;
+    for (const name of SETTINGS_COMMAND_KEYS) delete settings[name];
+    return Buffer.from(JSON.stringify(settings));
+  } catch {
+    return bytes;
+  }
+}
+
 async function hashFile(
   path: string,
   key: string,
   roots: string[],
   scanSecrets = true,
+  globalFile = false,
 ): Promise<Hashed | undefined> {
   const info = await lstat(path).catch(() => undefined);
   if (!info?.isFile() || info.size > MAX_FILE_BYTES) return;
-  const bytes = await readLocalBytes(path, MAX_FILE_BYTES);
+  const read = await readLocalBytes(path, MAX_FILE_BYTES);
+  const bytes = globalFile ? comparable(key, read) : read;
   const privacy = privacyOf(key, bytes, roots, scanSecrets);
   return {
     digest: createHash('sha256')
@@ -147,7 +202,8 @@ async function folderFiles(folder: string, base = folder, out: string[] = []): P
     const path = join(folder, entry.name);
     if (entry.isDirectory() && !ignoredDirectories.has(entry.name))
       await folderFiles(path, base, out);
-    else if (entry.isFile()) out.push(relative(base, path).split('\\').join('/'));
+    else if (entry.isFile() && !junkFiles.has(entry.name))
+      out.push(relative(base, path).split('\\').join('/'));
   }
   return out;
 }
@@ -203,11 +259,20 @@ async function fileItems(
   root: string,
   files: [string, MachineGroup, string][],
   identity: string[],
+  privateKeys?: Set<string>,
 ) {
   const items: MachineItem[] = [];
   for (const [key, group, harness] of files) {
-    const hashed = await hashFile(join(root, key), key, identity);
-    if (hashed) items.push({ key, group, harness, files: 1, ...hashed });
+    const hashed = await hashFile(join(root, key), key, identity, true, Boolean(privateKeys));
+    if (hashed)
+      items.push({
+        key,
+        group,
+        harness,
+        files: 1,
+        ...hashed,
+        ...(privateKeys?.has(key) ? { privacy: 'private' as const } : {}),
+      });
   }
   return items;
 }
@@ -349,7 +414,21 @@ export async function buildMachineInventory(options: {
     rigshelf: VERSION,
     global: [
       ...(await skillItems(home, globalSkillRoots, identity)),
-      ...(await fileItems(home, globalFiles, identity)),
+      ...(await fileItems(
+        home,
+        [
+          ...globalFiles,
+          ...(
+            await importedGuidance(home)
+          ).map(([root, path, agent]): [string, MachineGroup, string] => [
+            `${root}/${path}`,
+            'guidance',
+            agent,
+          ]),
+        ],
+        identity,
+        new Set(accountFiles.map(([key]) => key)),
+      )),
       ...(await ruleItems(join(home, '.claude'), '.claude/', identity)),
     ],
     projects: await Promise.all(

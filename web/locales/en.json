@@ -1362,7 +1362,6 @@
   "Restore the base Preset to use a Snapshot in every project.": "Restore the base Preset to use a Snapshot in every project.",
   "Another revision is pinned; adding this one replaces it.": "Another revision is pinned; adding this one replaces it.",
   "This Snapshot has findings, so setups leave it out until it is reviewed.": "This Snapshot has findings, so setups leave it out until it is reviewed.",
-  "Skills for agents not installed on {{alias}} are left out: {{agents}}": "Skills for agents not installed on {{alias}} are left out: {{agents}}",
   "Send": "Send",
   "Local agent files that Git does not track": "Local agent files that Git does not track",
   "Claude memory of each matched project": "Claude memory of each matched project",
@@ -1370,5 +1369,6 @@
   "Hooks and status line commands (they run on the server)": "Hooks and status line commands (they run on the server)",
   "Skills go to the agents installed on {{alias}}. Private local settings, account files and credentials stay on this machine.": "Skills go to the agents installed on {{alias}}. Private local settings, account files and credentials stay on this machine.",
   "skipped {{value}}": "skipped {{value}}",
-  "Left out by these Presets and those built on them: {{names}}": "Left out by these Presets and those built on them: {{names}}"
+  "Left out by these Presets and those built on them: {{names}}": "Left out by these Presets and those built on them: {{names}}",
+  "Agents not installed on {{alias}} are left out: {{agents}}": "Agents not installed on {{alias}} are left out: {{agents}}"
 }
