@@ -13,7 +13,7 @@ import { adapter } from './providers';
 import { assertWritePath, checkedProject, hash, now, safeRelative, slug } from './safety';
 import type { Store } from './store';
 
-export async function verifyChanges(plan: Plan, direction: 'apply' | 'rollback'): Promise<void> {
+async function verifyChanges(plan: Plan, direction: 'apply' | 'rollback'): Promise<void> {
   await checkedProject(plan.projectPath);
   if (
     plan.rootIdentity !== undefined &&

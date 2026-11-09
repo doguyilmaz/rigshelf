@@ -13,7 +13,6 @@ interface Baseline {
   payload: string;
 }
 const MAX_BASELINE_BYTES = 128 * 1024 * 1024;
-/** Immutable private metadata receipt. Source files and authority records are never copied. */
 export function captureInventoryBaseline(store: Store): string {
   return store.db.transaction(() => {
     const projects = store.projects();

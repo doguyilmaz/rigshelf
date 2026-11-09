@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, realpath } from 'node:fs/promises';
+import { lstat, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { Finding } from './model';
@@ -69,10 +69,6 @@ export async function assertWritePath(root: string, path: string): Promise<strin
     candidate = dirname(candidate);
   }
   return target;
-}
-
-export async function privateDirectory(path: string): Promise<void> {
-  await mkdir(path, { recursive: true, mode: 0o700 });
 }
 
 const PLACEHOLDER = '${RIGSHELF_SECRET}';

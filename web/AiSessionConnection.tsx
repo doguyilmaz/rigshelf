@@ -5,7 +5,6 @@ import { Button, CopyButton } from './components';
 import { t } from './i18n';
 import { Select } from './Select';
 
-/** Draft proposal tools work over the default read/plan MCP connection. */
 export function AiSessionConnection({ initialProvider }: { initialProvider?: string }) {
   const fieldId = useId();
   const options = [

@@ -4,16 +4,8 @@ import { McpSchema, ProvidersSchema, SafeName } from './model';
 import { redact, scanText } from './safety';
 import { sanitizeMcp } from './scanner';
 
-export const AiRunnerSchema = z.enum(['claude', 'codex', 'ollama', 'session', 'compatible']);
-export const AiTaskSchema = z.enum([
-  'library',
-  'skill',
-  'mcp',
-  'rule',
-  'preset',
-  'requirements',
-  'text',
-]);
+const AiRunnerSchema = z.enum(['claude', 'codex', 'ollama', 'session', 'compatible']);
+const AiTaskSchema = z.enum(['library', 'skill', 'mcp', 'rule', 'preset', 'requirements', 'text']);
 export const AiRequestSchema = z
   .object({
     task: AiTaskSchema,

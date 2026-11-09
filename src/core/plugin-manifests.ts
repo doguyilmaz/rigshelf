@@ -5,7 +5,7 @@ import type { PluginReference } from './plugin-model';
 import { object } from './providers';
 import { hash, redact } from './safety';
 
-export const pluginManifestNames = [
+const pluginManifestNames = [
   'plugin.json',
   '.codex-plugin/plugin.json',
   '.claude-plugin/plugin.json',
@@ -26,7 +26,7 @@ export const nativePluginId = (value: unknown): string | undefined =>
   /^[A-Za-z0-9@][A-Za-z0-9@._:/+-]*$/.test(value)
     ? value
     : undefined;
-export const pluginVersion = (value: unknown): string | undefined =>
+const pluginVersion = (value: unknown): string | undefined =>
   typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._+-]{0,99}$/.test(value) ? value : undefined;
 export const portablePlugin = (value: Record<string, unknown>): boolean =>
   typeof value.$schema === 'string' &&

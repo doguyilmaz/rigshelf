@@ -8,7 +8,12 @@ import { ignoredDirectories } from './inventory-paths';
 import { readKit } from './kit';
 import { MAX_PROJECT_KIT_ENTRIES } from './kit-limits';
 import { readLocalBytes } from './local-files';
-import { importedGuidance, type MachineInventory, machineProjects } from './machine-inventory';
+import {
+  folderFiles,
+  importedGuidance,
+  type MachineInventory,
+  machineProjects,
+} from './machine-inventory';
 import { replacePaths } from './machine-paths';
 import {
   accountFiles,
@@ -18,7 +23,6 @@ import {
   type GlobalRoot,
   globalGuidanceFiles,
   globalRoots,
-  junkFiles,
   skillRoots,
 } from './machine-scope';
 import { claudeMemoryKey } from './memory-locations';
@@ -145,7 +149,7 @@ const SyncRequestSchema = z.object({
 export type SyncRequest = z.infer<typeof SyncRequestSchema>;
 type CopiedFiles = z.infer<typeof Files>;
 type Withheld = { id: string; name: string; reason: string };
-export interface PreparedProject {
+interface PreparedProject {
   repository: string;
   skipped?: string[];
   path?: string;
@@ -160,7 +164,7 @@ export interface PreparedProject {
   localFiles?: number;
   localError?: string;
 }
-export interface PreparedGlobal {
+interface PreparedGlobal {
   root: string;
   skipped?: string[];
   planId?: string;
@@ -195,23 +199,6 @@ class FileBudget {
   }
 }
 
-/** Walks a folder without entering Git metadata, dependencies, caches or private runtime folders. */
-async function folderFiles(base: string, folder: string): Promise<string[]> {
-  const files: string[] = [];
-  const walk = async (current: string) => {
-    const entries = await readdir(current, { withFileTypes: true }).catch(() => []);
-    for (const entry of entries) {
-      const path = join(current, entry.name);
-      if (entry.isDirectory()) {
-        if (!ignoredDirectories.has(entry.name)) await walk(path);
-      } else if (entry.isFile() && !junkFiles.has(entry.name))
-        files.push(relative(base, path).split('\\').join('/'));
-    }
-  };
-  await walk(join(base, folder));
-  return files.sort();
-}
-
 async function trackedFiles(project: string, paths: string[]): Promise<Set<string> | undefined> {
   if (!paths.length) return new Set();
   const git = Bun.which('git');
@@ -239,7 +226,13 @@ async function collectLocalFiles(
   budget: FileBudget,
 ): Promise<CopiedFiles | undefined> {
   const candidates = [
-    ...(await Promise.all(localFolders.map((folder) => folderFiles(project.path, folder)))).flat(),
+    ...(
+      await Promise.all(
+        localFolders.map((folder) =>
+          folderFiles(join(project.path, folder), project.path, Infinity),
+        ),
+      )
+    ).flat(),
     ...localFiles,
   ];
   const tracked = await trackedFiles(project.path, candidates);
@@ -277,7 +270,8 @@ async function skillFiles(home: string, root: string, budget: FileBudget): Promi
       budget.hold(name, 'No SKILL.md at the top of this folder.');
       continue;
     }
-    for (const path of await folderFiles(folder, '.')) files.push(`skills/${entry.name}/${path}`);
+    for (const path of await folderFiles(folder, folder, Infinity))
+      files.push(`skills/${entry.name}/${path}`);
   }
   return files;
 }
@@ -285,14 +279,14 @@ async function skillFiles(home: string, root: string, budget: FileBudget): Promi
 async function collectMemory(home: string, project: string, budget: FileBudget) {
   const folder = join(home, '.claude/projects', claudeMemoryKey(project), 'memory');
   const files: CopiedFiles = [];
-  for (const path of await folderFiles(folder, '.')) {
+  for (const path of await folderFiles(folder, folder, Infinity)) {
     const read = await budget.read(join(folder, path), `memory/${path}`);
     if (read) files.push({ path, ...read });
   }
   return files;
 }
 
-export interface SyncScope {
+interface SyncScope {
   home?: string;
   /** Untracked agent files in each project; on by default. */
   localFiles?: boolean;
@@ -412,7 +406,11 @@ export async function buildSyncRequest(
     if (installed('claude')) {
       await addGlobal('.claude', CLAUDE_SETTINGS);
       for (const folder of [...claudeRuleFolders, ...(options.commands ? ['hooks'] : [])])
-        for (const path of await folderFiles(join(home, '.claude'), folder))
+        for (const path of await folderFiles(
+          join(home, '.claude', folder),
+          join(home, '.claude'),
+          Infinity,
+        ))
           await addGlobal('.claude', path);
     }
     const settings = globalFiles.find(

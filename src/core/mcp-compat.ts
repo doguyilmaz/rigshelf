@@ -64,10 +64,7 @@ export function referencedEnvironment(definition: Mcp): string[] {
   ];
 }
 
-export function expandEnvironment(
-  value: string,
-  environment: Record<string, string | undefined>,
-): string {
+function expandEnvironment(value: string, environment: Record<string, string | undefined>): string {
   return value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_match, name: string) => {
     const replacement = environment[name];
     if (replacement === undefined)

@@ -26,7 +26,7 @@ export interface ProjectSuggestion {
   additions: Recommendation[];
   autoApplied: boolean;
 }
-export type ProjectCheckResult = ProjectSuggestion | { unchanged: true; project: string };
+type ProjectCheckResult = ProjectSuggestion | { unchanged: true; project: string };
 
 export async function checkProject(
   store: Store,

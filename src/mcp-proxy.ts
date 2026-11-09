@@ -54,7 +54,7 @@ async function findDefinition(path: string): Promise<{ definition: Mcp; projectR
   }
 }
 
-export function toolAllowed(definition: Mcp, name: string): boolean {
+function toolAllowed(definition: Mcp, name: string): boolean {
   return (
     !definition.deniedTools?.includes(name) &&
     (definition.allowedTools === undefined || definition.allowedTools.includes(name))

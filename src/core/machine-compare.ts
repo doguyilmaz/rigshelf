@@ -3,7 +3,7 @@ import { skillRoots, syncsGlobalItem } from './machine-scope';
 
 export const syncStatuses = ['same', 'different', 'missing-remote', 'missing-local'] as const;
 export type SyncStatus = (typeof syncStatuses)[number];
-export type SyncAction = 'none' | 'copy' | 'review' | 'remap' | 'set-up-manually';
+type SyncAction = 'none' | 'copy' | 'review' | 'remap' | 'set-up-manually';
 export interface SyncRow {
   key: string;
   group: MachineGroup;

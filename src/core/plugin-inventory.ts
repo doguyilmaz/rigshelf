@@ -37,7 +37,7 @@ interface PackageBase {
   provider: Provider;
   directory: 'cache' | 'marketplaces' | 'bundled-marketplaces';
 }
-export interface NativePluginInput {
+interface NativePluginInput {
   roots: AiConfigRoot[];
   projects: {
     project: Project;

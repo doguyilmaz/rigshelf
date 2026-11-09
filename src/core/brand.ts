@@ -1,4 +1,3 @@
-/** Display identity is independent of persisted format keys and project ownership records. */
 export const brand = {
   name: 'Rigshelf',
   slug: 'rigshelf',

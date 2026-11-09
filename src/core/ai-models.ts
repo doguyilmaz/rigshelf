@@ -1,4 +1,3 @@
-/** Convenience choices, not an account entitlement or a live model inventory. */
 export const draftModels = {
   claude: [
     { value: 'haiku', label: 'Haiku · quick drafts' },

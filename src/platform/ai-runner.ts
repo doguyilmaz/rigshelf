@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AiConnection } from '../core/ai-connections';
 import type { AiRequest } from '../core/ai-drafts';
+import { readBounded } from '../core/bounded-read';
 import { readLocalBytes } from '../core/local-files';
 import { readReviewResponse } from '../core/review-response';
 import { runCompatibleAi } from './compatible-ai';
@@ -57,24 +58,11 @@ async function boundedStream(
   stream: ReadableStream<Uint8Array>,
   stop: () => void,
 ): Promise<string> {
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const part = await reader.read();
-      if (part.done) break;
-      size += part.value.length;
-      if (size > MAX_OUTPUT_BYTES) {
-        stop();
-        throw new Error('AI process output exceeded its limit.');
-      }
-      chunks.push(part.value);
-    }
-  } finally {
-    await reader.cancel();
-  }
-  return Buffer.concat(chunks).toString('utf8');
+  const output = await readBounded(stream, MAX_OUTPUT_BYTES, () => {
+    stop();
+    return new Error('AI process output exceeded its limit.');
+  });
+  return output.toString('utf8');
 }
 export function aiCommand(runner: 'claude' | 'codex', model: string, output: string): string[] {
   if (runner === 'claude')

@@ -91,12 +91,11 @@ function excludedLocation(root: string, canonical: string): boolean {
       .some((part) => privateRuntimeDirectories.has(part))
   );
 }
-export interface ProjectAiContexts {
+interface ProjectAiContexts {
   paths: string[];
   warnings: string[];
 }
 
-/** Read directory names only; source files and dependency/build/cache directories are never read. */
 export async function projectAiContexts(root: string): Promise<ProjectAiContexts> {
   const paths = new Set([root]);
   const warnings: string[] = [];
@@ -447,7 +446,6 @@ export async function globalGuidance(roots: AiConfigRoot[], home = homedir()) {
   return { files: await collect(candidates, allowed, warnings), warnings };
 }
 
-/** Exact full-path keys only: another repository with the same basename is never associated. */
 export async function userProjectMemory(project: string, roots: AiConfigRoot[]) {
   const warnings: string[] = [];
   const allowed = await boundaries(roots.map((item) => item.path));
@@ -475,7 +473,6 @@ export function mergedGuidance(...groups: DocumentLocation[][]): DocumentLocatio
   );
 }
 
-/** Known native files are data for inspection, never executable installation instructions. */
 export async function nativeAiFiles(directory: string, context: Context, roots: string[]) {
   const warnings: string[] = [];
   const allowed = await boundaries(roots);

@@ -29,7 +29,6 @@ export function pluginPathAllowed(path: string, roots: string[]): boolean {
   );
 }
 
-/** Read known metadata only. Linked/hard-linked leaves, private targets and growing files are refused. */
 export async function readPluginFile(
   path: string,
   roots: string[],

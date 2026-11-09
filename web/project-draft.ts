@@ -20,7 +20,6 @@ const strings = (value: unknown, limit: number, length: number): value is string
   value.length <= limit &&
   value.every((item) => typeof item === 'string' && item.length > 0 && item.length <= length);
 
-/** A recovery draft carries choices only. A fresh inspection must precede every plan. */
 export function parseProjectDraft(raw: string | null): ProjectDraft | undefined {
   if (!raw || raw.length > MAX_STORED_DRAFT_CHARACTERS) return;
   try {

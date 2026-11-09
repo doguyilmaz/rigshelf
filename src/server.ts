@@ -6,6 +6,7 @@ import { compareArchive, exportArchive, importArchive } from './core/archive';
 import { Automation } from './core/automation';
 import { closeBackupJobs } from './core/backup-jobs';
 import type { BackupTransportFactory } from './core/backup-transport';
+import { readBounded } from './core/bounded-read';
 import { DefinitionConflict } from './core/definitions';
 import type { RemoteRunner } from './core/machine-ssh';
 import { inside } from './core/safety';
@@ -16,23 +17,17 @@ import type { AiDriver } from './platform/ai-runner';
 import { devBuild } from './platform/dev-build';
 import { createDirectoryPicker, type DirectoryPickerDriver } from './platform/folder-picker';
 
+const MAX_JSON_REQUEST_BYTES = 32 * 1024 * 1024;
+
 export type WorkbenchServer = Bun.Server<undefined> & { accessUrl: string };
 async function readJson(request: Request): Promise<unknown> {
-  const reader = request.body?.getReader();
-  if (!reader) throw new Error('JSON body is required.');
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (true) {
-    const part = await reader.read();
-    if (part.done) break;
-    size += part.value.length;
-    if (size > 32 * 1024 * 1024) {
-      await reader.cancel();
-      throw new Error('JSON request exceeds 32 MiB. Use a compressed archive for library imports.');
-    }
-    chunks.push(part.value);
-  }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  if (!request.body) throw new Error('JSON body is required.');
+  const body = await readBounded(
+    request.body,
+    MAX_JSON_REQUEST_BYTES,
+    () => new Error('JSON request exceeds 32 MiB. Use a compressed archive for library imports.'),
+  );
+  return JSON.parse(body.toString('utf8'));
 }
 export function startServer(
   store: Store,

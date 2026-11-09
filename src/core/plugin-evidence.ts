@@ -18,7 +18,6 @@ export function pluginStatus(locations: Installation[]): PluginStatus {
     ) || 'reference'
   );
 }
-/** Cache/catalog observations are not project use or global installation evidence. */
 export function usageLocations(locations: Installation[]): Installation[] {
   return locations.filter(
     (location) => !location.plugin || !['cached', 'catalog'].includes(location.plugin.evidence),

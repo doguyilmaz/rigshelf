@@ -12,7 +12,7 @@ export interface Ownership {
   manifestHash: string;
   kit: Kit;
 }
-export interface ProjectApproval {
+interface ProjectApproval {
   id: string;
   enabled: boolean;
   rootIdentity?: string;

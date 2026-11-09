@@ -134,7 +134,7 @@ export function compareLibraryItems(left: LibraryItem, right: LibraryItem, sort:
 const any = (selected: string[], actual: string[]) =>
   !selected.length ||
   selected.some((value) => (value === 'unclassified' ? !actual.length : actual.includes(value)));
-export function matchesLibraryItem(
+function matchesLibraryItem(
   item: LibraryItem,
   filters: LibraryFilters,
   omit?: keyof LibraryFilters,

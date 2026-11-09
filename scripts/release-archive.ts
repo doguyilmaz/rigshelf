@@ -9,7 +9,7 @@ import { type ReleaseFile, releasePath } from './release-files';
 
 export type Delivery = 'portable' | `bun-${string}`;
 
-export function releaseManifest(files: ReleaseFile[], delivery: Delivery): string {
+function releaseManifest(files: ReleaseFile[], delivery: Delivery): string {
   return `${JSON.stringify(
     {
       formatVersion: 1,

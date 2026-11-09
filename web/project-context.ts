@@ -1,4 +1,3 @@
-/** A current form choice, never evidence of project ownership or permission. */
 export interface CurrentProject {
   id: string;
   name: string;

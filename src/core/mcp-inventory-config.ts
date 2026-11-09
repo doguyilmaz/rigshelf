@@ -23,7 +23,6 @@ function syntaxError(text: string, format: 'json' | 'jsonc' | 'toml'): McpInvent
     `MCP syntax error at line ${line}, column ${column}; previous observations retained.`,
   );
 }
-/** Parser diagnostics contain positions only, never source text or raw exception messages. */
 export function readInventoryMcpConfig(
   text: string,
   format: 'json' | 'jsonc' | 'toml',

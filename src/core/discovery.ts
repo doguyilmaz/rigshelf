@@ -1,6 +1,9 @@
 import { z } from 'zod';
+import { readBounded } from './bounded-read';
 import { hash, now, redact } from './safety';
 import type { Store } from './store';
+
+const MAX_DIRECTORY_RESPONSE_BYTES = 1024 * 1024;
 
 export interface Discovery {
   id: string;
@@ -36,21 +39,13 @@ export async function discoverSkills(store: Store, raw: unknown): Promise<Discov
   );
   if (!response.ok)
     throw new Error(`Skill directory returned HTTP ${response.status}. Try again later.`);
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('Empty directory response');
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (true) {
-    const part = await reader.read();
-    if (part.done) break;
-    size += part.value.length;
-    if (size > 1024 * 1024) {
-      await reader.cancel();
-      throw new Error('Directory response exceeded 1 MiB.');
-    }
-    chunks.push(part.value);
-  }
-  const parsed = SearchResponse.parse(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+  if (!response.body) throw new Error('Empty directory response');
+  const body = await readBounded(
+    response.body,
+    MAX_DIRECTORY_RESPONSE_BYTES,
+    () => new Error('Directory response exceeded 1 MiB.'),
+  );
+  const parsed = SearchResponse.parse(JSON.parse(body.toString('utf8')));
   const skills = parsed.skills
     .filter(
       (skill) =>

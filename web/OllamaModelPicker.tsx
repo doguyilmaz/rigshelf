@@ -5,7 +5,6 @@ import { api } from './api';
 import { t } from './i18n';
 import { Select } from './Select';
 
-/** A deliberate model-list request; opening the editor never queries or runs Ollama. */
 export function OllamaModelPicker({
   id,
   label,

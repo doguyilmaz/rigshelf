@@ -1,3 +1,4 @@
+import { readBounded } from './bounded-read';
 import { publicArchive, publicHead, type RepositoryFile as TreeFile } from './github-archive';
 import { saveSkill, sensitiveResource } from './ingest';
 import type { Entry, Finding, PackedFile, Source } from './model';
@@ -21,7 +22,7 @@ const allowedResourceHosts = new Set([
   'x.com',
 ]);
 
-export function githubRepository(source: Source): string {
+function githubRepository(source: Source): string {
   const match = source.url.match(/^https:\/\/(?:github\.com|skills\.sh)\/([\w.-]+\/[^/?#]+)/);
   if (
     !match ||
@@ -48,21 +49,12 @@ async function boundedFetch(
   if (!response.ok) throw new Error(`Upstream returned HTTP ${response.status}`);
   if (Number(response.headers.get('content-length') || 0) > limit)
     throw new Error('Upstream response is too large.');
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('Empty upstream response');
-  let size = 0;
-  const parts: Uint8Array[] = [];
-  while (true) {
-    const result = await reader.read();
-    if (result.done) break;
-    size += result.value.length;
-    if (size > limit) {
-      await reader.cancel();
-      throw new Error('Upstream response exceeds size limit.');
-    }
-    parts.push(result.value);
-  }
-  return Buffer.concat(parts);
+  if (!response.body) throw new Error('Empty upstream response');
+  return readBounded(
+    response.body,
+    limit,
+    () => new Error('Upstream response exceeds size limit.'),
+  );
 }
 let apiUnavailableUntil = 0;
 async function githubJson<T>(url: string): Promise<T> {
@@ -178,7 +170,7 @@ export async function checkSource(store: Store, id: string): Promise<Source> {
   return updated;
 }
 
-export async function sourceTree(
+async function sourceTree(
   store: Store,
   id: string,
 ): Promise<{
@@ -278,7 +270,7 @@ export async function importUpstreamSkill(
 }
 
 /** Reuse one immutable, bounded source tree when checking several existing Skills. */
-export async function importSkillFromTree(
+async function importSkillFromTree(
   store: Store,
   tree: Awaited<ReturnType<typeof sourceTree>>,
   path: string,

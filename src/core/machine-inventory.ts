@@ -70,7 +70,7 @@ const InventorySchema = z.object({
 });
 export type MachineItem = z.infer<typeof ItemSchema>;
 export type MachineInventory = z.infer<typeof InventorySchema>;
-export type MachineProject = MachineInventory['projects'][number];
+type MachineProject = MachineInventory['projects'][number];
 
 export function parseMachineInventory(text: string): MachineInventory {
   if (text.length > MAX_INVENTORY_TEXT) throw new Error('The machine inventory is too large.');
@@ -195,13 +195,19 @@ function withoutMachinePaths(text: string, roots: string[]): string {
   ]);
 }
 
-async function folderFiles(folder: string, base = folder, out: string[] = []): Promise<string[]> {
+/** Files under `folder`, relative to `base`, skipping dependency, cache and VCS folders and OS junk files. */
+export async function folderFiles(
+  folder: string,
+  base = folder,
+  limit = MAX_FILES_PER_FOLDER,
+  out: string[] = [],
+): Promise<string[]> {
   const entries = await readdir(folder, { withFileTypes: true }).catch(() => []);
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-    if (out.length >= MAX_FILES_PER_FOLDER) break;
+    if (out.length >= limit) break;
     const path = join(folder, entry.name);
     if (entry.isDirectory() && !ignoredDirectories.has(entry.name))
-      await folderFiles(path, base, out);
+      await folderFiles(path, base, limit, out);
     else if (entry.isFile() && !junkFiles.has(entry.name))
       out.push(relative(base, path).split('\\').join('/'));
   }

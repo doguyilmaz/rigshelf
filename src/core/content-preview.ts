@@ -1,6 +1,6 @@
 import { redact } from './safety';
 
-export interface ContentPreview {
+interface ContentPreview {
   text: string;
   bytes: number;
   binary: boolean;

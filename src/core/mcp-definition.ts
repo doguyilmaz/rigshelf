@@ -1,7 +1,7 @@
 import { type Mcp, McpSchema } from './model';
 import { redact } from './safety';
 
-export const SENSITIVE_MCP_ENV_KEY =
+const SENSITIVE_MCP_ENV_KEY =
   /api.?key|access.?key|token|secret|password|authorization|credential|cookie|private.?key/i;
 const CREDENTIAL_FLAG = /^--?[\w-]*(?:token|secret|password|key|auth|authorization|credential)s?$/i;
 const INLINE_CREDENTIAL_FLAG =
@@ -15,7 +15,7 @@ const PUBLIC_ENV =
   /^(?:NODE_ENV|BUN_ENV|MODE|LOG_LEVEL|DEBUG|PORT|TZ|LANG|LC_ALL|NO_COLOR|FORCE_COLOR|CI|MCP_TRANSPORT|MCP_PORT|MCP_HOST)$/i;
 const SECRET_REFERENCE = '${RIGSHELF_SECRET}';
 
-export function isMcpReference(value: string): boolean {
+function isMcpReference(value: string): boolean {
   return /^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(value);
 }
 
@@ -62,7 +62,7 @@ function maskArgument(value: string, previous: string | undefined): string {
   );
 }
 
-export function maskMcpCredentials(definition: Mcp): Mcp {
+function maskMcpCredentials(definition: Mcp): Mcp {
   return {
     ...definition,
     command: definition.command ? credentialText(definition.command) : undefined,

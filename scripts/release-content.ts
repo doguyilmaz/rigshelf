@@ -85,7 +85,7 @@ Add ${portable ? 'the bin directory' : 'this directory'} to your own PATH for sh
 
 Application files are separate from your private catalog. Data lives in ~/.local/share/rigshelf; RIGSHELF_DATA_DIR chooses another private directory. Replacing this application directory does not move or remove that data. Use the [reviewed backup flow](docs/BACKUP-SYNC.md) before changing machines.
 
-The archive checksum sidecar and manifest.json identify exact bytes. They do not establish publisher identity or certify third-party instructions. Native artifacts are local builds without Rigshelf publisher signing or notarization. Verify a target before advertising it as supported.
+The .sha256 file and manifest.json identify the exact bytes of this archive.
 
 [Delivery details](docs/DISTRIBUTION.md) · [Security](SECURITY.md) · [Source overview](SOURCE-README.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 `,

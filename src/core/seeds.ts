@@ -2,7 +2,7 @@ import type { Preset } from './model';
 import { slug } from './safety';
 import type { Store } from './store';
 
-export const presets: Preset[] = [
+const presets: Preset[] = [
   {
     id: 'base',
     name: 'Essentials',

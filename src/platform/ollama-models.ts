@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { readBounded } from '../core/bounded-read';
 
 const MODEL_LIST_URL = 'http://127.0.0.1:11434/api/tags';
 const MODEL_LIST_TIMEOUT_MS = 2500;
@@ -26,7 +27,6 @@ const ModelsSchema = z.object({
     .max(1000),
 });
 
-/** Model metadata reported by {@link getOllamaModels}; no model is loaded by discovery. */
 export interface OllamaModel {
   /** The exact name to pass to the Ollama generation request. */
   name: string;
@@ -64,23 +64,13 @@ export async function getOllamaModels(
     await response.body?.cancel().catch(() => undefined);
     throw new Error('Ollama could not list models. Check the service and try again.');
   }
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('Ollama returned an invalid model list.');
-  const chunks: Uint8Array[] = [];
-  let byteSize = 0;
-  try {
-    while (true) {
-      const part = await reader.read();
-      if (part.done) break;
-      byteSize += part.value.length;
-      if (byteSize > MAX_MODEL_LIST_BYTES)
-        throw new Error('Ollama model metadata exceeds the 1 MiB limit.');
-      chunks.push(part.value);
-    }
-  } finally {
-    await reader.cancel().catch(() => undefined);
-  }
-  const parsed = ModelsSchema.safeParse(parseModelJson(chunks));
+  if (!response.body) throw new Error('Ollama returned an invalid model list.');
+  const body = await readBounded(
+    response.body,
+    MAX_MODEL_LIST_BYTES,
+    () => new Error('Ollama model metadata exceeds the 1 MiB limit.'),
+  );
+  const parsed = ModelsSchema.safeParse(parseModelJson(body));
   if (!parsed.success) throw new Error('Ollama returned an invalid model list.');
   const models = new Map<string, OllamaModel>();
   for (const item of parsed.data.models) {
@@ -94,9 +84,9 @@ export async function getOllamaModels(
   return [...models.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
-function parseModelJson(chunks: Uint8Array[]): unknown {
+function parseModelJson(body: Buffer): unknown {
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return JSON.parse(body.toString('utf8'));
   } catch {
     throw new Error('Ollama returned an invalid model list.');
   }

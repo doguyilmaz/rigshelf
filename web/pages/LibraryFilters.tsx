@@ -23,7 +23,7 @@ import { MultiSelect } from '../MultiSelect';
 import { Select, type SelectOption } from '../Select';
 
 type Preferences = ReturnType<typeof useLibraryPreferences>;
-export interface FilterChip {
+interface FilterChip {
   key: string;
   label: string;
   remove: () => void;

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-export type Locale = 'en' | 'tr';
+type Locale = 'en' | 'tr';
 export const languages: { value: Locale; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'tr', label: 'Türkçe' },
