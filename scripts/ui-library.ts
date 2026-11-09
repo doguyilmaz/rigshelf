@@ -94,6 +94,10 @@ try {
   await expect.poll(() => data.store.entry(expo.id)?.tags.includes('platform:backend')).toBe(true);
   const basePreset = data.store.get<{ id: string; entryIds: string[] }>('preset', 'base')!;
   data.store.put('preset', { ...basePreset, entryIds: [...basePreset.entryIds, backend.id] });
+  const child = data.store
+    .list<{ id: string; name: string; parentId: string | null; excludedIds: string[] }>('preset')
+    .find((preset) => preset.parentId === 'base')!;
+  data.store.put('preset', { ...child, excludedIds: [...child.excludedIds, expo.id] });
   const pinnedInBase = () =>
     data.store.get<{ entryIds: string[] }>('preset', 'base')?.entryIds.includes(expo.id);
   await detail.getByRole('button', { name: 'Add to every project', exact: true }).click();
@@ -112,6 +116,12 @@ try {
     )
     .toBe(true);
   expect(data.store.get<{ entryIds: string[] }>('preset', 'base')?.entryIds).toContain(backend.id);
+  await expect(
+    detail.getByText(`Left out by these Presets and those built on them: ${child.name}`),
+  ).toBeVisible();
+  checks.push(
+    'A child Preset that leaves out a Snapshot pinned for every project is named next to the pin.',
+  );
   checks.push(
     'Adding to every project keeps a base Preset change made elsewhere instead of overwriting it.',
   );

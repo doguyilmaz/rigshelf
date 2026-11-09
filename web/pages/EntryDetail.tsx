@@ -58,6 +58,7 @@ function EveryProjectAction({
     );
   const pinned = base.entryIds.includes(entryId);
   const otherRevision = !pinned && revisionIds.some((id) => base.entryIds.includes(id));
+  const excludedBy = state.presets.filter((preset) => preset.excludedIds.includes(entryId));
   const gated = entry.findings.some(
     (finding) => finding.level === 'block' || finding.level === 'review',
   );
@@ -97,6 +98,13 @@ function EveryProjectAction({
         </small>
         {otherRevision && (
           <small>{t('Another revision is pinned; adding this one replaces it.')}</small>
+        )}
+        {excludedBy.length > 0 && (
+          <small>
+            {t('Left out by these Presets and those built on them: {{names}}', {
+              names: excludedBy.map((preset) => preset.name).join(', '),
+            })}
+          </small>
         )}
         {gated && (
           <small>

@@ -1369,5 +1369,6 @@
   "Global guidance, Claude settings and Skills": "Global yönergeler, Claude ayarları ve Skills",
   "Hooks and status line commands (they run on the server)": "Hook'lar ve status line komutları (sunucuda çalışır)",
   "Skills go to the agents installed on {{alias}}. Private local settings, account files and credentials stay on this machine.": "Skills, {{alias}} üzerinde kurulu agent'lara gider. Özel yerel ayarlar, hesap dosyaları ve kimlik bilgileri bu makinede kalır.",
-  "skipped {{value}}": "atlandı: {{value}}"
+  "skipped {{value}}": "atlandı: {{value}}",
+  "Left out by these Presets and those built on them: {{names}}": "Şu Preset'ler ve onlardan türeyenler bunu dışarıda bırakır: {{names}}"
 }
