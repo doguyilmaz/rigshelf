@@ -26,3 +26,5 @@ npm/
 CLAUDE.local.md
 .vscode/
 .idea/
+.cloudflare/
+.wrangler/
