@@ -4,7 +4,7 @@ import { Button, Modal, Notice } from './components';
 import { t } from './i18n';
 import type { Page } from './main';
 
-export const ONBOARDING_KEY = 'kitfold:onboarding:v1';
+export const ONBOARDING_KEY = 'rigshelf:onboarding:v1';
 export function onboardingSeen(): boolean {
   try {
     return localStorage.getItem(ONBOARDING_KEY) === 'seen';

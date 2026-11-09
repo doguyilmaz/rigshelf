@@ -9,7 +9,7 @@ import { fixture, sampleSkill } from '../tests/helpers';
 import { shortPath } from '../web/api';
 
 const data = await fixture();
-const catalog = new Store(join(data.root, 'kitfold'));
+const catalog = new Store(join(data.root, 'rigshelf'));
 seed(catalog);
 catalog.put('settings', { id: 'main', ...catalog.settings(), roots: [], scanGlobals: false });
 const skill = sampleSkill(catalog, 'retained-branding-guide');
@@ -25,13 +25,10 @@ const directory = resolve('.local/qa/branding');
 await mkdir(directory, { recursive: true });
 const errors: string[] = [];
 page.on('pageerror', (error) => errors.push(error.message));
-const english =
-  'This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.';
 try {
   await page.goto(server.accessUrl);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Library storage', exact: true })).toBeVisible();
-  await expect(page.getByText(english, { exact: true })).toBeVisible();
   await expect(page.getByText(shortPath(catalog.directory), { exact: true })).toBeVisible();
   await page.getByLabel('Connection harness', { exact: true }).click();
   await page.getByRole('option', { name: 'Codex', exact: true }).click();
@@ -39,10 +36,9 @@ try {
   const connection = page.locator('.settings-aside pre');
   await expect(connection).toContainText('[mcp_servers.rigshelf]');
   await expect(connection).toContainText('command = "rigshelf"');
-  await expect(connection).not.toContainText('kitfold');
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.locator('.storage-compatibility-note').scrollIntoViewIfNeeded();
+    await page.locator('.settings-aside pre').scrollIntoViewIfNeeded();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(
       false,
     );
@@ -57,8 +53,6 @@ try {
   await expect(
     page.getByRole('heading', { name: 'Kütüphane depolaması', exact: true }),
   ).toBeVisible();
-  await expect(page.locator('.storage-compatibility-note')).toContainText('Kitfold');
-  await expect(page.locator('.storage-compatibility-note')).toContainText('Rigshelf');
   expect(catalog.entry(skill.id)).toEqual(skill);
   expect(catalog.files(skill.id)).toEqual(files);
   const remote = startServer(catalog, 48021, { remoteName: 'build-box' });
@@ -79,9 +73,9 @@ try {
   const report = {
     checks: [
       'A workbench opened through ui <alias> names its machine in the header at desktop and phone widths.',
-      'Existing Kitfold storage remains visible at its actual path with an explicit English/Turkish compatibility explanation.',
+      'Library storage shows its actual path in English and Turkish.',
       'New connection snippets use Rigshelf in native Codex configuration; existing content and resources remain unchanged.',
-      'Storage explanation and connection preview fit three desktop/mobile widths without page errors or automated accessibility violations.',
+      'Storage and connection preview fit three desktop/mobile widths without page errors or automated accessibility violations.',
     ],
     errors,
   };

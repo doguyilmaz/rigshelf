@@ -9,7 +9,7 @@ import { assertWritePath, checkedProject, hash, now } from './safety';
 import type { Store } from './store';
 
 async function clearStaleLock(projectPath: string, planId: string): Promise<void> {
-  const path = await assertWritePath(projectPath, '.kitfold-write.lock');
+  const path = await assertWritePath(projectPath, '.rigshelf-write.lock');
   const text = await readText(path, 4096);
   if (text === undefined) return;
   if (!text)
@@ -30,7 +30,8 @@ async function clearStaleLock(projectPath: string, planId: string): Promise<void
   await unlink(path);
 }
 
-const TEMPORARY_SUFFIX = /^\.kitfold-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const TEMPORARY_SUFFIX =
+  /^\.rigshelf-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 async function removeTemporaryFiles(plan: Plan): Promise<void> {
   for (const change of plan.changes) {
@@ -83,7 +84,7 @@ export async function recoverPlan(store: Store, id: string): Promise<Plan> {
   )
     throw new Error('Project root changed. Recovery will not write into a replacement directory.');
   await clearStaleLock(plan.projectPath, id);
-  const lockPath = join(plan.projectPath, '.kitfold-write.lock');
+  const lockPath = join(plan.projectPath, '.rigshelf-write.lock');
   const lock = await open(lockPath, 'wx', 0o600);
   try {
     await lock.writeFile(JSON.stringify({ pid: process.pid, planId: id, direction: 'recover' }));

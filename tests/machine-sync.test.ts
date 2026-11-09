@@ -423,7 +423,7 @@ test('the server refuses bundles that would write Git metadata, dependency folde
         server,
         {
           library: {
-            format: 'kitfold-library',
+            format: 'rigshelf-library',
             schemaVersion: 1,
             exportedAt: '',
             entries: [],

@@ -44,12 +44,9 @@ async function portable(stage: string): Promise<void> {
     ),
     { mode: 0o755 },
   );
-  await writeFile(join(stage, 'bin/kitfold'), launcher('"$location/rigshelf" "$@"'), {
-    mode: 0o755,
-  });
   await writeFile(
     join(stage, 'package.json'),
-    `${JSON.stringify({ name: 'rigshelf-local', version: VERSION, private: true, type: 'module', bin: { rigshelf: 'bin/rigshelf', kitfold: 'bin/kitfold' } }, null, 2)}\n`,
+    `${JSON.stringify({ name: 'rigshelf-local', version: VERSION, private: true, type: 'module', bin: { rigshelf: 'bin/rigshelf' } }, null, 2)}\n`,
   );
   await installReadme(stage, 'portable');
 }
@@ -81,11 +78,6 @@ async function native(
     join(nativeStage, name),
     executable,
   );
-  if (!target.includes('windows'))
-    await writeFile(join(nativeStage, 'kitfold'), launcher('"$location/rigshelf" "$@"'), {
-      mode: 0o755,
-    });
-  else await writeFile(join(nativeStage, 'kitfold.cmd'), '@echo off\r\n"%~dp0rigshelf.exe" %*\r\n');
   await stageNativeDocuments(root, nativeStage);
   await installReadme(nativeStage, target);
   await copyFile(

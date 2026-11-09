@@ -83,7 +83,7 @@ test('CLI plans use explicit Agent choices, otherwise explicit Preset defaults, 
   expect(automatic.providers).toEqual(['codex']);
   expect(fromPreset.providers).toEqual(['opencode']);
   expect(explicit.providers).toEqual(['claude']);
-  expect(await Bun.file(join(project, '.kitfold/kit.json')).exists()).toBe(false);
+  expect(await Bun.file(join(project, '.rigshelf/kit.json')).exists()).toBe(false);
   expect(store.list('approval')).toEqual([]);
 });
 
@@ -152,7 +152,7 @@ test('CLI create-only and checked updates use bounded definition files while pre
   async function save(args: string[]) {
     const child = Bun.spawn(
       [process.execPath, resolve('src/cli.ts'), 'save-preset', input, ...args],
-      { env: { KITFOLD_DATA_DIR: store.directory }, stdout: 'pipe', stderr: 'pipe' },
+      { env: { RIGSHELF_DATA_DIR: store.directory }, stdout: 'pipe', stderr: 'pipe' },
     );
     const [code, stderr] = await Promise.all([
       child.exited,

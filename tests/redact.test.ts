@@ -20,7 +20,7 @@ const leaks = {
 for (const [name, text] of Object.entries(leaks))
   test(`redact catches a ${name}`, () => {
     expect(redact(text)).not.toBe(text);
-    expect(redact(text)).toContain('${KITFOLD_SECRET}');
+    expect(redact(text)).toContain('${RIGSHELF_SECRET}');
   });
 
 test('redact leaves variable references and ordinary text alone', () => {
@@ -69,10 +69,10 @@ test('redact stays linear on long single-line input', () => {
 
 test('redact still hides literal values next to secret names', () => {
   for (const [text, expected] of [
-    ['password: hunter2secret', 'password: ${KITFOLD_SECRET}'],
-    ['API_TOKEN=abc123def456', 'API_TOKEN=${KITFOLD_SECRET}'],
-    ['WIDGET_SECRET="0x4AAAAA"', 'WIDGET_SECRET="${KITFOLD_SECRET}"'],
-    ['token: Abc123xyz', 'token: ${KITFOLD_SECRET}'],
+    ['password: hunter2secret', 'password: ${RIGSHELF_SECRET}'],
+    ['API_TOKEN=abc123def456', 'API_TOKEN=${RIGSHELF_SECRET}'],
+    ['WIDGET_SECRET="0x4AAAAA"', 'WIDGET_SECRET="${RIGSHELF_SECRET}"'],
+    ['token: Abc123xyz', 'token: ${RIGSHELF_SECRET}'],
   ])
     expect(redact(text)).toBe(expected);
 });

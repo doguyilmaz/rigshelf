@@ -368,7 +368,7 @@ try {
     viewport: { width: 390, height: 900 },
     reducedMotion: 'reduce',
   });
-  await turkish.addInitScript(() => localStorage.setItem('agent-setup.language', 'tr'));
+  await turkish.addInitScript(() => localStorage.setItem('rigshelf:language', 'tr'));
   const localized = await turkish.newPage();
   localized.on('pageerror', (failure) => errors.push(failure.message));
   try {

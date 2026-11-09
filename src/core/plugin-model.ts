@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const PluginReferenceSchema = z
   .object({
-    format: z.literal('kitfold-native-plugin-reference'),
+    format: z.literal('rigshelf-native-plugin-reference'),
     provider: z.enum(['claude', 'codex', 'opencode']),
     nativeId: z
       .string()

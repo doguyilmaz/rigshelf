@@ -44,9 +44,9 @@ test('credential masking preserves environment references and handles escaped st
     token: 'short',
   });
   const result = JSON.parse(redact(input)) as Record<string, string>;
-  expect(result.api_key).toBe('${KITFOLD_SECRET}');
-  expect(result.Authorization).toBe('${KITFOLD_SECRET}');
+  expect(result.api_key).toBe('${RIGSHELF_SECRET}');
+  expect(result.Authorization).toBe('${RIGSHELF_SECRET}');
   expect(result.password).toBe('${PASSWORD}');
-  expect(result.token).toBe('${KITFOLD_SECRET}');
+  expect(result.token).toBe('${RIGSHELF_SECRET}');
   expect(redact('https://example.com?token=dummy-only&scope=read')).not.toContain('dummy-only');
 });

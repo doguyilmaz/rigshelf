@@ -47,7 +47,7 @@ test('MCP item reads never expose parsed legacy credential metadata', async () =
     new StdioClientTransport({
       command: process.execPath,
       args: [resolve('src/cli.ts'), 'mcp'],
-      env: { KITFOLD_DATA_DIR: data.store.directory },
+      env: { RIGSHELF_DATA_DIR: data.store.directory },
       stderr: 'pipe',
     }),
   );
@@ -73,14 +73,14 @@ test('read-only MCP can restore private returning choices without applying again
     presetId: 'cli',
   });
   await executePlan(data.store, plan.id, 'apply');
-  const before = await Bun.file(join(data.project, '.kitfold/kit.json')).text();
+  const before = await Bun.file(join(data.project, '.rigshelf/kit.json')).text();
   const client = new Client({ name: 'returning-reader-fixture', version: '1.0.0' });
   cleanup.unshift(() => client.close());
   await client.connect(
     new StdioClientTransport({
       command: process.execPath,
       args: [resolve('src/cli.ts'), 'mcp'],
-      env: { KITFOLD_DATA_DIR: data.store.directory },
+      env: { RIGSHELF_DATA_DIR: data.store.directory },
       stderr: 'pipe',
     }),
   );
@@ -102,7 +102,7 @@ test('read-only MCP can restore private returning choices without applying again
   expect(data.store.planSummaries()).toHaveLength(1);
   expect(data.store.list('approval')).toEqual([]);
   expect(data.store.list('trust')).toEqual([]);
-  expect(await Bun.file(join(data.project, '.kitfold/kit.json')).text()).toBe(before);
+  expect(await Bun.file(join(data.project, '.rigshelf/kit.json')).text()).toBe(before);
 });
 
 test('stdio bridge preserves tool restrictions and forwards only declared dummy secrets', async () => {
@@ -112,18 +112,21 @@ test('stdio bridge preserves tool restrictions and forwards only declared dummy 
     transport: 'stdio',
     command: process.execPath,
     args: [resolve('tests/fixtures/mcp-server.ts')],
-    env: { TOKEN: '${KITFOLD_TEST_TOKEN}' },
+    env: { TOKEN: '${RIGSHELF_TEST_TOKEN}' },
     headers: {},
     allowedTools: ['echo'],
     deniedTools: ['admin'],
   };
-  await Bun.write(join(data.project, '.kitfold/mcp/test.json'), JSON.stringify(definition));
-  const client = new Client({ name: 'kitfold-integration-test', version: '1.0.0' });
+  await Bun.write(join(data.project, '.rigshelf/mcp/test.json'), JSON.stringify(definition));
+  const client = new Client({ name: 'rigshelf-integration-test', version: '1.0.0' });
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [resolve('src/cli.ts'), 'mcp-proxy', '--file', '.kitfold/mcp/test.json'],
+    args: [resolve('src/cli.ts'), 'mcp-proxy', '--file', '.rigshelf/mcp/test.json'],
     cwd: data.project,
-    env: { KITFOLD_TEST_TOKEN: 'dummy-token-value', KITFOLD_UNDECLARED_SECRET: 'must-not-forward' },
+    env: {
+      RIGSHELF_TEST_TOKEN: 'dummy-token-value',
+      RIGSHELF_UNDECLARED_SECRET: 'must-not-forward',
+    },
     stderr: 'pipe',
   });
   cleanup.unshift(async () => {
@@ -162,7 +165,7 @@ test('empty local bridge definitions block ancestor execution while absent files
   const data = await fixture();
   cleanup.push(data.cleanup);
   const nested = join(data.project, 'packages/nested');
-  const relative = '.kitfold/mcp/test.json';
+  const relative = '.rigshelf/mcp/test.json';
   const marker = join(data.root, 'parent-started');
   await mkdir(nested, { recursive: true });
   await Bun.write(
@@ -171,7 +174,7 @@ test('empty local bridge definitions block ancestor execution while absent files
       transport: 'stdio',
       command: process.execPath,
       args: [resolve('tests/fixtures/mcp-server.ts')],
-      env: { KITFOLD_TEST_START_MARKER: marker },
+      env: { RIGSHELF_TEST_START_MARKER: marker },
     }),
   );
   await Bun.write(join(nested, relative), '');
@@ -218,7 +221,7 @@ test('setup plans use documented native formats and add a canonical bridge only 
     includeRules: true,
     allowReviewed: false,
   });
-  expect(plan.changes.some((change) => change.path === '.kitfold/mcp/filtered-server.json')).toBe(
+  expect(plan.changes.some((change) => change.path === '.rigshelf/mcp/filtered-server.json')).toBe(
     true,
   );
   const claude = JSON.parse(
@@ -247,7 +250,7 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
   );
   await scan(data.store, { roots: [data.project], globals: false, home: data.home });
   const project = data.store.projects()[0]!;
-  const client = new Client({ name: 'kitfold-test', version: '1.0.0' });
+  const client = new Client({ name: 'rigshelf-test', version: '1.0.0' });
   cleanup.unshift(async () => {
     await client.close();
   });
@@ -255,7 +258,7 @@ test('catalog MCP exposes read/plan tools by default and no hidden write tools',
     new StdioClientTransport({
       command: process.execPath,
       args: [resolve('src/cli.ts'), 'mcp'],
-      env: { KITFOLD_DATA_DIR: data.store.directory },
+      env: { RIGSHELF_DATA_DIR: data.store.directory },
       stderr: 'pipe',
     }),
   );
@@ -329,7 +332,7 @@ test('writable MCP supports create-only definitions and checked edits without gr
     new StdioClientTransport({
       command: process.execPath,
       args: [resolve('src/cli.ts'), 'mcp', '--write', '--root', data.project],
-      env: { KITFOLD_DATA_DIR: data.store.directory },
+      env: { RIGSHELF_DATA_DIR: data.store.directory },
       stderr: 'pipe',
     }),
   );
@@ -439,7 +442,7 @@ test('MCP pages directives and large plan metadata without exposing bulk file bo
     new StdioClientTransport({
       command: process.execPath,
       args: [resolve('src/cli.ts'), 'mcp'],
-      env: { KITFOLD_DATA_DIR: data.store.directory },
+      env: { RIGSHELF_DATA_DIR: data.store.directory },
       stderr: 'pipe',
     }),
   );

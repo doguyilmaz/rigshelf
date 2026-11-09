@@ -53,7 +53,7 @@ test('a missing interface chunk returns 404 instead of serving HTML as JavaScrip
 test('definition collisions and stale checked edits report HTTP 409 without returning the newer body or accepting unchecked fallbacks', async () => {
   const data = await serverFixture();
   const preset = data.store.get<Preset>('preset', 'expo')!;
-  const headers = { 'x-kitfold-token': data.token, 'content-type': 'application/json' };
+  const headers = { 'x-rigshelf-token': data.token, 'content-type': 'application/json' };
   const duplicate = await fetch(`${data.base}/api/presets`, {
     method: 'POST',
     headers,
@@ -116,7 +116,7 @@ test('forced socket shutdown still drains an in-flight source mutation after its
   try {
     const pending = actualFetch(`${data.base}/api/sources`, {
       method: 'POST',
-      headers: { 'x-kitfold-token': data.token, 'content-type': 'application/json' },
+      headers: { 'x-rigshelf-token': data.token, 'content-type': 'application/json' },
       body: JSON.stringify({ input: 'example/shutdown-fixture', research: true }),
     }).catch(() => undefined);
     await began;
@@ -164,7 +164,7 @@ test('AI draft requests use private JSON authorization, return metadata-only sta
   });
   const url = `${data.base}/api/ai/drafts`;
   expect((await fetch(url, { method: 'POST', body })).status).toBe(403);
-  const headers = { 'x-kitfold-token': data.token, 'content-type': 'application/json' };
+  const headers = { 'x-rigshelf-token': data.token, 'content-type': 'application/json' };
   expect(
     (
       await fetch(url, {
@@ -193,11 +193,11 @@ test('local HTTP rejects foreign origins and missing tokens, while the app sessi
   expect(
     (
       await fetch(`${base}/api/state`, {
-        headers: { 'x-kitfold-token': token, origin: 'https://malicious.example' },
+        headers: { 'x-rigshelf-token': token, origin: 'https://malicious.example' },
       })
     ).status,
   ).toBe(403);
-  const response = await fetch(`${base}/api/state`, { headers: { 'x-kitfold-token': token } });
+  const response = await fetch(`${base}/api/state`, { headers: { 'x-rigshelf-token': token } });
   expect(response.status).toBe(200);
   expect(response.headers.get('access-control-allow-origin')).toBeNull();
   expect(response.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
@@ -206,7 +206,7 @@ test('local HTTP rejects foreign origins and missing tokens, while the app sessi
 
 test('mutations require JSON and malformed input leaves the private store unchanged', async () => {
   const { base, token, store } = await serverFixture();
-  const headers = { 'x-kitfold-token': token };
+  const headers = { 'x-rigshelf-token': token };
   expect(
     (await fetch(`${base}/api/custom`, { method: 'POST', headers, body: 'name=bad' })).status,
   ).toBe(415);
@@ -223,7 +223,7 @@ test('metadata and source content are returned as data and cannot change securit
   const { base, token } = await serverFixture();
   const response = await fetch(`${base}/api/custom`, {
     method: 'POST',
-    headers: { 'x-kitfold-token': token, 'content-type': 'application/json' },
+    headers: { 'x-rigshelf-token': token, 'content-type': 'application/json' },
     body: JSON.stringify({
       name: 'xss-guide',
       description: '<img src=x onerror=alert(1)>',
@@ -246,7 +246,7 @@ test('native folder selection requires the private same-origin POST and does not
   });
   const url = `${data.base}/api/pick-directory`;
   const body = JSON.stringify({ initialPath: data.project });
-  const headers = { 'x-kitfold-token': data.token, 'content-type': 'application/json' };
+  const headers = { 'x-rigshelf-token': data.token, 'content-type': 'application/json' };
   expect((await fetch(url, { method: 'POST', body })).status).toBe(403);
   expect(
     (
@@ -259,7 +259,8 @@ test('native folder selection requires the private same-origin POST and does not
   ).toBe(403);
   expect((await fetch(url, { headers })).status).toBe(405);
   expect(
-    (await fetch(url, { method: 'POST', headers: { 'x-kitfold-token': data.token }, body })).status,
+    (await fetch(url, { method: 'POST', headers: { 'x-rigshelf-token': data.token }, body }))
+      .status,
   ).toBe(415);
   expect(
     (await fetch(url, { method: 'POST', headers, body: JSON.stringify({ command: 'untrusted' }) }))
@@ -280,7 +281,7 @@ test('the workbench opens at rigshelf.localhost and still refuses other hosts an
   const data = await serverFixture();
   const access = new URL(data.server.accessUrl);
   expect(access.hostname).toBe('rigshelf.localhost');
-  const headers = { 'x-kitfold-token': data.token };
+  const headers = { 'x-rigshelf-token': data.token };
   const request = (host: string, origin?: string) =>
     fetch(`${data.base}/api/state`, {
       headers: { ...headers, host: `${host}:${access.port}`, ...(origin ? { origin } : {}) },
@@ -339,11 +340,11 @@ test('a tunnelled workbench accepts its public port and prints the URL for it', 
   expect(access.host).toBe(`rigshelf.localhost:${publicPort}`);
   const token = new URLSearchParams(access.hash.slice(1)).get('access')!;
   const state = await fetch(`http://127.0.0.1:${publicPort}/api/state`, {
-    headers: { host: access.host, origin: access.origin, 'x-kitfold-token': token },
+    headers: { host: access.host, origin: access.origin, 'x-rigshelf-token': token },
   });
   expect(state.status).toBe(200);
   const foreign = await fetch(`http://127.0.0.1:${publicPort}/api/state`, {
-    headers: { host: `rigshelf.localhost:${publicPort + 1}`, 'x-kitfold-token': token },
+    headers: { host: `rigshelf.localhost:${publicPort + 1}`, 'x-rigshelf-token': token },
   });
   expect(foreign.status).toBe(403);
 });
@@ -358,12 +359,12 @@ test('an attached remote workbench names its machine in the state it serves', as
   });
   const token = new URLSearchParams(new URL(server.accessUrl).hash.slice(1)).get('access')!;
   const state = await (
-    await fetch(`http://127.0.0.1:${port}/api/state`, { headers: { 'x-kitfold-token': token } })
+    await fetch(`http://127.0.0.1:${port}/api/state`, { headers: { 'x-rigshelf-token': token } })
   ).json();
   expect(state.machine).toEqual({ remote: 'build-box' });
   const local = await serverFixture();
   const plain = await (
-    await fetch(`${local.base}/api/state`, { headers: { 'x-kitfold-token': local.token } })
+    await fetch(`${local.base}/api/state`, { headers: { 'x-rigshelf-token': local.token } })
   ).json();
   expect(plain.machine).toBeUndefined();
 });

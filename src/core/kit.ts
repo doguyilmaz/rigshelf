@@ -32,7 +32,7 @@ export function parseKit(text: string): Kit {
   return kit;
 }
 export async function readKit(project: string): Promise<Kit | undefined> {
-  const path = await assertWritePath(project, '.kitfold/kit.json');
+  const path = await assertWritePath(project, '.rigshelf/kit.json');
   const text = await readText(path, 4 * 1024 * 1024);
   return text === undefined ? undefined : parseKit(text);
 }

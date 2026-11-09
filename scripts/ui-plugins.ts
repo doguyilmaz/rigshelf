@@ -57,7 +57,7 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 1000
 await context.addInitScript(
   (filters) => {
     localStorage.setItem(
-      'agent-setup.library.v1',
+      'rigshelf:library:v1',
       JSON.stringify({ version: 1, filters, saved: [], grouping: 'none' }),
     );
   },

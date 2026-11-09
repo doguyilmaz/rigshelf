@@ -120,7 +120,9 @@ async function browserServer(executable: string, assets: StaticAsset[]): Promise
       (await fetch(`${url.origin}/api/state`)).status === 403,
       'Unauthenticated packaged API was accepted.',
     );
-    const state = await fetch(`${url.origin}/api/state`, { headers: { 'x-kitfold-token': token } });
+    const state = await fetch(`${url.origin}/api/state`, {
+      headers: { 'x-rigshelf-token': token },
+    });
     assert(
       state.status === 200 && Array.isArray((await state.json()).sources),
       'Packaged API/seed failed.',
@@ -223,26 +225,15 @@ async function check(archive: string): Promise<void> {
   );
   environment.RIGSHELF_DATA_DIR = join(fixture, `data-${crypto.randomUUID()}`);
   const executable = join(destination, portable ? 'bin/rigshelf' : 'rigshelf');
-  const alias = join(destination, portable ? 'bin/kitfold' : 'kitfold');
   const version = (await command(executable, ['--version'])).trim();
   assert(version === `Rigshelf ${VERSION}`, `Package version mismatch: ${version.slice(0, 120)}`);
-  assert(
-    (await command(alias, ['--version'])).trim() === `Rigshelf ${VERSION}`,
-    'Compatibility launcher failed.',
-  );
   const links = join(fixture, `linked launchers-${crypto.randomUUID()}`);
   await mkdir(links);
   const linkedExecutable = join(links, 'rigshelf');
-  const linkedAlias = join(links, 'kitfold');
   await symlink(relative(links, executable), linkedExecutable);
-  await symlink(relative(links, alias), linkedAlias);
   assert(
     (await command(linkedExecutable, ['--version'])).trim() === `Rigshelf ${VERSION}`,
     'Linked primary launcher failed.',
-  );
-  assert(
-    (await command(linkedAlias, ['--version'])).trim() === `Rigshelf ${VERSION}`,
-    'Linked compatibility launcher failed.',
   );
   assert(
     (await command(executable, ['--help'])).includes('rigshelf setup'),
@@ -268,9 +259,9 @@ async function check(archive: string): Promise<void> {
   );
   await browserServer(executable, assets);
   await mcp(executable);
-  await mcpProxy(linkedAlias);
+  await mcpProxy(linkedExecutable);
   process.stdout.write(
-    `PASS ${manifest.delivery}: inventory, checksums, unrelated cwd, CLI, alias, UI assets, API, stdio MCP and filtered bridge\n`,
+    `PASS ${manifest.delivery}: inventory, checksums, unrelated cwd, CLI, UI assets, API, stdio MCP and filtered bridge\n`,
   );
 }
 

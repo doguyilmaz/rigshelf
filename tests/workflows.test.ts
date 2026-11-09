@@ -26,7 +26,7 @@ test('quick setup uses preset recommendations, supports explicit empty kits and 
   sampleSkill(store, 'react-native-best-practices');
   const preview = await setupProject(store, project, { providers: ['codex'], presetId: 'expo' });
   expect(preview.entries).toHaveLength(1);
-  expect(await Bun.file(join(project, '.kitfold/kit.json')).exists()).toBe(false);
+  expect(await Bun.file(join(project, '.rigshelf/kit.json')).exists()).toBe(false);
   const empty = await setupProject(store, join(root, 'greenfield'), {
     providers: ['claude'],
     presetId: 'expo',
@@ -156,7 +156,7 @@ test('automatic additions preserve requirements and pause on managed file drift'
   expect(await Bun.file(join(project, '.agents/skills/better-auth/SKILL.md')).exists()).toBe(false);
   await Bun.write(join(project, '.agents/skills/project-guide/SKILL.md'), guide.body);
   await checkProject(store, project, true);
-  const kit = parseKit(await Bun.file(join(project, '.kitfold/kit.json')).text());
+  const kit = parseKit(await Bun.file(join(project, '.rigshelf/kit.json')).text());
   expect(kit.requirements).toBe('A small Go API');
   expect(kit.presetId).toBe('go');
   expect(await Bun.file(join(project, '.agents/skills/better-auth/SKILL.md')).exists()).toBe(true);

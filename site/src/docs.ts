@@ -119,13 +119,6 @@ export const guides = [
     description: 'The checks behind each change and what they cover.',
   },
   {
-    slug: 'branding',
-    source: 'docs/BRANDING.md',
-    title: 'Brand & compatibility',
-    group: 'Reference',
-    description: 'The Rigshelf identity and retained protocol names.',
-  },
-  {
     slug: 'contributing',
     source: 'CONTRIBUTING.md',
     title: 'Contributing',

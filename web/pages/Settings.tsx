@@ -63,7 +63,7 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
     setBusy(true);
     try {
       const response = await fetch(`/api/library-export?expected=${encodeURIComponent(expected)}`, {
-        headers: { 'x-kitfold-token': accessToken() },
+        headers: { 'x-rigshelf-token': accessToken() },
       });
       if (!response.ok) throw new Error((await response.json()).error);
       const blob = await response.blob();
@@ -73,7 +73,7 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
       link.download = `rigshelf-library-${new Date().toISOString().slice(0, 10)}.json.gz`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      const excluded = Number(response.headers.get('x-kitfold-excluded') || 0);
+      const excluded = Number(response.headers.get('x-rigshelf-excluded') || 0);
       notify(
         excluded
           ? t(
@@ -110,7 +110,7 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
   async function upload(data: Blob, apply: boolean): Promise<NonNullable<typeof preview>> {
     const response = await fetch(`/api/library-import?apply=${apply ? '1' : '0'}`, {
       method: 'POST',
-      headers: { 'x-kitfold-token': accessToken(), 'content-type': 'application/gzip' },
+      headers: { 'x-rigshelf-token': accessToken(), 'content-type': 'application/gzip' },
       body: data,
     });
     const result = await response.json();
@@ -357,13 +357,6 @@ export function Settings({ state, refresh, notify, navigate }: PageProps): React
             <h3>{t('Library storage')}</h3>
             <p>{t('The catalog and snapshots live outside your project source.')}</p>
             <code>{shortPath(state.dataDirectory)}</code>
-            {state.legacyDataDirectory && (
-              <p className="storage-compatibility-note">
-                {t(
-                  'This folder keeps the earlier Kitfold name so your existing library and recovery history stay available. Rigshelf has not moved or duplicated your data.',
-                )}
-              </p>
-            )}
             <div className="button-row">
               <Button onClick={() => navigate('backups')}>{t('Manage backups')}</Button>
               <Button variant="secondary" onClick={() => navigate('machines')}>

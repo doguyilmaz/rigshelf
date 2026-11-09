@@ -97,8 +97,8 @@ export async function missingDirectories(
   return [...missing].sort((left, right) => right.split('/').length - left.split('/').length);
 }
 
-const START = '<!-- kitfold:begin -->';
-const END = '<!-- kitfold:end -->';
+const START = '<!-- rigshelf:begin -->';
+const END = '<!-- rigshelf:end -->';
 export function managedBlock(before: string | null, content: string): string {
   const eol = before?.includes('\r\n') ? '\r\n' : '\n';
   const block = `${START}\n${content.trim()}\n${END}`.replace(/\r?\n/g, eol);
@@ -299,7 +299,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
       );
   }
   const directives = activeRules.map((rule) => `### ${rule.name}\n${rule.content}`).join('\n\n');
-  const rules = `## Project guidance\n\nNarrower project-specific guidance takes precedence over shared guidance when they conflict.\n\n${directives}\n\n## Active kit\n\nThe active kit is pinned in .kitfold/kit.json. Use native skill discovery and read skill instructions on demand. Never load the entire library into context.`;
+  const rules = `## Project guidance\n\nNarrower project-specific guidance takes precedence over shared guidance when they conflict.\n\n${directives}\n\n## Active kit\n\nThe active kit is pinned in .rigshelf/kit.json. Use native skill discovery and read skill instructions on demand. Never load the entire library into context.`;
   for (const provider of [...new Set(input.providers)]) {
     const spec = adapter(provider);
     const mcpFile = await projectMcpFile(projectPath, provider);
@@ -307,7 +307,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     for (const [name, definition] of Object.entries(selectedMcp)) {
       const reason = bridgeReason(definition, provider);
       if (reason) {
-        const path = `.kitfold/mcp/${name}.json`;
+        const path = `.rigshelf/mcp/${name}.json`;
         await add(
           path,
           Buffer.from(`${JSON.stringify(definition, null, 2)}\n`).toString('base64'),
@@ -416,7 +416,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
   for (const [path, expectedHash] of Object.entries(previousHashes))
     if (
       (/^\.(?:agents|claude|codex|kiro|grok)\/skills\//.test(path) ||
-        /^\.kitfold\/mcp\//.test(path)) &&
+        /^\.rigshelf\/mcp\//.test(path)) &&
       !intended.has(path)
     ) {
       const target = await assertWritePath(projectPath, path);
@@ -475,7 +475,7 @@ export async function createPlan(store: Store, raw: SetupRequest): Promise<Plan>
     2,
   )}\n`;
   await add(
-    '.kitfold/kit.json',
+    '.rigshelf/kit.json',
     Buffer.from(manifest).toString('base64'),
     'Record pinned kit and managed file hashes',
     true,

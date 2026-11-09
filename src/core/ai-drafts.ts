@@ -121,7 +121,7 @@ export function maskAiText(input: string): string {
         /* Ordinary authored text. */
       }
       return sensitive && !/^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(masked)
-        ? changed('${KITFOLD_SECRET}')
+        ? changed('${RIGSHELF_SECRET}')
         : masked;
     }
     if (Array.isArray(value)) return value.map((item) => visit(item, depth + 1, sensitive));
@@ -136,7 +136,7 @@ export function maskAiText(input: string): string {
           return [key, visit(field, depth + 1, fieldIsSensitive)];
         }),
       );
-    return sensitive && typeof value === 'number' ? changed('${KITFOLD_SECRET}') : value;
+    return sensitive && typeof value === 'number' ? changed('${RIGSHELF_SECRET}') : value;
   };
   return String(visit(input, 0));
 }

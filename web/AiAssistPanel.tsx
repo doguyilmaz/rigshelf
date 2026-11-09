@@ -34,7 +34,7 @@ export interface AiAssistProps {
   compact?: boolean;
   onSourceInput?: (input: string) => void;
 }
-const PREFERENCE_KEY = 'kitfold:ai-provider:v1';
+const PREFERENCE_KEY = 'rigshelf:ai-provider:v1';
 function remembered(): {
   runner?: AiRequest['runner'];
   model?: string;

@@ -14,7 +14,7 @@ export function requestDiscard(action: () => void, key?: string): void {
     return;
   }
   window.dispatchEvent(
-    new CustomEvent<DiscardRequest>('kitfold-discard', {
+    new CustomEvent<DiscardRequest>('rigshelf-discard', {
       detail: {
         labels: [...new Set(ids.map((id) => drafts.get(id)!.label))],
         proceed: action,

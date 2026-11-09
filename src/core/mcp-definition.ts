@@ -13,7 +13,7 @@ const CREDENTIAL_QUERY =
 const PUBLIC_HEADER = /^(?:accept|content-type|x-region|mcp-protocol-version)$/i;
 const PUBLIC_ENV =
   /^(?:NODE_ENV|BUN_ENV|MODE|LOG_LEVEL|DEBUG|PORT|TZ|LANG|LC_ALL|NO_COLOR|FORCE_COLOR|CI|MCP_TRANSPORT|MCP_PORT|MCP_HOST)$/i;
-const SECRET_REFERENCE = '${KITFOLD_SECRET}';
+const SECRET_REFERENCE = '${RIGSHELF_SECRET}';
 
 export function isMcpReference(value: string): boolean {
   return /^(?:Bearer )?\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(value);
@@ -81,7 +81,7 @@ export function maskMcpCredentials(definition: Mcp): Mcp {
           ? value
           : PUBLIC_HEADER.test(key)
             ? redact(value)
-            : `\${KITFOLD_${key.toUpperCase().replace(/[^A-Z0-9]/g, '_')}}`,
+            : `\${RIGSHELF_${key.toUpperCase().replace(/[^A-Z0-9]/g, '_')}}`,
       ]),
     ),
   };

@@ -48,7 +48,7 @@ test('private HTTP backup routes reject unauthorized requests and drain a cancel
   const server = startServer(data.store, port, { backupTransport: factory });
   const base = `http://127.0.0.1:${port}`;
   const token = new URLSearchParams(new URL(server.accessUrl).hash.slice(1)).get('access')!;
-  const headers = { 'x-kitfold-token': token, 'content-type': 'application/json' };
+  const headers = { 'x-rigshelf-token': token, 'content-type': 'application/json' };
   try {
     const unauthorized = await fetch(`${base}/api/backup-reviews/${review.id}/sync`, {
       method: 'POST',

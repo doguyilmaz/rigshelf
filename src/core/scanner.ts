@@ -107,7 +107,7 @@ async function discoverProjects(
       (name) =>
         [
           '.git',
-          '.kitfold',
+          '.rigshelf',
           'package.json',
           'go.mod',
           'Package.swift',
@@ -589,7 +589,7 @@ export async function scan(
         ? (
             await ownedProject(store, target.project.path).catch((error) => {
               result.skipped.push(
-                `${target.root}/.kitfold/kit.json: ${error instanceof Error ? error.message : 'Invalid kit manifest'}`,
+                `${target.root}/.rigshelf/kit.json: ${error instanceof Error ? error.message : 'Invalid kit manifest'}`,
               );
               return undefined;
             })

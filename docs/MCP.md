@@ -11,7 +11,7 @@ rigshelf connection --agents claude
 rigshelf connection --agents codex
 ```
 
-The command prints a target file and configuration; it does not edit that file. Without linking, use `bun run rigshelf connection --agents codex` from the checkout. The generated process still needs its configured executable on the Harness's `PATH`. See [compatibility](COMPATIBILITY.md) for the six native formats. Keep one catalog connection per Harness, including when replacing an older `kitfold` connection.
+The command prints a target file and configuration; it does not edit that file. Without linking, use `bun run rigshelf connection --agents codex` from the checkout. The generated process still needs its configured executable on the Harness's `PATH`. See [compatibility](COMPATIBILITY.md) for the six native formats. Keep one catalog connection per Harness.
 
 For example, a Claude-style project connection is:
 

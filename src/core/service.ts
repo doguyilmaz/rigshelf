@@ -19,7 +19,6 @@ import { backupRoute } from './backup-routes';
 import type { BackupTransportFactory } from './backup-transport';
 import { connection } from './connection';
 import { contentPreview } from './content-preview';
-import { usesLegacyDirectoryName } from './data-directory';
 import {
   removePreset,
   removeRule,
@@ -93,7 +92,6 @@ export function state(store: Store): unknown {
     lastScan: store.get('scan', 'last'),
     scan: scanProgress,
     dataDirectory: store.directory,
-    legacyDataDirectory: usesLegacyDirectoryName(store.directory),
     approvals: store.list('approval'),
     trust: store.list('trust'),
     recoveries: store

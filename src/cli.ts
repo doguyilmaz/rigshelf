@@ -61,7 +61,7 @@ const help = `Rigshelf · Project setup for coding agents
   rigshelf --version                           Show the installed version
   rigshelf connection --agents codex [--write --root /project]  Render MCP connection settings
 
-RIGSHELF_DATA_DIR overrides private storage; KITFOLD_DATA_DIR remains compatible.
+RIGSHELF_DATA_DIR overrides private storage.
 The default port advances when occupied. Explicit --port never moves.
 Access survives restarts. --reset-access invalidates old URLs for the next server start.
 ${machineHelp}${backupHelp}`;

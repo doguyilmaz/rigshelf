@@ -48,22 +48,22 @@ test('recovery restores the baseline after an interrupted apply and clears only 
   await Bun.write(join(project, change.path), Buffer.from(change.after!, 'base64'));
   const interrupted = plan.changes[1];
   await Bun.write(
-    join(project, `${interrupted.path}.kitfold-0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c`),
+    join(project, `${interrupted.path}.rigshelf-0b6d1c1e-2f4a-4c8e-9a51-6d2f3e4a5b6c`),
     'partial',
   );
-  await Bun.write(join(project, `${interrupted.path}.kitfold-notes`), 'not a temporary file');
+  await Bun.write(join(project, `${interrupted.path}.rigshelf-notes`), 'not a temporary file');
   store.put('journal', { id: plan.id, direction: 'apply', state: 'writing' });
   await Bun.write(
-    join(project, '.kitfold-write.lock'),
+    join(project, '.rigshelf-write.lock'),
     JSON.stringify({ pid: 99999999, planId: plan.id }),
   );
   const recovered = await recoverPlan(store, plan.id);
   expect(recovered.status).toBe('planned');
   expect(await Bun.file(join(project, change.path)).exists()).toBe(false);
-  expect(await Bun.file(join(project, '.kitfold-write.lock')).exists()).toBe(false);
+  expect(await Bun.file(join(project, '.rigshelf-write.lock')).exists()).toBe(false);
   const remaining = await readdir(project, { recursive: true });
-  expect(remaining.filter((path) => path.includes('.kitfold-0b6d'))).toEqual([]);
-  expect(remaining.some((path) => path.endsWith('.kitfold-notes'))).toBe(true);
+  expect(remaining.filter((path) => path.includes('.rigshelf-0b6d'))).toEqual([]);
+  expect(remaining.some((path) => path.endsWith('.rigshelf-notes'))).toBe(true);
   await executePlan(store, plan.id, 'apply');
   expect(store.get<{ state: string }>('journal', plan.id)?.state).toBe('complete');
 });
@@ -71,7 +71,7 @@ test('recovery restores the baseline after an interrupted apply and clears only 
 test('recovery does not interrupt a live writer or delete its lock', async () => {
   const { store, project, plan } = await setup();
   store.put('journal', { id: plan.id, direction: 'apply', state: 'writing' });
-  const path = join(project, '.kitfold-write.lock');
+  const path = join(project, '.rigshelf-write.lock');
   await Bun.write(path, JSON.stringify({ pid: process.pid, planId: plan.id }));
   await expect(recoverPlan(store, plan.id)).rejects.toThrow('running process');
   expect(await Bun.file(path).exists()).toBe(true);

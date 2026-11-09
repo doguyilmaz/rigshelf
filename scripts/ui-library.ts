@@ -194,9 +194,7 @@ try {
   checks.push(
     'An archived-only Library is recoverable through Show all items, which restores visibility without deleting or changing Snapshot content.',
   );
-  const beforePreferences = await page.evaluate(() =>
-    localStorage.getItem('agent-setup.library.v1'),
-  );
+  const beforePreferences = await page.evaluate(() => localStorage.getItem('rigshelf:library:v1'));
   const beforeEntries = data.store.entries(true).length;
   const beforeSources = data.store.sources().length;
   const network: string[] = [];
@@ -213,7 +211,7 @@ try {
   expect(network).toHaveLength(0);
   expect(data.store.entries(true).length).toBe(beforeEntries);
   expect(data.store.sources().length).toBe(beforeSources);
-  expect(await page.evaluate(() => localStorage.getItem('agent-setup.library.v1'))).toBe(
+  expect(await page.evaluate(() => localStorage.getItem('rigshelf:library:v1'))).toBe(
     beforePreferences,
   );
   checks.push(
